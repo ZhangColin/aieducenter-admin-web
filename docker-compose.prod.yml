@@ -1,0 +1,27 @@
+# 管理后台前端 - 生产环境 Docker Compose 配置
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aieducenter-admin-web
+    environment:
+      - BACKEND_URL=${BACKEND_URL:-http://aieducenter-admin:8081}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    external: true
