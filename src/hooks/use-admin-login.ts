@@ -32,8 +32,8 @@ export function useAdminLogin() {
         const params: LoginParams = { username, password, rememberMe }
         const tokenInfo = await adminLogin(params)
 
-        // 2. 获取用户信息
-        const userResponse = await getCurrentAdmin()
+        // 2. 用刚获取的 token 请求用户信息
+        const userResponse = await getCurrentAdmin(tokenInfo.token)
 
         // 3. 转换数据格式
         const user = transformUser(userResponse)

@@ -65,10 +65,7 @@ export default function AdminLoginPage() {
 
             {/* Password Input */}
             <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">密码</label>
-                <a className="text-xs text-primary hover:underline" href="#">忘记密码？</a>
-              </div>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">密码</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">lock</span>
                 <input
@@ -91,7 +88,7 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
+            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between py-1">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input
@@ -102,6 +99,7 @@ export default function AdminLoginPage() {
                 />
                 <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200">记住我</span>
               </label>
+              <a className="text-xs text-primary hover:underline" href="#">忘记密码？</a>
             </div>
 
             {/* Login Button */}

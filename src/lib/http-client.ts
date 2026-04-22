@@ -1,4 +1,5 @@
 import { useAdminAuthStore } from './admin-auth-store'
+import { toast } from 'sonner'
 
 // 后端统一响应格式
 interface ApiResponse<T> {
@@ -14,6 +15,19 @@ export class HttpClient {
     this.baseUrl = baseUrl
   }
 
+  private handle401() {
+    useAdminAuthStore.getState().logout()
+    if (window.location.pathname === '/') {
+      return
+    }
+    toast.error('登录已过期，请重新登录', {
+      duration: 2000,
+      onAutoClose: () => {
+        window.location.href = '/'
+      },
+    })
+  }
+
   private getDefaultError(status: number): string {
     const errorMap: Record<number, string> = {
       401: '用户名或密码错误',
@@ -27,9 +41,10 @@ export class HttpClient {
   private async request<T>(
     method: string,
     url: string,
-    data?: object
+    data?: object,
+    overrideToken?: string
   ): Promise<T> {
-    const token = useAdminAuthStore.getState().token
+    const token = overrideToken || useAdminAuthStore.getState().token
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -51,8 +66,7 @@ export class HttpClient {
 
       // 统一处理 401
       if (response.status === 401) {
-        useAdminAuthStore.getState().logout()
-        window.location.href = '/'
+        this.handle401()
         throw new Error('未登录或登录已过期')
       }
 
@@ -74,19 +88,19 @@ export class HttpClient {
     }
   }
 
-  async get<T>(url: string): Promise<T> {
-    return this.request<T>('GET', url)
+  async get<T>(url: string, token?: string): Promise<T> {
+    return this.request<T>('GET', url, undefined, token)
   }
 
-  async post<T>(url: string, data?: object): Promise<T> {
-    return this.request<T>('POST', url, data)
+  async post<T>(url: string, data?: object, token?: string): Promise<T> {
+    return this.request<T>('POST', url, data, token)
   }
 
-  async put<T>(url: string, data?: object): Promise<T> {
-    return this.request<T>('PUT', url, data)
+  async put<T>(url: string, data?: object, token?: string): Promise<T> {
+    return this.request<T>('PUT', url, data, token)
   }
 
-  async delete<T>(url: string): Promise<T> {
-    return this.request<T>('DELETE', url)
+  async delete<T>(url: string, token?: string): Promise<T> {
+    return this.request<T>('DELETE', url, undefined, token)
   }
 }

@@ -47,8 +47,8 @@ export async function adminLogin(params: LoginParams): Promise<TokenInfo> {
 /**
  * 获取当前管理员信息
  */
-export async function getCurrentAdmin(): Promise<CurrentUserResponse> {
-  return httpClient.get<CurrentUserResponse>('/auth/current')
+export async function getCurrentAdmin(token?: string): Promise<CurrentUserResponse> {
+  return httpClient.get<CurrentUserResponse>('/auth/current', token)
 }
 
 /**
