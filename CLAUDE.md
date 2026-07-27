@@ -1,64 +1,37 @@
-# CLAUDE.md
+# aieducenter-admin-web
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## 常用命令
-
-- 开发：`pnpm dev`（端口 3001）
-- 构建：`pnpm build`
-- 类型检查：`pnpm typecheck`
-- 代码检查：`pnpm lint`
+前端项目，基于 Next.js。
 
 ## 技术栈
 
-- Next.js 15 App Router / React 19 / TypeScript（strict mode）
-- shadcn-ui + Radix UI + Tailwind CSS（dark mode: class 策略）
-- Zustand（persist middleware）状态管理
-- 路径别名：`@/*` → `./src/*`
+- Next.js 15（App Router）/ React 19 / TypeScript（strict）
+- Tailwind CSS / Zustand / pnpm
+- 路径别名：`@/*` → `./src/*`，工具函数：`@/lib/utils`（cn）
 
-## 架构概览
+## 常用命令
 
-### API 层
+- 开发：`pnpm dev`（端口 10002）
+- 构建：`pnpm build`
+- 代码检查：`pnpm lint`
+- 类型检查：`pnpm typecheck`
 
-`HttpClient`（`src/lib/http-client.ts`）封装所有请求，baseUrl 为 `/api/admin`。
+## 编码规范
 
-- 自动注入 Bearer token（从 Zustand store 读取）
-- 401 响应自动登出并跳转 `/`
-- 后端统一响应格式：`{ code: number, message: string, data: T }`，code 200 为成功
-- `credentials: 'include'` 携带 cookie（后端 Sa-Token 需要）
+- 函数组件 + hooks，禁止 class 组件
+- 状态管理：Zustand store，放 `src/lib/store/`
+- 样式：Tailwind CSS，用 `cn()` 合并类名
+- API 调用：通过 Next.js rewrite 代理 `/api/*` → 后端，前端直接 fetch
 
-具体业务 API 在 `src/lib/admin-api.ts`。
+## Agent skills
 
-### 认证
+### Issue tracker
 
-`useAdminAuthStore`（`src/lib/admin-auth-store.ts`）管理 token 和当前用户信息，通过 Zustand persist 持久化到 localStorage（key: `aieducenter-admin-auth`）。
+Issues are tracked as GitHub issues in this repo (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
 
-用户信息包含 `roleCodes`、`menus`、`permissions`，用于前端权限控制。
+### Triage labels
 
-### API 代理
+Default five-label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
 
-开发时通过 `next.config.mjs` rewrites 将 `/api/*` 代理到后端（默认 `http://localhost:8081`）。
+### Domain docs
 
-生产环境通过 `BACKEND_URL` 环境变量配置后端地址。
-
-### 页面结构
-
-- `/` — 登录页
-- `/dashboard` — 主后台（带 sidebar + header 布局）
-- `/showcase` — UI 组件展示页
-
-### 组件约定
-
-- UI 基础组件：`src/components/ui/`（shadcn/ui，使用 CVA 变体模式）
-- 业务组件：`src/components/admin/`
-- 新增 shadcn 组件用 `npx shadcn@latest add <component>` 生成
-
-### 主题
-
-支持 light/dark 双主题，CSS 变量定义在 `globals.css`，通过 `next-themes` ThemeProvider 切换。主色：`#308ce8`。
-
-### Docker 部署
-
-- 开发：`docker-compose -f docker-compose.dev.yml up -d`
-- 生产：`docker-compose -f docker-compose.prod.yml up -d`
-- Next.js output 设为 `standalone`，配合多阶段 Docker 构建
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
