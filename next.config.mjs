@@ -1,16 +1,8 @@
 /** @type {import('next').NextConfig} */
+// /api/* 反向代理与页面守卫统一在 src/middleware.ts，此处不再配置 rewrites（避免双反代）。
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  rewrites: async () => {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8081'
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      },
-    ]
-  },
 }
 
 export default nextConfig

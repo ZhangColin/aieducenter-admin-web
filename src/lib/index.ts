@@ -3,6 +3,7 @@ export type { CurrentAdminUser, MenuResponse } from './admin-auth-store'
 export { HttpClient } from './http-client'
 export {
   adminLogin,
+  adminLogout,
   getCurrentAdmin,
   transformUser,
 } from './admin-api'

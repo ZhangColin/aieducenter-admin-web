@@ -16,10 +16,12 @@ export class HttpClient {
   }
 
   private handle401() {
-    useAdminAuthStore.getState().logout()
+    // 登录页（/）的 401 是凭证错误（如密码输错），不应清掉可能仍有效的会话；
+    // 仅受保护页面的 401（会话过期）才登出 + 清 cookie。
     if (window.location.pathname === '/') {
       return
     }
+    useAdminAuthStore.getState().logout()
     toast.error('登录已过期，请重新登录', {
       duration: 2000,
       onAutoClose: () => {

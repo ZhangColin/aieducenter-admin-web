@@ -52,6 +52,13 @@ export async function getCurrentAdmin(token?: string): Promise<CurrentUserRespon
 }
 
 /**
+ * 退出登录（best-effort：调用方应捕获错误并继续清理本地状态）
+ */
+export async function adminLogout(): Promise<void> {
+  return httpClient.post<void>('/auth/logout')
+}
+
+/**
  * 转换后端用户数据为前端格式
  */
 export function transformUser(

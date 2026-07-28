@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { setAuthTokenCookie, clearAuthTokenCookie } from './auth-cookie'
 
 export interface MenuResponse {
   id: number
@@ -29,7 +30,7 @@ interface AdminAuthState {
   token: string | null
   currentUser: CurrentAdminUser | null
   isAuthenticated: boolean
-  login: (token: string, user: CurrentAdminUser) => void
+  login: (token: string, user: CurrentAdminUser, rememberMe?: boolean) => void
   logout: () => void
   setCurrentUser: (user: CurrentAdminUser) => void
 }
@@ -40,8 +41,14 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       token: null,
       currentUser: null,
       isAuthenticated: false,
-      login: (token, user) => set({ token, currentUser: user, isAuthenticated: true }),
-      logout: () => set({ token: null, currentUser: null, isAuthenticated: false }),
+      login: (token, user, rememberMe = false) => {
+        setAuthTokenCookie(token, rememberMe) // 镜像 cookie 供 middleware 守卫
+        set({ token, currentUser: user, isAuthenticated: true })
+      },
+      logout: () => {
+        clearAuthTokenCookie() // 清镜像 cookie，使 401 自动登出顺带清守卫 cookie
+        set({ token: null, currentUser: null, isAuthenticated: false })
+      },
       setCurrentUser: (user) => set({ currentUser: user }),
     }),
     {

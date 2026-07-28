@@ -38,8 +38,8 @@ export function useAdminLogin() {
         // 3. 转换数据格式
         const user = transformUser(userResponse)
 
-        // 4. 存储到状态管理
-        authLogin(tokenInfo.token, user)
+        // 4. 存储到状态管理（同时镜像写 cookie，rememberMe 决定 max-age）
+        authLogin(tokenInfo.token, user, rememberMe)
 
         // 5. 跳转到 dashboard
         router.push('/dashboard')
