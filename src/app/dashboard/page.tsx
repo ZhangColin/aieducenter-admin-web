@@ -1,26 +1,6 @@
-'use client'
-
-import { useState } from 'react'
-import { DashboardSidebar } from '@/components/admin/dashboard-sidebar'
-import { DashboardHeader } from '@/components/admin/dashboard-header'
-
 export default function DashboardPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-
   return (
-    <div className={`flex h-screen overflow-hidden ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* Two-Tier Navigation System */}
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader />
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+    <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Tenants */}
@@ -270,8 +250,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+    </>
   )
 }

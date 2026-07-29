@@ -1,5 +1,5 @@
 import { HttpClient } from './http-client'
-import type { CurrentAdminUser } from './admin-auth-store'
+import type { CurrentAdminUser, MenuResponse } from './admin-auth-store'
 
 const httpClient = new HttpClient()
 
@@ -31,7 +31,7 @@ export interface CurrentUserResponse {
     updatedAt: string
   }
   roleCodes: string[]
-  menus: any[]
+  menus: MenuResponse[]
   permissions: string[]
 }
 
@@ -56,6 +56,111 @@ export async function getCurrentAdmin(token?: string): Promise<CurrentUserRespon
  */
 export async function adminLogout(): Promise<void> {
   return httpClient.post<void>('/auth/logout')
+}
+
+// ========== 用户管理（Users）==========
+
+/** 后端 PageResponse<T>：响应 page 为 1-based（前端请求 page 0-based，见 listUsers）。 */
+export interface PageResponse<T> {
+  items: T[]
+  total: number
+  page: number  // 1-based（仅展示参考；前端用本地 page + total 驱动分页）
+  size: number
+}
+
+/**
+ * 后端 AdminUserResponse。status 为枚举 code（1=ACTIVE, 0=DISABLED）。
+ * id 为后端 Long（雪花 id，超 JS 安全整数），后端以**字符串**序列化 → 此处保持 string，
+ * 避免精度丢失（与 store 中 loginId 取 String 同理）。
+ */
+export interface AdminUser {
+  id: string
+  username: string
+  nickname: string
+  email: string | null
+  phone: string | null
+  avatar: string | null
+  status: number  // 1=激活, 0=禁用
+  statusName: string | null
+  breakGlass: boolean  // 破窗账号（内置超管）：前端据此拦截删除等危险操作
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminUserListParams {
+  /** 0-based 页码（第一页传 0） */
+  page: number
+  size: number
+  /** 关键字（用户名/昵称/邮箱模糊） */
+  keyword?: string
+  /** 状态筛选：1=激活, 0=禁用；undefined=全部 */
+  status?: number
+  /** 用户名模糊（与 keyword 独立） */
+  username?: string
+}
+
+export interface CreateAdminUserParams {
+  username: string
+  password: string
+  nickname: string
+  email?: string
+  phone?: string
+}
+
+export interface UpdateAdminUserParams {
+  nickname?: string
+  email?: string
+  phone?: string
+  avatar?: string
+}
+
+export interface ResetPasswordParams {
+  newPassword: string
+}
+
+/** 查询用户列表（分页）。请求 page 0-based，按后端 Pageable 约定。 */
+export async function listUsers(
+  params: AdminUserListParams
+): Promise<PageResponse<AdminUser>> {
+  const qs = new URLSearchParams()
+  qs.set('page', String(params.page))
+  qs.set('size', String(params.size))
+  if (params.keyword) qs.set('keyword', params.keyword)
+  if (params.status !== undefined) qs.set('status', String(params.status))
+  if (params.username) qs.set('username', params.username)
+  // 后端 long total 以字符串序列化，此处归一化为 number 供前端分页计算。
+  const res = await httpClient.get<PageResponse<AdminUser>>(`/users?${qs.toString()}`)
+  return { ...res, total: Number(res.total) }
+}
+
+/** 查询用户详情。 */
+export async function getUser(id: string): Promise<AdminUser> {
+  return httpClient.get<AdminUser>(`/users/${id}`)
+}
+
+/** 新建用户，返回新用户 id（后端 Long，字符串）。 */
+export async function createUser(params: CreateAdminUserParams): Promise<string> {
+  return httpClient.post<string>('/users', params)
+}
+
+/** 更新用户（nickname/email/phone/avatar）。 */
+export async function updateUser(id: string, params: UpdateAdminUserParams): Promise<void> {
+  return httpClient.put<void>(`/users/${id}`, params)
+}
+
+/** 删除用户。 */
+export async function deleteUser(id: string): Promise<void> {
+  return httpClient.delete<void>(`/users/${id}`)
+}
+
+/** 修改用户启停状态：status=1 激活 / 0 禁用（query param）。 */
+export async function updateUserStatus(id: string, status: number): Promise<void> {
+  return httpClient.put<void>(`/users/${id}/status?status=${status}`)
+}
+
+/** 重置用户密码。 */
+export async function resetUserPassword(id: string, params: ResetPasswordParams): Promise<void> {
+  return httpClient.put<void>(`/users/${id}/password`, params)
 }
 
 /**

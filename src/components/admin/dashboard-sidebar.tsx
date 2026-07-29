@@ -1,22 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 interface DashboardSidebarProps {
   collapsed: boolean
   onToggle: () => void
 }
 
-export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps) {
-  const [activeTier, setActiveTier] = useState('dashboard')
+interface TierButton {
+  id: string
+  icon: string
+  title: string
+  /** 已落地的路由；无则渲染为禁用占位（页面未建）。 */
+  href?: string
+}
 
-  const tierButtons = [
-    { id: 'dashboard', icon: 'dashboard', title: '控制台' },
+export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps) {
+  const pathname = usePathname()
+
+  const tierButtons: TierButton[] = [
+    { id: 'dashboard', icon: 'dashboard', title: '控制台', href: '/dashboard' },
     { id: 'tenants', icon: 'corporate_fare', title: '租户管理' },
-    { id: 'users', icon: 'group', title: '用户管理' },
+    { id: 'users', icon: 'group', title: '用户管理', href: '/dashboard/users' },
     { id: 'models', icon: 'memory', title: '模型能力' },
     { id: 'finance', icon: 'account_balance_wallet', title: '财务管理' },
   ]
+
+  const isActive = (href: string) =>
+    href === '/dashboard'
+      ? pathname === '/dashboard'
+      : pathname === href || pathname.startsWith(`${href}/`)
 
   return (
     <div className="flex flex-shrink-0">
@@ -33,20 +47,35 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
 
         {/* Navigation Icons */}
         <nav className="flex flex-col gap-4">
-          {tierButtons.map((btn) => (
-            <button
-              key={btn.id}
-              className={`size-12 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${
-                activeTier === btn.id
-                  ? 'first-tier-active shadow-md'
-                  : ''
-              }`}
-              title={btn.title}
-              onClick={() => setActiveTier(btn.id)}
-            >
-              <span className="material-symbols-outlined">{btn.icon}</span>
-            </button>
-          ))}
+          {tierButtons.map((btn) => {
+            const active = btn.href ? isActive(btn.href) : false
+            const iconClass = `size-12 flex items-center justify-center rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${
+              active ? 'first-tier-active shadow-md' : ''
+            }`
+            const inner = <span className="material-symbols-outlined">{btn.icon}</span>
+
+            return btn.href ? (
+              <Link
+                key={btn.id}
+                href={btn.href}
+                className={iconClass}
+                title={btn.title}
+                aria-current={active ? 'page' : undefined}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <button
+                key={btn.id}
+                type="button"
+                disabled
+                className={`${iconClass} cursor-not-allowed opacity-60`}
+                title={`${btn.title}（敬请期待）`}
+              >
+                {inner}
+              </button>
+            )
+          })}
 
           <div className="h-px w-8 bg-slate-100 dark:bg-slate-800 my-2" />
 

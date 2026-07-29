@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAdminAuthStore } from '@/lib/admin-auth-store'
 import { adminLogout } from '@/lib/admin-api'
+import { useHydrated, useOutsideClick } from '@/hooks'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -12,25 +13,13 @@ export function DashboardHeader() {
   const currentUser = useAdminAuthStore((s) => s.currentUser)
   const logout = useAdminAuthStore((s) => s.logout)
 
-  const [mounted, setMounted] = useState(false)
+  const mounted = useHydrated()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // 等 client 挂载后再读 store，避免 SSR 与 hydrate 后的用户信息不一致闪烁
-  useEffect(() => setMounted(true), [])
-
-  // 点击菜单外部关闭
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
+  // 点击菜单外部关闭（菜单打开时启用）
+  useOutsideClick([menuRef], () => setMenuOpen(false), menuOpen)
 
   const handleLogout = async () => {
     setLoggingOut(true)

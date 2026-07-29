@@ -40,3 +40,18 @@ export {
   TableCell,
   TableCaption
 } from './table'
+
+export { Badge, badgeVariants } from './badge'
+
+export { Switch } from './switch'
+export type { SwitchProps } from './switch'
+
+export { Checkbox } from './checkbox'
+export type { CheckboxProps } from './checkbox'
+
+export { Select } from './select'
+export type { SelectOption, SelectProps } from './select'
+
+export { DropdownMenu, DropdownMenuItem } from './dropdown-menu'
+
+export { Pagination } from './pagination'
