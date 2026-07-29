@@ -1,27 +1,37 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 /**
  * 监听 ref 集合外部的鼠标/触摸点击，触发 handler。
  * 用于 Select / DropdownMenu 等弹出层的「点外部收起」。
  * 传入多个 ref（如 trigger + portal 菜单）时，点击任一内部均不收起。
  *
- * ref 对象本身稳定，仅在事件触发时读取 .current，故不放入依赖。
+ * 用 ref 持有最新的 refs/handler，使订阅 effect 仅依赖 enabled——
+ * 避免 handler/refs 数组每次渲染变化导致的反复订阅，也满足 exhaustive-deps。
  */
 export function useOutsideClick(
   refs: React.RefObject<HTMLElement | null>[],
   handler: () => void,
   enabled: boolean = true
 ) {
+  const refsRef = useRef(refs)
+  const handlerRef = useRef(handler)
+
+  // 每次渲染同步最新值（无依赖数组；仅赋值 ref，不触发渲染）
+  useEffect(() => {
+    refsRef.current = refs
+    handlerRef.current = handler
+  })
+
   useEffect(() => {
     if (!enabled) return
     const onPointer = (e: MouseEvent | TouchEvent) => {
-      const inside = refs.some(
+      const inside = refsRef.current.some(
         (r) => r.current && r.current.contains(e.target as Node)
       )
       if (inside) return
-      handler()
+      handlerRef.current()
     }
     document.addEventListener('mousedown', onPointer)
     document.addEventListener('touchstart', onPointer)
@@ -29,5 +39,5 @@ export function useOutsideClick(
       document.removeEventListener('mousedown', onPointer)
       document.removeEventListener('touchstart', onPointer)
     }
-  }, [handler, enabled])
+  }, [enabled])
 }

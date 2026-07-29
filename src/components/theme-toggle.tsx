@@ -3,17 +3,13 @@
 import { useTheme } from '@/components/ui/theme'
 import { Button } from '@/components/ui'
 import { Moon, Sun } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useHydrated } from '@/hooks'
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const mounted = useHydrated()
 
-  // useEffect only runs on the client, so now we can safely show the UI
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  // 等 client hydrate 后再读 theme，避免 SSR/暗色模式闪烁
   if (!mounted) {
     return (
       <Button variant="outline" size="sm" className="gap-2" disabled>
