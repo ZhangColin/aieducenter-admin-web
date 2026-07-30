@@ -1,10 +1,7 @@
 'use client'
 
-import { useAdminAuthStore } from '@/lib/admin-auth-store'
+import { useAdminAuthStore, SUPER_ADMIN_CODE } from '@/lib/admin-auth-store'
 import { useHydrated } from './use-hydrated'
-
-/** 超管角色编码（后端 bypass 放行）。 */
-const SUPER_ADMIN = 'SUPER_ADMIN'
 
 /**
  * 权限判断 hook：基于当前登录用户的 permissions / roleCodes。
@@ -20,6 +17,6 @@ export function useCan(code: string): boolean {
   const permissions = useAdminAuthStore((s) => s.currentUser?.permissions ?? [])
 
   if (!hydrated) return false
-  if (roleCodes.includes(SUPER_ADMIN)) return true
+  if (roleCodes.includes(SUPER_ADMIN_CODE)) return true
   return permissions.includes(code)
 }

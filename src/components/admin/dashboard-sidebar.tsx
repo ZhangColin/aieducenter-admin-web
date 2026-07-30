@@ -23,6 +23,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     { id: 'dashboard', icon: 'dashboard', title: '控制台', href: '/dashboard' },
     { id: 'tenants', icon: 'corporate_fare', title: '租户管理' },
     { id: 'users', icon: 'group', title: '用户管理', href: '/dashboard/users' },
+    { id: 'roles', icon: 'shield', title: '角色管理', href: '/dashboard/roles' },
     { id: 'models', icon: 'memory', title: '模型能力' },
     { id: 'finance', icon: 'account_balance_wallet', title: '财务管理' },
   ]

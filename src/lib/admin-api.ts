@@ -1,6 +1,8 @@
 import { HttpClient } from './http-client'
 import type { CurrentAdminUser, MenuResponse } from './admin-auth-store'
 
+export type { MenuResponse }
+
 const httpClient = new HttpClient()
 
 // ========== 类型定义 ==========
@@ -161,6 +163,106 @@ export async function updateUserStatus(id: string, status: number): Promise<void
 /** 重置用户密码。 */
 export async function resetUserPassword(id: string, params: ResetPasswordParams): Promise<void> {
   return httpClient.put<void>(`/users/${id}/password`, params)
+}
+
+// ========== 角色管理（Roles）==========
+
+/**
+ * 后端 RoleResponse。id 与 menuIds 为后端 Long（雪花 id），以字符串序列化 → 保持 string。
+ * menuIds/permissionCodes 为该角色当前已分配的菜单/权限码（用于分配弹窗回显）。
+ */
+export interface AdminRole {
+  id: string
+  name: string
+  code: string
+  description: string | null
+  sortOrder: number | null
+  menuIds: string[]
+  permissionCodes: string[]
+}
+
+export interface AdminRoleListParams {
+  /** 0-based 页码（第一页传 0） */
+  page: number
+  size: number
+  /** 关键字（name/code/description 模糊，后端 blurry） */
+  keyword?: string
+}
+
+export interface RoleFormParams {
+  name: string
+  code: string
+  description?: string
+  sortOrder?: number
+}
+
+/** 查询角色列表（分页）。请求 page 0-based。 */
+export async function listRoles(
+  params: AdminRoleListParams
+): Promise<PageResponse<AdminRole>> {
+  const qs = new URLSearchParams()
+  qs.set('page', String(params.page))
+  qs.set('size', String(params.size))
+  if (params.keyword) qs.set('keyword', params.keyword)
+  const res = await httpClient.get<PageResponse<AdminRole>>(`/roles?${qs.toString()}`)
+  // 后端 long total 以字符串序列化，归一化为 number（同 listUsers）。
+  return { ...res, total: Number(res.total) }
+}
+
+/** 新建角色，返回新角色 id（后端 Long，字符串）。 */
+export async function createRole(params: RoleFormParams): Promise<string> {
+  return httpClient.post<string>('/roles', params)
+}
+
+/** 更新角色（name/code/description/sortOrder）。 */
+export async function updateRole(id: string, params: RoleFormParams): Promise<void> {
+  return httpClient.put<void>(`/roles/${id}`, params)
+}
+
+/** 删除角色。SUPER_ADMIN 角色后端拦截（SUPER_ADMIN_CANNOT_DELETE），前端亦应禁用入口。 */
+export async function deleteRole(id: string): Promise<void> {
+  return httpClient.delete<void>(`/roles/${id}`)
+}
+
+/**
+ * 分配菜单。body: { menuIds } —— 后端 @NotEmpty，至少一项。
+ * 只需提交勾选的节点 id：祖先 GROUP 链由后端读取时补全（REQ-1 契约）；
+ * DIVIDER（type=3）不可分配（决策 B：按结构自动纳入），提交前过滤。
+ */
+export async function assignRoleMenus(id: string, menuIds: string[]): Promise<void> {
+  return httpClient.put<void>(`/roles/${id}/menus`, { menuIds })
+}
+
+/** 分配权限。body: { permissionCodes } —— 后端 @NotEmpty，至少一项。 */
+export async function assignRolePermissions(
+  id: string,
+  permissionCodes: string[]
+): Promise<void> {
+  return httpClient.put<void>(`/roles/${id}/permissions`, { permissionCodes })
+}
+
+// ========== 权限字典（Permissions，只读）==========
+
+/** 后端 PermissionResponse：系统预定义权限码（无写接口，故权限管理并入角色页）。 */
+export interface PermissionItem {
+  code: string
+  /** 层级名，如「平台管理 / 用户管理 / 查看」 */
+  name: string
+}
+
+/** 查询全部权限码（scope=admin）。 */
+export async function listPermissions(): Promise<PermissionItem[]> {
+  return httpClient.get<PermissionItem[]>('/permissions?scope=admin')
+}
+
+// ========== 菜单（Menus）==========
+
+/**
+ * 查询菜单树（管理侧全量，含 DIVIDER）。
+ * 树已按 sortOrder 排序（REQ-1 后端兜底），前端 naive 渲染即可。
+ */
+export async function listMenus(): Promise<MenuResponse[]> {
+  return httpClient.get<MenuResponse[]>('/menus')
 }
 
 /**
