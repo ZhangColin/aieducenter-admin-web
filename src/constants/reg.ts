@@ -5,11 +5,10 @@ export const REG_PHONE =
   /^[1](([3][0-9])|([4][01456789])|([5][012356789])|([6][2567])|([7][0-8])|([8][0-9])|([9][012356789]))[0-9]{8}$/;
 
 /**
- * Password reg
- *
- * 6-18 characters, including letters, numbers, and underscores
+ * Password reg（对齐后端策略）
+ * backend: ^(?=.*[a-zA-Z])(?=.*\d).{8,20}$ — 8-20 位、须含字母+数字、允许任意字符
  */
-export const REG_PWD = /^\w{6,18}$/;
+export const REG_PWD = /^(?=.*[a-zA-Z])(?=.*\d).{8,20}$/;
 
 /** Email reg */
 export const REG_EMAIL = /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
