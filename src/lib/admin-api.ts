@@ -87,6 +87,18 @@ export interface AdminUser {
   breakGlass: boolean  // 破窗账号（内置超管）：前端据此拦截删除等危险操作
   createdAt: string
   updatedAt: string
+  /** 已分配角色（仅 GET /users/{id} 详情返回，列表省略；用于「分配角色」回显） */
+  roles?: AssignedRole[]
+}
+
+/**
+ * 用户已分配角色的裁剪投影（仅 GET /users/{id} 详情返回；列表不返回）。
+ * id 为后端 Long（雪花 id），以字符串序列化 → 保持 string，避免精度丢失。
+ */
+export interface AssignedRole {
+  id: string
+  name: string
+  code: string
 }
 
 export interface AdminUserListParams {
@@ -163,6 +175,14 @@ export async function updateUserStatus(id: string, status: number): Promise<void
 /** 重置用户密码。 */
 export async function resetUserPassword(id: string, params: ResetPasswordParams): Promise<void> {
   return httpClient.put<void>(`/users/${id}/password`, params)
+}
+
+/**
+ * 给用户分配角色。body: { roleIds } —— 后端 @NotEmpty，至少一项。
+ * roleIds 为后端 Long（雪花 id），沿用字符串提交（与 assignRoleMenus 同），避免精度丢失。
+ */
+export async function assignUserRoles(id: string, roleIds: string[]): Promise<void> {
+  return httpClient.put<void>(`/users/${id}/roles`, { roleIds })
 }
 
 // ========== 角色管理（Roles）==========

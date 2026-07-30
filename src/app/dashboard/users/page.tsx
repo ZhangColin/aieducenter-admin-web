@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
-import { Plus, MoreHorizontal, Pencil, KeyRound, Trash2, Search } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, ShieldCheck, KeyRound, Trash2, Search } from 'lucide-react'
 
 import {
   Button,
@@ -28,6 +28,7 @@ import {
 } from '@/components/ui'
 import { HasPermission } from '@/components/has-permission'
 import { UserDialog } from '@/components/admin/users/user-dialog'
+import { AssignRolesDialog } from '@/components/admin/users/assign-roles-dialog'
 import { ResetPasswordDialog } from '@/components/admin/users/reset-password-dialog'
 import { USER_STATUS_LABEL, statusLabel } from '@/components/admin/users/user-status'
 import {
@@ -60,6 +61,8 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [resetOpen, setResetOpen] = useState(false)
   const [resetTarget, setResetTarget] = useState<AdminUser | null>(null)
+  const [rolesOpen, setRolesOpen] = useState(false)
+  const [rolesTarget, setRolesTarget] = useState<AdminUser | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -290,6 +293,15 @@ export default function UsersPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
+                            setRolesTarget(user)
+                            setRolesOpen(true)
+                          }}
+                        >
+                          <ShieldCheck className="size-4" />
+                          分配角色
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
                             setResetTarget(user)
                             setResetOpen(true)
                           }}
@@ -338,6 +350,14 @@ export default function UsersPage() {
         open={resetOpen}
         onOpenChange={setResetOpen}
         user={resetTarget}
+      />
+
+      {/* 分配角色 */}
+      <AssignRolesDialog
+        open={rolesOpen}
+        onOpenChange={setRolesOpen}
+        user={rolesTarget}
+        onSuccess={fetchUsers}
       />
 
       {/* 删除确认 */}
