@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED（2026-07-31）**：此为已**放弃**的 Ant Design Pro v6 迁移可行性调研。中途改用 **Soybean Admin v2.2**（脚手架见 #9、T1 登录闭环见 #12）。本文仅作历史留存，**不代表当前技术栈**（文中 Next.js / antd-pro / Zustand / middleware 等均作废）。当前栈见 `CLAUDE.md` / `CONTEXT.md`。
+
 # R1 — ant-design-pro v6 → Sa-Token 后端：对接可行性报告
 
 > research ticket: https://github.com/ZhangColin/aieducenter-admin-web/issues/7

@@ -3,6 +3,7 @@
 > 来源：admin-web 验证 REQ-1 交付时实测发现（2026-07-29）。
 > 前置：REQ-1（菜单 type 字段）已交付 ✅，sidebar 真数据对接已解锁。
 > 状态：**已提后端**（issue 见文末）。
+> ⚠️ **更新（2026-07-31）**：前端已迁移到 **Soybean Admin v2.2**（Vue3）。当前 T1 用**静态路由**（`home` 等），sidebar 真数据 + 种子菜单对齐改属 **#11（动态菜单）** 范围、暂搁置。下文 Next.js 专项（`/dashboard/*` 路由、Material Symbols 图标、双面板）**作废**——Soybean 用 iconify 图标 + `@elegant-router` 路由，具体适配方案待 #11 定。
 
 ## 背景
 

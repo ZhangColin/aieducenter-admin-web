@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED（2026-07-31）**：此为已**放弃**的 Ant Design Pro v6 迁移契约审计。中途改用 **Soybean Admin v2.2**（见 #9/#12）。本文仅作历史留存，不代表当前栈。其「UI 语义不泄漏到 API / 不动 envelope」的结论仍有效，已沉淀进 `docs/adr/0001`。
+
 # R2 — Ant Design Pro v6 ↔ admin 后端 契约适配审计
 
 > research ticket: https://github.com/ZhangColin/aieducenter-admin-web/issues/8

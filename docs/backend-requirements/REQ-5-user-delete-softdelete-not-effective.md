@@ -13,7 +13,7 @@
 
 即：删除接口「成功」了，但用户并未从查询中消失。
 
-## 复现（curl 直连后端，已排除前端 / Next.js 反代）
+## 复现（curl 直连后端，已排除前端 / Vite 反代）
 
 ```bash
 TOK=$(curl -s -X POST localhost:8081/api/admin/auth/login \

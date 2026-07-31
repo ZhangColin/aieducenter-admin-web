@@ -49,7 +49,7 @@ PostgreSQL `BIGINT PRIMARY KEY` 无自增 → INSERT 时 id 无来源 → 约束
 
 即使 Bug ① 修复，分配权限仍会因 `permission_name` NOT NULL 约束违反而失败。`PermissionScanner` 本就有权限名（`GET /permissions` 返回 `{code, name}`），服务层可顺手填充；或 DDL 放宽为 nullable。
 
-## 复现（curl 直连后端，已排除前端 / Next.js 反代）
+## 复现（curl 直连后端，已排除前端 / Vite 反代）
 
 ```bash
 TOK=$(curl -s -X POST localhost:8081/api/admin/auth/login \

@@ -12,10 +12,10 @@
 
 | 术语 | 定义 |
 |------|------|
-| **admin-web** | 统一后台前端，Next.js SPA，应用层·平台自带应用的一半 |
+| **admin-web** | 统一后台前端，Soybean（Vue3）SPA，应用层·平台自带应用的一半 |
 | **admin 后端 (`aieducenter-admin`)** | 统一后台后端，运行在 `localhost:8081`；对前端即 BFF |
 | **Operator（运营用户）** | 后台使用者；认证 + 角色/部门/岗位/RBAC 归 admin 自有，不在用户域/IdP，本地登录（非 SSO） |
-| **BFF 边界** | 前端 → 只调 admin 后端（经 Next.js 反代 `/api/*`）；admin 后端 → 经 `cartisan-openapi` 签名调各能力域 |
+| **BFF 边界** | 前端 → 只调 admin 后端（经前端反代 `/api/*`，dev 走 Vite proxy）；admin 后端 → 经 `cartisan-openapi` 签名调各能力域 |
 | **Sa-Token** | admin 后端的鉴权机制；token 是 UUID 字符串，走 `Authorization: Bearer <uuid>` header（**不是** JWT、**不走** cookie） |
 | **统一响应 (`ApiResponse<T>`)** | 后端所有接口返回 `{ code, message, data, requestId, errors }`；`code` = HTTP 状态码本身（200/400/401/403…），**非**业务码 |
 | **分页 (`PageResponse<T>`)** | `{ items, total, page, size }`；响应 `page` 是 1-based，**请求** `page` 是 0-based（Spring Pageable 约定） |
@@ -72,8 +72,8 @@
 ## 不变式（继承自架构，务必遵守）
 
 1. 前端不直接调各能力域——经 admin 后端 BFF 聚合。
-2. 权限控制用登录已拉取的 `permissions`/`roleCodes`（`useCan`/`v-permission`），不在 UI 硬编码角色判断。
-3. 登录链路保留（`http-client` / `admin-auth-store` / `use-admin-login` / `middleware` 反代），业务页重写。
+2. 权限控制用登录已拉取的 `permissions`/`roleCodes`（Soybean：`useAuth().hasAuth(code)` + `v-if`），不在 UI 硬编码角色判断。
+3. 鉴权链路：`/auth/login` 取 token → `/auth/current` 取 `{user,roleCodes,permissions,menus}` → 映射进 auth store（见下「UserInfo 映射」）；路由守卫在 `router.beforeEach`（`src/router/guard/route.ts`）。业务页重写。
 4. 新页（部门/岗位/财务）跟 admin 后端新增同步。
 
 ---
