@@ -146,10 +146,10 @@ export function fetchAssignRolePermissions(id: string, body: Api.SystemManage.As
  * 菜单 / 权限字典（角色分配弹窗用）
  */
 
-/** 菜单树（GET /menus；返回 MenuResponse[] 树，含 type，分配时前端过滤 DIVIDER） */
+/** 菜单树（GET /menus/tree；返回 MenuResponse[] 树，menuType=directory/menu，供角色分配勾选） */
 export function fetchGetMenuTree() {
   return request<Api.Auth.BackendMenu[]>({
-    url: '/menus',
+    url: '/menus/tree',
     method: 'get'
   });
 }
