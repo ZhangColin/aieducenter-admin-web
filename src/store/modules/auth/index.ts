@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchGetUserInfo, fetchLogin } from '@/service/api';
+import { fetchGetUserInfo, fetchLogin, fetchLogout } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -96,10 +96,10 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
    * @param password Password
    * @param [redirect=true] Whether to redirect after login. Default is `true`
    */
-  async function login(userName: string, password: string, redirect = true) {
+  async function login(username: string, password: string, rememberMe = false, redirect = true) {
     startLoading();
 
-    const { data: loginToken, error } = await fetchLogin(userName, password);
+    const { data: loginToken, error } = await fetchLogin(username, password, rememberMe);
 
     if (!error) {
       const pass = await loginByToken(loginToken);
@@ -122,7 +122,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
         });
       }
     } else {
-      resetStore();
+      // 登录失败（账密错等）：错误提示由 request 层 onError 弹出后端 message。
+      // 这里不调 resetStore——它重置路由会把刚弹的 toast 冲掉；且此时本就无会话可清。
     }
 
     endLoading();
@@ -131,7 +132,6 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
     // 1. stored in the localStorage, the later requests need it in headers
     localStg.set('token', loginToken.token);
-    localStg.set('refreshToken', loginToken.refreshToken);
 
     // 2. get user info
     const pass = await getUserInfo();
@@ -149,8 +149,14 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     const { data: info, error } = await fetchGetUserInfo();
 
     if (!error) {
-      // update store
-      Object.assign(userInfo, info);
+      // 后端 CurrentUser → Soybean auth store 形状
+      const { user, roleCodes, permissions } = info;
+      Object.assign(userInfo, {
+        userId: String(user.id),
+        userName: user.nickname,
+        roles: roleCodes,
+        buttons: permissions
+      });
 
       return true;
     }
@@ -171,6 +177,12 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     }
   }
 
+  /** 登出：best-effort 调后端登出，随后清前端会话并回登录页 */
+  async function logout() {
+    await fetchLogout();
+    await resetStore();
+  }
+
   return {
     token,
     userInfo,
@@ -179,6 +191,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     loginLoading,
     resetStore,
     login,
+    logout,
     initUserInfo
   };
 });

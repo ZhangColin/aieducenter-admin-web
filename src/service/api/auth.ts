@@ -3,46 +3,28 @@ import { request } from '../request';
 /**
  * Login
  *
- * @param userName User name
- * @param password Password
+ * @param username 用户名
+ * @param password 密码
+ * @param rememberMe 记住我（Sa-Token：true=7天，false=24h）
  */
-export function fetchLogin(userName: string, password: string) {
+export function fetchLogin(username: string, password: string, rememberMe = false) {
   return request<Api.Auth.LoginToken>({
     url: '/auth/login',
     method: 'post',
     data: {
-      userName,
-      password
+      username,
+      password,
+      rememberMe
     }
   });
 }
 
-/** Get user info */
+/** 获取当前登录用户信息（GET /auth/current） */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/auth/getUserInfo' });
+  return request<Api.Auth.CurrentUser>({ url: '/auth/current' });
 }
 
-/**
- * Refresh token
- *
- * @param refreshToken Refresh token
- */
-export function fetchRefreshToken(refreshToken: string) {
-  return request<Api.Auth.LoginToken>({
-    url: '/auth/refreshToken',
-    method: 'post',
-    data: {
-      refreshToken
-    }
-  });
-}
-
-/**
- * return custom backend error
- *
- * @param code error code
- * @param msg error message
- */
-export function fetchCustomBackendError(code: string, msg: string) {
-  return request({ url: '/auth/error', params: { code, msg } });
+/** 登出（POST /auth/logout，best-effort，忽略错误） */
+export function fetchLogout() {
+  return request<null>({ url: '/auth/logout', method: 'post' });
 }
