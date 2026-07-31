@@ -4,6 +4,8 @@
 
 > 平台级 ubiquitous language 与架构决策在兄弟仓库 `../aieducenter-architecture/CONTEXT.md` 与 `docs/architecture.md`（§5.3 平台自带应用、§6.15 财务上下文）。本文件只记 admin-web 视角的对接契约与本仓库自己的决策。
 
+> **实现栈（2026-07-31，Soybean 重写后）**：Soybean Admin v2.2 — Vue3 + Vite8 + NaiveUI + Pinia3 + UnoCSS + `@elegant-router`。早期 Next.js/React 版与中途探索的 Ant Design Pro v6 路线**均废弃**（旧 spec #1、map #6 已关闭 superseded；Soybean 脚手架见 #9）。下文凡 Next.js 专项（middleware 守卫 / cookie 镜像 / `useCan`·`<HasPermission>` React hooks / `next.config` 反代）**作废**，以 Soybean 视角决策为准。
+
 ---
 
 ## Glossary（术语表）
@@ -80,7 +82,18 @@
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
 
-_（grilling 进行中——见下「待决策」）_
+### Soybean 重写后（2026-07-31，T1 登录闭环 ✅ #12 / commit `73f1643`）
+
+- **路由模式 = static**（T1）：`VITE_AUTH_ROUTE_MODE=static`，登录→拉 `/auth/current`→按 roles 过滤本地静态路由→`home`。**不碰后端动态菜单**（菜单→ElegantRoute 转换 + icon + DIVIDER = 后续 ticket，决策见 #11）。理由：tracer bullet——`src/views` 现仅 `home`+`_builtin`，static 天然即"登录→home"，别把最难的菜单适配混进登录。
+- **env 目标值**：`VITE_SERVICE_BASE_URL=http://localhost:8081/api/admin`（前缀放 baseURL，api 路径保持 `/auth/login`；Vite 反代剥 `/proxy-default`）、`VITE_SERVICE_SUCCESS_CODE=200`、`VITE_SERVICE_LOGOUT_CODES=401`、`VITE_AUTH_ROUTE_MODE=static`、`VITE_STATIC_SUPER_ROLE=SUPER_ADMIN`、`VITE_HTTP_PROXY=Y`、`VITE_SERVICE_EXPIRED_TOKEN_CODES=`（空，Sa-Token 无 refresh）。
+- **UserInfo 映射**（路由硬依赖 userId+roles）：`/auth/current` 的 `{user,roleCodes,permissions,menus}` → Soybean auth store `{userId:String(user.id), userName:user.nickname, roles:roleCodes, buttons:permissions}`（`menus` static 模式暂不用、类型保留；`id` 用 String 防 Long 精度丢失）。
+- **错误处理在 `onError`，不在 `onBackendFail`**（⚠️ 反直觉，详见 [ADR-0001](docs/adr/0001-error-handling-in-onerror.md)）：后端约定 HTTP 状态码即 `code`，业务错以 **HTTP 非 2xx** 返回 → 走 axios error 拦截器；Soybean 的 `onBackendFail`（仅 HTTP 2xx 触发）对我们是**死代码**。
+- **登录接口的 401 = 账密错，不登出**：靠 endpoint 区分（`/auth/login` 的 401 落 toast；受保护接口的 401 才算会话过期）。**遗留**：会话过期自动登出尚未接（logoutCodes 在死代码 onBackendFail 里）——刷新可恢复，待 follow-up 挪进 onError。
+- **登录失败不 `resetStore`**：原 `login()` 失败分支调 `resetStore` 会重置路由、冲掉 toast；改为只弹 toast。
+- **header 退出走 `authStore.logout()`**（原直调 `resetStore`，不发后端 `/auth/logout`）。
+- **删 refreshToken 整条死代码**（`fetchRefreshToken`/`handleExpiredRequest`）。
+
+> ⚠️ 下述 2026-07-28 决策为 **Next.js 时代**产物：栈无关的（对接范围 RBAC、dev 端口 3001、Dashboard 不动、权限并入角色）仍有效；栈相关（middleware 守卫 / cookie 镜像 / 反代收敛于 `next.config`）**已作废**。
 
 - **对接范围 = RBAC 运营核心**（2026-07-28）。本次只打通后端已支持的 `auth/menus/roles/users/permissions`：路由守卫 + 退出按钮 + sidebar 读后端真 menus + 3 个管理页（用户/角色/菜单，权限并入角色）。Dashboard 不动、部门/岗位/财务留到下一批等服务端接口。理由：后端当前只支撑这五个域，且这正是架构文档「必修现状」的核心。
 - **路由守卫 = Middleware + token 镜像 cookie**（2026-07-28）。前端登录成功后将 token 镜像写入 cookie（非 httpOnly，`admin_token`，与 localStorage 并存），logout 清两边；middleware（edge）读 cookie 判断未登录则 redirect `/`，matcher 扩展到页面路由。发请求仍走 `Authorization: Bearer` header，cookie 仅作守卫存在性判断。理由：SSR 前拦截、刷新无闪烁；token 本就在 localStorage，镜像 cookie 不新增 XSS 暴露面。
@@ -124,7 +137,16 @@ _（grilling 收尾——核心决策已定，剩余为实现细节，见下「�
 
 > 下列为对接开发的技术约定，按后端契约对齐。
 
-### 鉴权 / token
+### Soybean 视角（2026-07-31 起，现行）
+
+- **token**：`localStg`（前缀 `SOY_`）存 `token`；纯 SPA，路由守卫在 `router.beforeEach`（`src/router/guard/route.ts`）读 `localStg.get('token')` 判登录——**无 cookie 镜像、无 middleware**（Next.js 时代那套作废）。发请求走 `Authorization: Bearer <token>` header。
+- **超管判定**：`roleCodes.includes('SUPER_ADMIN')`；static 模式下 `isStaticSuper`（`VITE_STATIC_SUPER_ROLE=SUPER_ADMIN`）→ 全静态路由可见。按钮级权限用 `useAuth().hasAuth(code)` + `v-if`（**Soybean v2 无 `v-auth` 指令**，旧博客会误导）。
+- **分页 / 枚举**：请求 `page` 0-based（发 `current-1`）、响应 `PageResponse{items,total,page,size}`；`status` 整数（1=激活/0=禁用）。
+- **错误提示**：后端 `message`（中文）做 toast；`code !== 200` 即失败——但错误走 `onError`（见上「本仓库决策」+ ADR-0001）。
+
+> ⚠️ 下述子节（鉴权/token cookie 镜像、`useCan`/`<HasPermission>`、Next.js 类型与页面对接）为 **Next.js 时代**约定，**作废**，保留仅作历史。
+
+### 鉴权 / token（Next.js，作废）
 - token 镜像 cookie：登录成功 `document.cookie = 'admin_token=<token>; path=/'`，logout 清两边；middleware 读此 cookie 守卫。发请求仍走 `Authorization: Bearer <token>` header（cookie 仅作守卫存在性判断）。
 - 超管判定：`roleCodes.includes('SUPER_ADMIN')` → `useCan` 恒 true。
 
