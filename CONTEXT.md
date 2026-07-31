@@ -8,6 +8,23 @@
 
 ---
 
+## 参考资源（开发参考，务必遵守）
+
+做功能时**只**参考以下来源，**禁止随意 web 搜索**（Soybean 迭代快，搜到的内容可能与我们的版本完全不匹配）：
+
+| 来源 | 地址 | 用途 |
+|------|------|------|
+| Soybean 官方文档 | https://docs.soybeanjs.cn/zh/guide/intro | 框架用法（路由/请求/权限/主题/国际化） |
+| Soybean 源码 + example 分支 | https://github.com/soybeanjs/soybean-admin | 源码与完整 demo（`example` 分支 = 预览地址内容；本地已配 `soybean` remote，v2.2.0）。⚠️ **`example` 是 Soybean 上游分支、非本项目分支——只读引用**（`git show soybean/example:<path>` 抄具体页面/用法），**绝不 `merge` 进本项目** |
+| Naive UI 中文官网 | https://www.naiveui.com/zh-CN/os-theme | 组件库文档与组件 API（DataTable/Form/Modal/Tree 等，v2.44.1） |
+| Pro Naive UI 中文官网 | https://naive-ui.pro-components.cn/zh-CN/os-theme | 基于 Naive UI 的中后台二次封装组件（ProTable 等，v3.2.3，**非官方**） |
+
+**可读性（2026-07-31 已核）**：4 站点首页/文档页 webReader MCP 可读；Naive UI 两个站点的**组件文档页是客户端渲染 SPA，静态抓取只拿到外壳**——用真浏览器（Chrome MCP，需 ≥30s 超时）能完整渲染（实测 data-table 组件页 27KB 正文含 props/示例）。WebFetch 被本环境网络策略拦截，改用 webReader MCP 或 Chrome MCP。
+
+**与 upstream `main` 保持可升级（重要约束）**：Soybean 更新快，做功能时**最小化对框架文件的分叉改动**——优先在 `src/views`、`src/service/api`、`src/store/modules`、`src/typings` 等业务层扩展，**避免大改 `@sa/*` 内部包与 `src/router/elegant/*` 生成产物**；需要时从 `soybean/main` 同步更新。目标：我们做完功能后仍能平滑跟 main。
+
+---
+
 ## Glossary（术语表）
 
 | 术语 | 定义 |
@@ -92,6 +109,23 @@
 - **登录失败不 `resetStore`**：原 `login()` 失败分支调 `resetStore` 会重置路由、冲掉 toast；改为只弹 toast。
 - **header 退出走 `authStore.logout()`**（原直调 `resetStore`，不发后端 `/auth/logout`）。
 - **删 refreshToken 整条死代码**（`fetchRefreshToken`/`handleExpiredRequest`）。
+- **T2+ 安排 = example 移植路线（2026-07-31，`/grill-with-docs` 定稿）**：决定移植 Soybean `example` 分支的系统管理 UI，而非从零搭（用户拍板：T2 用户页打头炮；菜单页等 #11）。
+  - **example 的价值 = UI 外壳 + CRUD hook 用法范式**，**不是**现成 CRUD——其 service 层仅 6 个 GET 查询、增删改全 `// request` 占位，且打的是 Soybean mock（`/systemManage/*` + Soybean DTO），对我们完全无用。**读写 API 全部前端自写**对接 `/api/admin`。
+  - **基座已自带 CRUD 地基**（Soybean 精简 main 只删演示页、未删框架）：`src/hooks/common/table.ts`（`useNaivePaginatedTable`/`useTableOperate`/`defaultTransform`）、`form.ts`、`src/components/advanced/table-{header-operation,column-setting}.vue`、`@sa/hooks` `useTable`。移植**只搬页面外壳**。
+  - **请求层适配 T1 已完成**（`code==="200"`、unwrap `data`、`onError` 读 `message`）；**唯一**新增契约适配点 = `defaultTransform`（分页 `records/current`→`items/page`、请求 0-based）+ 实体 DTO 字段映射（userName→username 等）+ status 字符串↔数字（Soybean `'1'/'2'` ↔ 我们 `1/0`，**且禁用值语义相反**：Soybean 2=禁用、我们 0=禁用）。
+  - **菜单管理页重写、不移植**：Soybean 菜单是"路由生成器"（`component` 字符串 + routeName/keepAlive/query 等 RouteMeta），我们后端是 GROUP/MENU/DIVIDER 纯菜单树，模型不同。参考其弹窗布局按 `MenuResponse` 重写。
+  - **排期**：T2 = tracer bullet **用户管理页**（搬外壳 + 自写 CRUD + 改 `defaultTransform`，一页端到端验证整套适配范式）→ T3 = 角色管理页（复用范式 + 两个授权弹窗接 `menuIds`/`permissionCodes`）→ **菜单页 defer 到 #11（D2 动态菜单）**：当前 static 模式下菜单 CRUD 对 sidebar 无可见效果，属动态菜单那条线。
+  - **后端阻塞不变**（[REQ-4]/[REQ-5]/[REQ-6]/[REQ-7]），仅基座从 Next.js 换 Soybean；UI 全做、读接通、被挡写操作给 toast + 跟 REQ。
+  - **example 升格为长期 UI/CRUD 模式参考**（不只本次）：后续部门/岗位/财务页继续以其为模板。
+
+- **T2 用户管理页 ✅（2026-07-31，tracer bullet）** — 首页端到端验证整套 Soybean 适配范式。搬 `example` 分支用户页外壳（`src/views/manage/user/`：index.tsx + user-search + user-operate-drawer + user-reset-pwd-modal），自写 CRUD 接 `/api/admin/users`（`src/service/api/system-manage.ts` 6 函数：list/create/update/delete/status/password），改 `defaultTransform` 适配后端分页。
+  - **范式落地（T3/部门/岗位/财务复用）**：① `defaultTransform` 读 `PageResponse{items,total,page,size}`（旧 `records/current` 作废）、`total` 为 Long→string 故 `Number()` 兜底；② 请求 `page` **0-based**（`onPaginationParamsChange` 里 `params.page-1`），响应 `page` 1-based；③ `status` 后端运行时是**整数**（1=激活/0=禁用），**OpenAPI 标 string 实为误导**——按整数对接，`PUT /users/{id}/status?status=0|1` 实测接受整数；④ DTO 字段对齐（username/nickname/email/phone，无 gender）。
+  - **类型**：新增 `Api.Common.PageResponse<T>`、`Api.SystemManage.{User,UserSearchParams,UserCreateCommand,UserUpdateCommand,ResetPasswordCommand}`（`src/typings/api/`）；`User = Api.Auth.AdminUser`（同构、单一来源）。**POST /users 返回新 id 字符串**（非 User 对象）。
+  - **权限门控范式（重要）**：SUPER_ADMIN 后端 bypass、`/auth/current` 返回 `permissions: []` → 原 `useAuth().hasAuth(code)` 对超管恒 false（写按钮全隐）。已修 `src/hooks/business/auth.ts`：`hasAuth` 命中 `isStaticSuper` 直接放行。此后全页 `v-if="hasAuth('admin:*:write')"` 即正确（超管见全部、非超管按权限码）。**路由级仍按 `meta.roles`/static guard**，本页未设 `roles`（所有登录用户可见菜单），写操作靠按钮级 `hasAuth` 兜底。
+  - **保护**：删除/启停对 `breakGlass`（内置 admin）禁用、启停对当前登录用户禁用（防自锁）。
+  - **E2E（curl 直连后端全链路）**：list/search/分页/创建/编辑/启停(整数)/重置密码(重置后用新密码登录成功)/删除 全通过；**REQ-5 软删已修并验证**（删除后 GET 404、list total 0）。
+  - **defer**：分配角色 = T4（被 REQ-4 回显 + REQ-7 写入阻塞，未做）。
+  - 文件：`src/views/manage/user/**`、`src/service/api/system-manage.ts`、`src/typings/api/{common,system-manage}.d.ts`、`src/constants/business.ts`、改 `src/hooks/{common/table,business/auth}.ts`、路由 + zh/en i18n（`manage`/`manage_user`）。
 
 > ⚠️ 下述 2026-07-28 决策为 **Next.js 时代**产物：栈无关的（对接范围 RBAC、dev 端口 3001、Dashboard 不动、权限并入角色）仍有效；栈相关（middleware 守卫 / cookie 镜像 / 反代收敛于 `next.config`）**已作废**。
 
@@ -108,6 +142,7 @@
   - [#4 T3] 角色管理页（含分配权限/菜单）← blocked by #3 — **主体已实现 ✅（2026-07-30）**，分配权限/菜单被后端 [REQ-7](https://github.com/ZhangColin/aieducenter-admin/issues/9) 阻塞
   - [#5 T4] 用户分配角色（回显）← blocked by #3 + 后端 [REQ-4](https://github.com/ZhangColin/aieducenter-admin/issues/3) + [REQ-7](https://github.com/ZhangColin/aieducenter-admin/issues/9)
   - 用 `/implement` 逐个做，每个做完清 context。
+  - ⚠️ **上述 #2–#5 为 Next.js 时代 ticket，其代码实现已在 Soybean greenfield 重写（commit `4300f99`）时整体丢弃**（仅文档由 `001664c` 保留）。Soybean 时代重追：T1 = #12 ✅；T2/T3 重定义见上「example 移植路线」；菜单页并入 #11。
 
 ---
 
@@ -129,7 +164,7 @@ _（grilling 收尾——核心决策已定，剩余为实现细节，见下「�
 - **[REQ-4] 用户接口补 `roleIds` → ✅ 已提 issue（2026-07-28）** — 前端「分配角色」弹窗需回显用户当前角色，但 `AdminUserResponse`（列表与 `GET /users/{id}`）无 `roleIds`/`roleCodes`。**已提交**：https://github.com/ZhangColin/aieducenter-admin/issues/3 （标签 `enhancement`）。需求：`GET /users/{id}` 返回 `roleIds`（或 `roles`）。**优先级：中（阻塞分配角色回显，不阻塞其他用户管理功能）**。**状态（2026-07-29）：后端尚未回复（OPEN，等待中）。**
 - **[REQ-6] 种子菜单数据对齐前端路由/图标/结构 → ✅ 已提后端 issue #8（2026-07-29）** — REQ-1 交付实测发现种子菜单与前端错位：路径 `/admin/*` vs 前端路由 `/dashboard/*`、图标 Lucide 名 vs Material Symbols、扁平结构 vs 双面板、含已决策不建页的「权限管理」。需求：两级结构（一级「控制台」MENU→`/dashboard` + 「系统管理」GROUP 收纳用户/角色/菜单三叶子）、移除权限管理菜单、**icon 契约 = Material Symbols 名**（前端原样渲染不映射）、角色菜单分配迁移不悬空。名称/图标可微调，前端强约束：path 前缀 `/dashboard/*`、icon Material Symbols 名、存在一层 GROUP。issue：https://github.com/ZhangColin/aieducenter-admin/issues/8 ；需求详情见 `docs/backend-requirements/REQ-6-seed-menu-align-frontend-routes.md`。**优先级：高（阻塞 sidebar 真数据 + 菜单管理页 spec）。**
 - **[REQ-7] 角色分配权限/菜单、用户分配角色全部 400 → 🐞 已提后端 issue #9（2026-07-30，T3 E2E 发现）** — `PUT /roles/{id}/permissions`、`/roles/{id}/menus`、`/users/{id}/roles` 均返回 `400 Invalid request`。读码定位两 bug：① 三张关联表实体（`AdminRoleMenu`/`AdminRolePermission`/`AdminUserRole`）`@GeneratedValue(IDENTITY)` 与 V1 DDL `id BIGINT PRIMARY KEY`（TSID 应用层生成、无自增）冲突 → INSERT 无 id 来源；② `sys_admin_role_permissions.permission_name` DDL NOT NULL，但服务层 `addPermission(code, null)` 传 null。对照：聚合根 `@Id` 无 GeneratedValue（框架 TSID），关联实体应一致。**影响：RBAC 分配写路径全灭**——阻塞 T3 分配权限/菜单、T4 分配角色。前端 UI 已实现（错误 toast 正常），待后端修复回归。issue：https://github.com/ZhangColin/aieducenter-admin/issues/9 ；详情 + 复现见 `docs/backend-requirements/REQ-7-assign-relation-entity-id-strategy-400.md`。**优先级：高。**
-- **[REQ-5] 用户删除软删未生效（查询不过滤 deleted）→ 🐞 已提后端 issue #7（2026-07-29，T2 E2E 发现）** — `DELETE /users/{id}` 返回 `200 Success` 但用户**仍存在**于 `GET /users` 与 `GET /users/{id}`。读码核实：`AdminUserManagementAppService.delete` 调 `adminUserRepository.delete(entity)` → 框架走 `entity.markAsDeleted()`（逻辑删，`updatedAt` 确有变化），但 `sys_admin_users` 仓储查询**未过滤 `deleted` 标志**（缺 `@SQLRestriction`/`@Where(deleted=false)` 或框架软删查询未启用）→ 已删记录仍被 `findAll`/`findById` 返回。curl 直连后端复现（绕过前端/反代）：DELETE 200 后 GET 仍 200 返回该用户。**影响：前端删除流（请求/toast/刷新）正确，但后端不真删 → 用户永驻列表。** **优先级：高（用户管理核心写操作失效）。** **前端侧无 workaround**（后端返回 200 即视为成功是正确语义）。issue：https://github.com/ZhangColin/aieducenter-admin/issues/7 ；需求详情 + 复现脚本（口令已占位）见 `docs/backend-requirements/REQ-5-user-delete-softdelete-not-effective.md`。**状态（2026-07-29）：后端 OPEN，等待处理。** 注：本地 E2E 创建的测试号 `testops1` 已被多次「软删」（`deleted` 已置位），后端修此 bug 后将自动从列表消失。**补充（2026-07-30，T3 E2E）：Role 聚合同样中招**——`DELETE /roles/{id}` 返回 200 但 `GET /roles` 仍返回该角色（已在 issue #7 评论补证据，建议按聚合统一排查；Menu 未实测）。
+- **[REQ-5] 用户删除软删未生效（查询不过滤 deleted）→ 🐞 已提后端 issue #7（2026-07-29，T2 E2E 发现）** — `DELETE /users/{id}` 返回 `200 Success` 但用户**仍存在**于 `GET /users` 与 `GET /users/{id}`。读码核实：`AdminUserManagementAppService.delete` 调 `adminUserRepository.delete(entity)` → 框架走 `entity.markAsDeleted()`（逻辑删，`updatedAt` 确有变化），但 `sys_admin_users` 仓储查询**未过滤 `deleted` 标志**（缺 `@SQLRestriction`/`@Where(deleted=false)` 或框架软删查询未启用）→ 已删记录仍被 `findAll`/`findById` 返回。curl 直连后端复现（绕过前端/反代）：DELETE 200 后 GET 仍 200 返回该用户。**影响：前端删除流（请求/toast/刷新）正确，但后端不真删 → 用户永驻列表。** **优先级：高（用户管理核心写操作失效）。** **前端侧无 workaround**（后端返回 200 即视为成功是正确语义）。issue：https://github.com/ZhangColin/aieducenter-admin/issues/7 ；需求详情 + 复现脚本（口令已占位）见 `docs/backend-requirements/REQ-5-user-delete-softdelete-not-effective.md`。**状态（2026-07-29）：后端 OPEN，等待处理。** **✅ 已修复并验证（2026-07-31，T2 E2E）**——后端已修复软删查询过滤；前端 curl 全链路复测：DELETE 返回 200 后，`GET /users/{id}` → `404 管理员不存在`、`GET /users?username=...` → `total "0"`（用户确从列表消失）。用户删除流端到端打通。 注：本地 E2E 创建的测试号 `testops1` 已被多次「软删」（`deleted` 已置位），后端修此 bug 后将自动从列表消失。**补充（2026-07-30，T3 E2E）：Role 聚合同样中招**——`DELETE /roles/{id}` 返回 200 但 `GET /roles` 仍返回该角色（已在 issue #7 评论补证据，建议按聚合统一排查；Menu 未实测）。
 
 ---
 

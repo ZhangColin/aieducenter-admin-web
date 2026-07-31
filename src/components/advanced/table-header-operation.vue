@@ -7,6 +7,8 @@ defineOptions({
 
 interface Props {
   itemAlign?: NaiveUI.Align;
+  /** 禁用「新增」按钮（如无写权限） */
+  disabledAdd?: boolean;
   disabledDelete?: boolean;
   loading?: boolean;
 }
@@ -42,7 +44,7 @@ function refresh() {
   <NSpace :align="itemAlign" wrap justify="end" class="lt-sm:w-200px">
     <slot name="prefix"></slot>
     <slot name="default">
-      <NButton size="small" ghost type="primary" @click="add">
+      <NButton size="small" ghost type="primary" :disabled="disabledAdd" @click="add">
         <template #icon>
           <icon-ic-round-plus class="text-icon" />
         </template>

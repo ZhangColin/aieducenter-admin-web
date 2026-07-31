@@ -231,18 +231,20 @@ export function useTableOperate<TableData>(
 }
 
 export function defaultTransform<ApiData>(
-  response: FlatResponseData<any, Api.Common.PaginatingQueryRecord<ApiData>>
+  response: FlatResponseData<any, Api.Common.PageResponse<ApiData>>
 ): PaginationData<ApiData> {
   const { data, error } = response;
 
   if (!error) {
-    const { records, current, size, total } = data;
+    // 后端 PageResponse：{ items, total, page(1-based), size }。
+    // total 为 Long→序列化为字符串，Number() 兜底转数字（Naive 分页 itemCount 需 number）。
+    const { items, total, page, size } = data;
 
     return {
-      data: records,
-      pageNum: current,
+      data: items,
+      pageNum: page,
       pageSize: size,
-      total
+      total: Number(total)
     };
   }
 

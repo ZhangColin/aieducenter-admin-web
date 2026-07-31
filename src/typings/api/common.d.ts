@@ -20,6 +20,23 @@ declare namespace Api {
       records: T[];
     }
 
+    /**
+     * 后端 PageResponse\<T\>（admin 后端统一分页响应，**原始 wire 结构**）
+     *
+     * - `items`: 当前页数据
+     * - `total`: 总条数——后端 Long **序列化为字符串**（如 `"5"`），故类型为 `string | number`；
+     *   消费侧（`defaultTransform`）用 `Number()` 归一化为数字
+     * - `page`:  当前页（**响应 1-based**；请求 `page` 为 **0-based**，由调用方 `current - 1` 转换）
+     * - `size`:  页大小
+     */
+    interface PageResponse<T = any> {
+      items: T[];
+      total: string | number;
+      /** 1-based（响应）；请求 page 0-based */
+      page: number;
+      size: number;
+    }
+
     /** common search params of table */
     type CommonSearchParams = Pick<Common.PaginatingCommonParams, 'current' | 'size'>;
 
