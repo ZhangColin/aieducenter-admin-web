@@ -5,6 +5,7 @@ import { REG_EMAIL, REG_PHONE, REG_PWD } from '@/constants/reg';
 import { fetchCreateUser, fetchUpdateUser } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
+import RoleAuthModal from './role-auth-modal.vue';
 
 defineOptions({
   name: 'UserOperateDrawer'
@@ -82,6 +83,18 @@ function closeDrawer() {
   visible.value = false;
 }
 
+/** 分配角色弹窗（仅编辑态；用户角色是独立端点 PUT /users/{id}/roles，与资料保存分离） */
+const roleAuthVisible = ref(false);
+
+function openRoleAuth() {
+  roleAuthVisible.value = true;
+}
+
+/** 分配成功：上抛刷新列表（角色即时生效；列表暂无角色列，刷新为一致性 + 为 REQ-11 角色列预留） */
+function handleRolesAssigned() {
+  emit('submitted');
+}
+
 async function handleSubmit() {
   await validate();
 
@@ -151,6 +164,9 @@ watch(visible, val => {
           <NInput v-model:value="model.phone" placeholder="请输入手机号（选填）" />
         </NFormItem>
       </NForm>
+      <NSpace v-if="isEdit" :size="12" class="mt-8px">
+        <NButton @click="openRoleAuth">分配角色</NButton>
+      </NSpace>
       <template #footer>
         <NSpace :size="16">
           <NButton @click="closeDrawer">{{ $t('common.cancel') }}</NButton>
@@ -159,6 +175,13 @@ watch(visible, val => {
       </template>
     </NDrawerContent>
   </NDrawer>
+
+  <RoleAuthModal
+    v-if="isEdit && rowData"
+    v-model:visible="roleAuthVisible"
+    :user="rowData"
+    @assigned="handleRolesAssigned"
+  />
 </template>
 
 <style scoped></style>

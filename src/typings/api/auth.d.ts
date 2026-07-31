@@ -41,6 +41,12 @@ declare namespace Api {
       breakGlass: boolean;
       createdAt: string;
       updatedAt: string;
+      /**
+       * 该用户已分配角色。仅 `GET /users/{id}` 详情填充 `{id,name,code}`；
+       * 列表 `GET /users` 与 `GET /auth/current` 因后端 `@JsonInclude(NON_NULL)` **不含**——
+       * 「分配角色」回显须取详情。REQ-4。
+       */
+      roles?: Api.SystemManage.UserRole[] | null;
     }
 
     /** GET /auth/current 的响应（后端 CurrentUserResponse） */

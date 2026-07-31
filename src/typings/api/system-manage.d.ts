@@ -14,6 +14,16 @@ declare namespace Api {
     type User = Api.Auth.AdminUser;
 
     /**
+     * 用户详情 `GET /users/{id}` 回显的精简角色引用（后端 AdminUserResponse.roles）。
+     * 列表/`/auth/current` 不含（@JsonInclude(NON_NULL)），仅详情填充。
+     */
+    interface UserRole {
+      id: string;
+      name: string;
+      code: string;
+    }
+
+    /**
      * GET /users 搜索参数（后端 AdminUserQuery + Spring Pageable）。
      * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
      */
@@ -48,6 +58,11 @@ declare namespace Api {
     /** PUT /users/{id}/password（后端 ResetPasswordCommand） */
     interface ResetPasswordCommand {
       newPassword: string;
+    }
+
+    /** PUT /users/{id}/roles（后端 AssignRolesCommand；roleIds @NotEmpty，不能存空） */
+    interface AssignUserRolesCommand {
+      roleIds: string[];
     }
 
     /**
