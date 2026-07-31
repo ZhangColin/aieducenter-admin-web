@@ -227,7 +227,8 @@ const local: App.I18n.Schema = {
     'iframe-page': '外链页面',
     home: '首页',
     manage: '系统管理',
-    manage_user: '用户管理'
+    manage_user: '用户管理',
+    manage_role: '角色管理'
   },
   page: {
     login: {

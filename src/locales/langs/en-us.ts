@@ -231,7 +231,8 @@ const local: App.I18n.Schema = {
     'iframe-page': 'Iframe',
     home: 'Home',
     manage: 'System',
-    manage_user: 'User Manage'
+    manage_user: 'User Manage',
+    manage_role: 'Role Manage'
   },
   page: {
     login: {

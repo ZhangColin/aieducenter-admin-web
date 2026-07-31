@@ -14,3 +14,10 @@ export const enableStatusRecord: Record<number, { label: string; tagType: NaiveU
   1: { label: '启用', tagType: 'success' },
   0: { label: '禁用', tagType: 'warning' }
 };
+
+/**
+ * 超管角色编码（后端 `AdminRole.isSuperAdmin()` 即按此 code 判定）。
+ * 角色行无服务端 `breakGlass` 标志（区别于用户），故按 code 兜底：该角色不可删、编辑时 code 不可改。
+ */
+export const SUPER_ADMIN_ROLE_CODE = 'SUPER_ADMIN';
+
