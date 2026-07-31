@@ -104,6 +104,16 @@ export const request = createFlatRequest(
         return;
       }
 
+      // 会话过期等（受保护接口命中 logoutCodes，如 401）→ 自动登出回登录页。
+      // 登录接口自身的 401 是账密错，不登出、只弹 toast（见 ADR-0001）。
+      // 注：后端业务错走 error 拦截器，onBackendFail 里的 logoutCodes 对我们是死代码，故在此处理。
+      const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+      const logoutCodes = import.meta.env.VITE_SERVICE_LOGOUT_CODES?.split(',') || [];
+      if (!isLoginEndpoint && logoutCodes.includes(backendErrorCode)) {
+        useAuthStore().resetStore();
+        return;
+      }
+
       showErrorMsg(request.state, message);
     }
   }
