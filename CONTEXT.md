@@ -99,6 +99,21 @@
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
 
+### 2026-08-01 动态菜单 grilling（#11 下游实现：翻 `VITE_AUTH_ROUTE_MODE=dynamic`）
+
+> 前置：#11 决策（前端转换器方向）已 CLOSED；REQ-8 已交付——`/auth/current.menus` 每节点带全量 Soybean 路由生成器字段（`component` 已是 `layout.base$view.x`/`view.x` 格式、`routeName` 与 elegant-router 生成名逐字一致）。本次 grill = 动态路由上线前的开放决策点。
+
+- **① home + 菜单端点拆分 = REQ-13（用户拍板：拆分，演进自「/auth/current 补 home」）**：Soybean dynamic 模式 `getUserRoutes` 需返回 `{routes, home}`，而 `/auth/current` 不含 home；讨论中用户提出并确认更彻底的方案——**菜单从 `/auth/current` 拆出，职责按「身份 vs 导航」划界**：
+  - **`GET /menus/my`（新端点）= 我的导航**：返回 `{home, menus}`——`menus` 按角色裁剪的可见菜单树（同现 `/auth/current.menus` 内容），`home: string | null` = sortOrder 最小角色的非空 home（全空 → null）。**权限：登录即可**（不能要 `admin:menu:read`，普通用户也要拉导航）。形状直接贴 Soybean `UserRoute`（`{routes, home}`），`fetchGetUserRoutes` 直通零封装；后端算 menus 时本已拿到角色，顺手推导 home 零额外成本。**只返回启用（status=1）菜单**（用户定：消费面过滤是服务端职责、属本 REQ 条款，实测现 `/auth/current.menus` 不过滤 status=0 须一并修；directory 禁用则子树不下发）。管理面 `/menus`（分页）、`/menus/tree` 不受影响——维护用途须见禁用项，保持全量。前端转换器信任契约、不再过滤 status。
+  - **`/auth/current` = 身份与权限**：`{user, roleCodes, permissions}`，**移除 `menus` 字段**（breaking；前端是唯一消费者，同步改）。roleCodes/permissions 不拆（身份 claims，非资源）。
+  - **动机**：① 消费 REQ-10 已交付的角色 `home` 字段（不消费=死字段）；② home 与 menus 同一消费场景（路由系统），内聚；③ 拆开消除「`fetchGetUserRoutes` 再调一次 `/auth/current`」的重复请求与语义牵强——auth store 调 `/auth/current`、route store 调 `/menus/my`，各取所需。
+  - **前端兜底**：home 为 null / 指向本地不存在路由时，fallback = 排序后第一个可见叶子菜单（menuType=2）routeName——任何角色配置下不死。（否决「纯前端推导 home」：角色 home 白做；否决「写死 home」：未分配 home 菜单时 `/` 重定向 404。）
+  - **代价**：后端删字段 + 集成测试调整；架构仓库 `docs/starters/admin.md` 契约快照需同步。
+- **② `isStaticSuper` 判定去模式条件（翻模式的硬 blocker，实测确认）**：实测超管 `/auth/current` 返回 `permissions: []`（后端 bypass 语义），而 `isStaticSuper` 原判定带 `VITE_AUTH_ROUTE_MODE === 'static'` 条件——翻 dynamic 后恒 false → T2 接进 `hasAuth` 的超管放行失效、写按钮全灭。决策：判定改为 `roles.includes(VITE_STATIC_SUPER_ROLE)`（两种模式通用），名字保留（最小 diff；dynamic 下它专职按钮权限放行，加注释）。（否决「后端给超管下发全量 permissions」：违背 bypass 设计。）
+- **③ 菜单显示名兜底 = i18nKey 有效才用，否则 `menuName`（用户拍板 b 并泛化）**：Soybean 渲染规则 `label = i18nKey ? $t(i18nKey) : title`——dynamic 接上后，运营改 `menuName` 若 i18nKey 仍在则显示不变；且弹窗自动派生 `i18nKey=route.{routeName}`，新菜单 locales 缺键时导航显示 `route.xxx` 原文（vue-i18n 缺键行为）。决策：转换器检查 i18nKey 有效性（zh/en 均缺键 → 置 null）——**「不管是没配，还是配了读不到，就用菜单名称」**（用户原话）。种子/规范配置菜单行为不变（走翻译），缺键新菜单显示中文名不显示原文。转换器是本方代码，零升级债。
+- **④ 实现事实（grilling 告知项，无决策空间）**：`fetchGetConstantRoutes` 本地化（不发请求，返回本地内建 constant routes——login/403/404/500/iframe-page 是前端内建页，避免每次启动 404+toast）；`fetchIsRouteExist` 本地实现（查完整生成路由表，区分 403/404）；菜单变更生效时机 = 重新登录/刷新（Soybean 固有，会话内不热更）；static 代码全保留、env 翻回即回退；route store 与守卫零改动（转换器放 route store 共享模块，service 层三适配）。
+- **✅ spec 已发布（2026-08-01，via `/to-spec`）**：[#20](https://github.com/ZhangColin/aieducenter-admin-web/issues/20)（`ready-for-agent`）= 动态菜单（dynamic 路由模式）前端实现。测试 seam = 手动 E2E（同 spec #1/#13）。**阻塞边 = [REQ-13](https://github.com/ZhangColin/aieducenter-admin/issues/20)（已提后端仓库，`enhancement`；详情 `docs/backend-requirements/REQ-13-my-menus-endpoint.md`）**；不依赖后端的（`isStaticSuper` 修复、转换器、service 三适配）可在 static 模式下先合入、零行为变化，翻 env 是最后一步。已 grep 核实无任何代码消费 `/auth/current.menus`——后端删字段无切换协调风险。
+
 ### 2026-08-01 列表空白真根因 + 框架可升级审计 + 菜单树形（re-verbatim 一轮）
 
 - **列表空白真根因 = 复制时漏了 `class="sm:h-full"`**（非 HMR/后端/SW，此前曾误判）：Soybean 三个 manage 页 NDataTable 都成对带 `:flex-height="!appStore.isMobile"` + `class="sm:h-full"`；我们只抄了 flex-height。漏 sm:h-full → 表格没 100% 高度 → flex-height 算不出父高度 → 表体塌 0（实测 `.n-card__content` 高 0、`.n-data-table`≈81px 只剩表头），数据行在 DOM 却被裁、肉眼空（分页仍显示"共 X 条"、无空占位）。**修法：恢复 verbatim（flex-height + sm:h-full 都补上，三个页面）。** 详见 memory `flex-height-needs-sm-h-full`。
