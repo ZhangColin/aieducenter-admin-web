@@ -27,8 +27,8 @@ const visible = defineModel<boolean>('visible', {
 
 const title = computed(() => `分配角色 — ${props.user.nickname || props.user.username}`);
 
-/** 全量角色（选项源；角色无 status 字段，列表即启用角色） */
-const roleList = ref<Api.SystemManage.Role[]>([]);
+/** 全量启用角色（选项源；GET /roles/all 精简 {id,name,code}） */
+const roleList = ref<Api.SystemManage.RoleOption[]>([]);
 /** 已选 role id（提交体 roleIds） */
 const checks = ref<string[]>([]);
 const loading = ref(false);

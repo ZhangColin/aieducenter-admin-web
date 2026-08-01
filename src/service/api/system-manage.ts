@@ -1,4 +1,3 @@
-import type { AxiosError } from 'axios';
 import { request } from '../request';
 
 /**
@@ -163,16 +162,14 @@ export function fetchGetAllPermissions() {
 }
 
 /**
- * 全量角色字典（「分配角色」选项源）。
+ * 全量启用角色字典（「分配角色」选项源；GET /roles/all）。
  *
- * ⚠️ 后端暂无 `/roles/all` 轻量端点（REQ-10，blocked-by 后端 aieducenter-admin#11）——
- * 此处以 `GET /roles` 大页兜底；REQ-10 落地后改为直调 `/roles/all`。
- * 角色无 status 字段，故列表即「启用角色」。
- *
- * 返回精简 `{ data, error }`（无 `response` 字段）：error 时 data 为 `[]`，调用方仅判 error。
+ * REQ-10 / 后端 #16 已落地：`/roles/all` 轻量端点——仅启用、不分页、精简 `{id,name,code}`，
+ * 取代此前 `GET /roles` 大页兜底。
  */
-export async function fetchGetAllRoles(): Promise<{ data: Api.SystemManage.Role[]; error: AxiosError | null }> {
-  const { error, data } = await fetchGetRoleList({ page: 0, size: 1000 });
-
-  return { error, data: data ? data.items : [] };
+export function fetchGetAllRoles() {
+  return request<Api.SystemManage.RoleOption[]>({
+    url: '/roles/all',
+    method: 'get'
+  });
 }

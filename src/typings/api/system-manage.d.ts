@@ -83,6 +83,16 @@ declare namespace Api {
     }
 
     /**
+     * 后端 RoleOptionResponse（GET /roles/all，REQ-10 / 后端 #16）。
+     * 轻量角色字典项：仅启用、不分页、精简 `{id,name,code}`，供「分配角色」下拉选项源。
+     */
+    interface RoleOption {
+      id: string;
+      name: string;
+      code: string;
+    }
+
+    /**
      * GET /roles 搜索参数（后端 AdminRoleQuery + Spring Pageable）。
      * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
      */

@@ -86,7 +86,7 @@ watch(visible, val => {
       :data="tree"
       :loading="loading"
       key-field="id"
-      label-field="name"
+      label-field="menuName"
       checkable
       cascade
       block-line

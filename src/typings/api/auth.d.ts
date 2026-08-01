@@ -58,15 +58,35 @@ declare namespace Api {
       menus: BackendMenu[];
     }
 
-    /** 后端 MenuResponse 节点（type: 1=GROUP 2=MENU 3=DIVIDER） */
+    /**
+     * 后端 MenuResponse 节点（Soybean「路由生成器」模型，REQ-8 / 后端 #13）。
+     *
+     * - `menuType`: 1=directory 2=menu（旧 nav-tree 方案的 DIVIDER(3) 已废弃，无第 3 值）。
+     * - `iconType`: 1=iconify / 2=local svg（REQ-8 切 iconify+iconType，废弃 REQ-6 Material Symbols）。
+     * - 字段名随 Soybean 对齐：旧 `name/path/type` → `menuName/routePath/menuType`，
+     *   并补 routeName/component/i18nKey 等路由元数据。
+     */
     interface BackendMenu {
       id: string;
-      name: string;
-      path: string;
-      icon: string;
-      parentId: string;
+      menuName: string;
+      routeName: string;
+      routePath: string;
+      component: string | null;
+      icon: string | null;
+      iconType: number;
+      parentId: string | null;
       sortOrder: number;
-      type: number;
+      menuType: number;
+      i18nKey?: string | null;
+      keepAlive?: boolean;
+      constant?: boolean;
+      multiTab?: boolean;
+      hideInMenu?: boolean;
+      activeMenu?: string | null;
+      href?: string | null;
+      fixedIndexInTab?: number | null;
+      query?: Array<{ key: string; value: string }>;
+      status?: number;
       children?: BackendMenu[];
     }
   }
