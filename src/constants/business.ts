@@ -38,3 +38,26 @@ export const userGenderRecord: Record<number, { label: string; tagType: NaiveUI.
  */
 export const SUPER_ADMIN_ROLE_CODE = 'SUPER_ADMIN';
 
+/**
+ * 菜单类型（Soybean「路由生成器」模型，REQ-8：1=目录 directory / 2=菜单 menu；整数）。
+ * 旧 nav-tree 的 MENU/GROUP/DIVIDER(3) 三值已废弃。
+ */
+export const menuTypeOptions: CommonType.Option<number>[] = [
+  { label: '目录', value: 1 },
+  { label: '菜单', value: 2 }
+];
+
+/** menuType → { label, tagType }，用于 NTag / NRadioGroup 渲染 */
+export const menuTypeRecord: Record<number, { label: string; tagType: NaiveUI.ThemeColor }> = {
+  1: { label: '目录', tagType: 'default' },
+  2: { label: '菜单', tagType: 'primary' }
+};
+
+/**
+ * 菜单图标类型（REQ-8：1=iconify / 2=本地 svg；整数，废弃 REQ-6 Material Symbols）。
+ */
+export const menuIconTypeOptions: CommonType.Option<number>[] = [
+  { label: 'iconify', value: 1 },
+  { label: '本地', value: 2 }
+];
+

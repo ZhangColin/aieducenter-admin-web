@@ -182,3 +182,48 @@ export function fetchGetAllRoles() {
     method: 'get'
   });
 }
+
+/**
+ * 菜单管理（admin 后端 /api/admin/menus；CRUD）。
+ *
+ * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ * menuType/iconType/status 整数（BaseEnum）；id/parentId 字符串（Long）；root = parentId null。
+ *
+ * ⚠️ 后端**无独立启停端点**（PUT /menus/{id}/status 不存在）——status 经全量 PUT 切换。
+ *    删除有子菜单的节点后端 403（MENU_HAS_CHILDREN）。
+ */
+
+/** 菜单分页扁平列表（GET /menus；REQ-8 分页扁平端点，Soybean 菜单表格用） */
+export function fetchGetMenuList(params: Api.SystemManage.MenuSearchParams) {
+  return request<Api.Common.PageResponse<Api.SystemManage.Menu>>({
+    url: '/menus',
+    method: 'get',
+    params
+  });
+}
+
+/** 新增菜单（POST /menus；返回新菜单 id，Long→字符串） */
+export function fetchCreateMenu(body: Api.SystemManage.MenuCommand) {
+  return request<string>({
+    url: '/menus',
+    method: 'post',
+    data: body
+  });
+}
+
+/** 编辑菜单（PUT /menus/{id}；全量替换。无独立启停端点——status 经此端点切换） */
+export function fetchUpdateMenu(id: string, body: Api.SystemManage.MenuCommand) {
+  return request<null>({
+    url: `/menus/${id}`,
+    method: 'put',
+    data: body
+  });
+}
+
+/** 删除菜单（DELETE /menus/{id}；有子菜单时后端 403 MENU_HAS_CHILDREN） */
+export function fetchDeleteMenu(id: string) {
+  return request<null>({
+    url: `/menus/${id}`,
+    method: 'delete'
+  });
+}

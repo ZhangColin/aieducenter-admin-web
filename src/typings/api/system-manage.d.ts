@@ -159,5 +159,110 @@ declare namespace Api {
       code: string;
       name: string;
     }
+
+    /**
+     * 菜单管理（admin 后端 /api/admin/menus）
+     *
+     * Soybean「路由生成器」模型（REQ-8 / 后端 #13）。与 Api.Auth.BackendMenu 同构，
+     * 管理端 MenuResponse 另带 createdAt/updatedAt。
+     *
+     * - `id`/`parentId` Long→字符串；**root = parentId null**（非 0 / "0"）。
+     * - `menuType`/`iconType`/`status` 经 BaseEnumSerializer **整数** 出/入站（非字符串）。
+     * - 排序字段叫 `sortOrder`（后端避 PG 保留字；Soybean 叫 `order`，前端表单字段同名对齐后端）。
+     * - `query` 恒非 null（空 = `[]`）；`children` 仅 `/menus/tree` 端点填充。
+     */
+
+    /** 菜单类型：1=directory（目录）/ 2=menu（菜单）。旧 DIVIDER(3) 已废弃。 */
+    type MenuType = 1 | 2;
+
+    /** 菜单图标类型：1=iconify / 2=local（本地图标）。 */
+    type MenuIconType = 1 | 2;
+
+    /** 后端 MenuQueryParam record（菜单路由 query 参数项） */
+    interface MenuQueryParam {
+      key: string;
+      value: string;
+    }
+
+    /**
+     * 后端 MenuResponse（GET /menus 列表项 / GET /menus/{id} / GET /menus/tree 节点）。
+     * `status` 整数 1=启用 / 0=禁用（同用户/角色）。
+     */
+    interface Menu {
+      id: string;
+      menuName: string;
+      routeName: string;
+      routePath: string | null;
+      component: string | null;
+      icon: string | null;
+      iconType: MenuIconType;
+      parentId: string | null;
+      sortOrder: number | null;
+      menuType: MenuType;
+      i18nKey: string | null;
+      keepAlive: boolean;
+      constant: boolean;
+      multiTab: boolean;
+      hideInMenu: boolean;
+      activeMenu: string | null;
+      href: string | null;
+      fixedIndexInTab: number | null;
+      query: MenuQueryParam[];
+      /** 1=启用 / 0=禁用 */
+      status: number;
+      /** 仅 /menus/tree 填充 */
+      children?: Menu[];
+      createdAt: string;
+      updatedAt: string;
+    }
+
+    /**
+     * GET /menus 搜索参数（后端 MenuQuery + Spring Pageable）。
+     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     */
+    interface MenuSearchParams {
+      /** 菜单名称模糊（后端 menuName INNER_LIKE） */
+      menuName?: string | null;
+      /** 1=directory / 2=menu；null/undefined = 不过滤 */
+      menuType?: MenuType | null;
+      /** 1=启用 / 0=禁用；null/undefined = 不过滤 */
+      status?: number | null;
+      /** menuName/routeName/routePath 多列模糊（后端 keyword blurry） */
+      keyword?: string | null;
+      /** 0-based */
+      page: number;
+      size: number;
+    }
+
+    /**
+     * POST /menus 与 PUT /menus/{id} 请求体（Create/Update 同构；后端全量替换）。
+     *
+     * 后端仅校验 `menuName`/`routeName`/`menuType` 非空；**无 path 不变量**
+     * （routePath 必填/禁填规则由前端表单兜底：menu 类型必填、directory 类型禁填）。
+     */
+    interface MenuCommand {
+      menuName: string;
+      routeName: string;
+      /** menu 类型必填、directory 类型应为 null（前端兜底，后端透传） */
+      routePath?: string | null;
+      component?: string | null;
+      icon?: string | null;
+      iconType?: MenuIconType;
+      /** null = root（顶级） */
+      parentId?: string | null;
+      sortOrder?: number | null;
+      menuType: MenuType;
+      i18nKey?: string | null;
+      keepAlive: boolean;
+      constant: boolean;
+      multiTab: boolean;
+      hideInMenu: boolean;
+      activeMenu?: string | null;
+      href?: string | null;
+      fixedIndexInTab?: number | null;
+      query?: MenuQueryParam[];
+      /** 1=启用 / 0=禁用 */
+      status?: number;
+    }
   }
 }
