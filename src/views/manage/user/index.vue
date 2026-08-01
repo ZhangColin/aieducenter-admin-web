@@ -1,13 +1,14 @@
 <script setup lang="tsx">
 import { computed, ref } from 'vue';
-import { NButton, NPopconfirm, NSwitch, NTag } from 'naive-ui';
-import { enableStatusRecord, userGenderRecord } from '@/constants/business';
+import { NButton, NPopconfirm, NTag } from 'naive-ui';
+import { userGenderRecord } from '@/constants/business';
 import { fetchDeleteUser, fetchGetUserList, fetchUpdateUserStatus } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuthStore } from '@/store/modules/auth';
 import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { $t } from '@/locales';
+import StatusSwitch from '../components/status-switch.vue';
 import UserOperateDrawer from './modules/user-operate-drawer.vue';
 import UserResetPwdModal from './modules/user-reset-pwd-modal.vue';
 import UserSearch from './modules/user-search.vue';
@@ -49,7 +50,7 @@ function buildParams(p: Api.SystemManage.UserSearchParams) {
   };
 }
 
-const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination } = useNaivePaginatedTable({
+const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } = useNaivePaginatedTable({
   api: () => fetchGetUserList(buildParams(searchParams.value)),
   transform: response => defaultTransform(response),
   onPaginationParamsChange: params => {
@@ -66,39 +67,33 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       disabled: (row: Api.SystemManage.User) => row.breakGlass || row.id === currentUserId.value
     },
     {
-      key: 'index',
-      title: $t('common.index'),
-      align: 'center',
-      width: 64,
-      render: (_, index) => index + 1
-    },
-    {
       key: 'username',
-      title: '用户名',
+      title: $t('page.manage.user.userName'),
       align: 'center',
       minWidth: 120
     },
     {
       key: 'nickname',
-      title: '昵称',
+      title: $t('page.manage.user.nickName'),
       align: 'center',
       minWidth: 120
     },
     {
       key: 'gender',
-      title: '性别',
+      title: $t('page.manage.user.userGender'),
       align: 'center',
       width: 80,
       render: row => {
         if (row.gender == null) return '-';
-        const rec = userGenderRecord[row.gender];
+        const tagMap: Record<number, NaiveUI.ThemeColor> = { 1: 'primary', 2: 'error' };
+        const label = $t(userGenderRecord[row.gender]);
 
-        return <NTag type={rec?.tagType ?? 'default'} size="small">{rec?.label ?? '-'}</NTag>;
+        return <NTag type={tagMap[row.gender] ?? 'default'} size="small">{label}</NTag>;
       }
     },
     {
       key: 'roles',
-      title: '角色',
+      title: $t('page.manage.user.userRole'),
       align: 'center',
       minWidth: 160,
       render: row => {
@@ -116,42 +111,34 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     },
     {
       key: 'phone',
-      title: '手机号',
+      title: $t('page.manage.user.userPhone'),
       align: 'center',
       width: 130,
       render: row => row.phone || '-'
     },
     {
       key: 'email',
-      title: '邮箱',
+      title: $t('page.manage.user.userEmail'),
       align: 'center',
       minWidth: 180,
       render: row => row.email || '-'
     },
     {
       key: 'status',
-      title: '状态',
+      title: $t('page.manage.user.userStatus'),
       align: 'center',
       width: 90,
-      render: row => {
-        const rec = enableStatusRecord[row.status];
-
-        return (
-          <NSwitch
-            value={row.status}
-            checked-value={1}
-            unchecked-value={0}
-            disabled={!canWrite.value || row.breakGlass || row.id === currentUserId.value}
-            onChange={(val: string | number | boolean) => handleToggleStatus(row, Number(val))}
-          >
-            {{ checked: () => rec?.label ?? '启用', unchecked: () => rec?.label ?? '禁用' }}
-          </NSwitch>
-        );
-      }
+      render: row => (
+        <StatusSwitch
+          value={row.status}
+          disabled={!canWrite.value || row.breakGlass || row.id === currentUserId.value}
+          onConfirm={(next: number) => handleToggleStatus(row, next)}
+        />
+      )
     },
     {
       key: 'createdAt',
-      title: '创建时间',
+      title: $t('page.manage.user.createdAt'),
       align: 'center',
       width: 170,
       render: row => row.createdAt || '-'
@@ -168,7 +155,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
             {$t('common.edit')}
           </NButton>
           <NButton type="warning" ghost size="small" disabled={!canWrite.value} onClick={() => openResetPwd(row)}>
-            重置密码
+            {$t('page.manage.user.resetPwd')}
           </NButton>
           <NPopconfirm
             disabled={!canWrite.value || row.breakGlass || row.id === currentUserId.value}
@@ -238,9 +225,9 @@ async function handleBatchDelete() {
   checkedRowKeys.value = [];
 
   if (failed === 0) {
-    window.$message?.success?.(`已删除 ${ids.length} 个用户`);
+    window.$message?.success?.($t('page.manage.common.batchDeleteSuccess', { count: ids.length }));
   } else {
-    window.$message?.warning?.(`${ids.length - failed} 个成功、${failed} 个失败`);
+    window.$message?.warning?.($t('page.manage.common.batchDeletePartial', { success: ids.length - failed, fail: failed }));
   }
 
   await getData();
@@ -250,7 +237,7 @@ async function handleToggleStatus(row: Api.SystemManage.User, next: number) {
   const { error } = await fetchUpdateUserStatus(row.id, next);
 
   if (!error) {
-    window.$message?.success?.(next === 1 ? '已启用' : '已禁用');
+    window.$message?.success?.(next === 1 ? $t('page.manage.common.enableSuccess') : $t('page.manage.common.disableSuccess'));
   }
 
   // 成功/失败都刷新：成功持久化、失败回滚开关
@@ -261,7 +248,7 @@ async function handleToggleStatus(row: Api.SystemManage.User, next: number) {
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
     <UserSearch v-model:model="searchParams" @search="getDataByPage(1)" />
-    <NCard title="用户管理" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+    <NCard :title="$t('page.manage.user.title')" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
@@ -279,7 +266,8 @@ async function handleToggleStatus(row: Api.SystemManage.User, next: number) {
         :data="data"
         size="small"
         :flex-height="!appStore.isMobile"
-        :scroll-x="1380"
+        class="sm:h-full"
+        :scroll-x="scrollX"
         :loading="loading"
         remote
         :row-key="getRowKey"

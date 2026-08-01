@@ -25,7 +25,7 @@ const visible = defineModel<boolean>('visible', {
   default: false
 });
 
-const title = computed(() => `分配菜单 — ${props.role.name}`);
+const title = computed(() => `${$t('page.manage.role.assignMenu')} — ${props.role.name}`);
 
 const tree = ref<Api.Auth.BackendMenu[]>([]);
 const checks = ref<string[]>([]);
@@ -97,7 +97,7 @@ async function handleSubmit() {
       if (homeError) return;
     }
 
-    window.$message?.success?.('保存成功');
+    window.$message?.success?.($t('common.updateSuccess'));
     emit('assigned', { menuIds: checks.value, home: home.value });
     visible.value = false;
   } finally {
@@ -113,18 +113,18 @@ watch(visible, val => {
 <template>
   <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
     <div class="flex-y-center gap-12px pb-12px">
-      <span class="whitespace-nowrap">默认首页</span>
+      <span class="whitespace-nowrap">{{ $t('page.manage.role.defaultHome') }}</span>
       <NSelect
         v-model:value="home"
         :options="homeOptions"
         :loading="loading"
-        placeholder="选择落地页 route name（选填）"
+        :placeholder="$t('page.manage.role.homePlaceholder')"
         clearable
         filterable
         class="flex-1"
       />
     </div>
-    <NEmpty v-if="!loading && tree.length === 0" description="暂无可分配菜单" />
+    <NEmpty v-if="!loading && tree.length === 0" :description="$t('page.manage.role.noMenuToAssign')" />
     <NTree
       v-else
       v-model:checked-keys="checks"

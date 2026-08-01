@@ -34,7 +34,7 @@ const visible = defineModel<boolean>('visible', {
 const { formRef, validate, restoreValidation } = useNaiveForm();
 const { defaultRequiredRule } = useFormRules();
 
-const title = computed(() => (props.operateType === 'add' ? '新增角色' : '编辑角色'));
+const title = computed(() => (props.operateType === 'add' ? $t('page.manage.role.addRole') : $t('page.manage.role.editRole')));
 const isEdit = computed(() => props.operateType === 'edit');
 /** 超管角色 code 不可改（后端亦保护，UI 先兜底） */
 const isSuperAdmin = computed(() => props.rowData?.code === SUPER_ADMIN_ROLE_CODE);
@@ -61,12 +61,12 @@ const submitting = ref(false);
 const localRole = ref<Api.SystemManage.Role | null>(null);
 
 const rules = computed<Record<string, App.Global.FormRule | App.Global.FormRule[]>>(() => ({
-  name: [defaultRequiredRule, { max: 50, message: '名称长度不能超过 50', trigger: 'input' }],
+  name: [defaultRequiredRule, { max: 50, message: $t('page.manage.role.roleNameLengthRule'), trigger: 'input' }],
   code: [
     defaultRequiredRule,
     {
       pattern: /^[A-Za-z][A-Za-z0-9_]{0,49}$/,
-      message: '编码须以字母开头，仅含字母、数字、下划线（≤50）',
+      message: $t('page.manage.role.roleCodeRule'),
       trigger: 'change'
     }
   ]
@@ -159,33 +159,33 @@ watch(visible, val => {
   <NDrawer v-model:show="visible" display-directive="show" :width="420">
     <NDrawerContent :title="title" :native-scrollbar="false" closable>
       <NForm ref="formRef" :model="model" :rules="rules" label-placement="top">
-        <NFormItem label="角色名称" path="name">
-          <NInput v-model:value="model.name" :maxlength="50" placeholder="请输入角色名称" />
+        <NFormItem :label="$t('page.manage.role.roleName')" path="name">
+          <NInput v-model:value="model.name" :maxlength="50" :placeholder="$t('page.manage.role.form.roleName')" />
         </NFormItem>
-        <NFormItem label="角色编码" path="code">
+        <NFormItem :label="$t('page.manage.role.roleCode')" path="code">
           <NInput
             v-model:value="model.code"
             :maxlength="50"
             :disabled="isEdit && isSuperAdmin"
-            :placeholder="isEdit && isSuperAdmin ? '超管编码不可修改' : '如 OPERATION_ADMIN'"
+            :placeholder="isEdit && isSuperAdmin ? $t('page.manage.role.superAdminCodeLocked') : $t('page.manage.role.form.roleCode')"
           />
         </NFormItem>
-        <NFormItem label="排序" path="sortOrder">
-          <NInputNumber v-model:value="model.sortOrder" :min="0" class="w-full" placeholder="数字越小越靠前" />
+        <NFormItem :label="$t('page.manage.role.order')" path="sortOrder">
+          <NInputNumber v-model:value="model.sortOrder" :min="0" class="w-full" :placeholder="$t('page.manage.role.form.order')" />
         </NFormItem>
-        <NFormItem label="描述" path="description">
+        <NFormItem :label="$t('page.manage.role.roleDesc')" path="description">
           <NInput
             v-model:value="model.description"
             type="textarea"
             :autosize="{ minRows: 2, maxRows: 4 }"
             :maxlength="255"
-            placeholder="请输入描述（选填）"
+            :placeholder="$t('page.manage.role.form.roleDesc')"
           />
         </NFormItem>
       </NForm>
       <NSpace v-if="isEdit" :size="12" class="mt-8px">
-        <NButton @click="openMenuAuth">分配菜单</NButton>
-        <NButton @click="openButtonAuth">分配权限</NButton>
+        <NButton @click="openMenuAuth">{{ $t('page.manage.role.assignMenu') }}</NButton>
+        <NButton @click="openButtonAuth">{{ $t('page.manage.role.assignPermission') }}</NButton>
       </NSpace>
       <template #footer>
         <NSpace :size="16">

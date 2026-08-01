@@ -1,15 +1,16 @@
 <script setup lang="tsx">
-import { computed, ref } from 'vue';
-import { NButton, NPopconfirm, NSwitch, NTag } from 'naive-ui';
+import { computed, ref, watch } from 'vue';
+import { NButton, NPopconfirm, NTag } from 'naive-ui';
 import { useBoolean } from '@sa/hooks';
-import { enableStatusRecord, menuTypeRecord } from '@/constants/business';
+import { menuTypeRecord } from '@/constants/business';
 import { yesOrNoRecord } from '@/constants/common';
-import { fetchDeleteMenu, fetchGetMenuList, fetchUpdateMenu } from '@/service/api';
+import { fetchDeleteMenu, fetchGetMenuTree, fetchUpdateMenu } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
-import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
+import { useNaiveTable, useTableOperate } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import StatusSwitch from '../components/status-switch.vue';
 import MenuOperateModal, { type OperateType } from './modules/menu-operate-modal.vue';
 
 defineOptions({
@@ -24,25 +25,14 @@ const canWrite = computed(() => hasAuth('admin:menu:write'));
 
 const { bool: visible, setTrue: openModal } = useBoolean();
 
-const searchParams = ref<Api.SystemManage.MenuSearchParams>({
-  page: 0,
-  size: 10
-});
-
-/** 清洗分页参数（请求 page 保持 0-based）；过滤器位预留 */
-function buildParams(p: Api.SystemManage.MenuSearchParams) {
-  const { page, size } = p;
-  return { page, size };
-}
-
-const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination } = useNaivePaginatedTable({
-  api: () => fetchGetMenuList(buildParams(searchParams.value)),
-  transform: response => defaultTransform(response),
-  onPaginationParamsChange: params => {
-    // 后端请求 page 为 0-based（响应 page 才是 1-based）
-    searchParams.value.page = (params.page ?? 1) - 1;
-    searchParams.value.size = params.pageSize ?? 10;
-  },
+/**
+ * 菜单为树形表格（不再分页——树不分页）：数据取 `/menus/tree`（后端已返回完整两级树，
+ * 含 children）。与 Soybean example 的扁平分页菜单有意不同（产品决策）。
+ * `BackendMenu` 与 `Api.SystemManage.Menu` 同构（REQ-8），此处按 Menu 渲染。
+ */
+const { columns, columnChecks, data, getData, loading, scrollX } = useNaiveTable({
+  api: () => fetchGetMenuTree(),
+  transform: response => (response.data ?? []) as Api.SystemManage.Menu[],
   columns: () => [
     {
       type: 'selection',
@@ -50,29 +40,30 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       width: 48
     },
     {
+      key: 'menuName',
+      title: $t('page.manage.menu.menuName'),
+      align: 'left',
+      minWidth: 140,
+      render: row => <span>{row.menuName}</span>
+    },
+    {
       key: 'menuType',
-      title: '类型',
+      title: $t('page.manage.menu.menuType'),
       align: 'center',
       width: 80,
       render: row => {
-        const rec = menuTypeRecord[row.menuType];
+        const tagMap: Record<number, NaiveUI.ThemeColor> = { 1: 'default', 2: 'primary' };
+        const label = $t(menuTypeRecord[row.menuType]);
         return (
-          <NTag type={rec?.tagType ?? 'default'} bordered={false}>
-            {rec?.label ?? row.menuType}
+          <NTag type={tagMap[row.menuType] ?? 'default'} bordered={false}>
+            {label}
           </NTag>
         );
       }
     },
     {
-      key: 'menuName',
-      title: '菜单名称',
-      align: 'center',
-      minWidth: 140,
-      render: row => <span>{row.menuName}</span>
-    },
-    {
       key: 'icon',
-      title: '图标',
+      title: $t('page.manage.menu.icon'),
       align: 'center',
       width: 60,
       render: row => {
@@ -88,41 +79,30 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     },
     {
       key: 'routeName',
-      title: '路由名称',
+      title: $t('page.manage.menu.routeName'),
       align: 'center',
       minWidth: 140,
       render: row => row.routeName || <span class="text-disabled">-</span>
     },
     {
       key: 'routePath',
-      title: '路由路径',
+      title: $t('page.manage.menu.routePath'),
       align: 'center',
       minWidth: 140,
       render: row => row.routePath || <span class="text-disabled">-</span>
     },
     {
       key: 'status',
-      title: '状态',
+      title: $t('page.manage.menu.menuStatus'),
       align: 'center',
       width: 90,
-      render: row => {
-        const rec = enableStatusRecord[row.status];
-        return (
-          <NSwitch
-            value={row.status}
-            checked-value={1}
-            unchecked-value={0}
-            disabled={!canWrite.value}
-            onChange={(val: string | number | boolean) => handleToggleStatus(row, Number(val))}
-          >
-            {{ checked: () => rec?.label ?? '启用', unchecked: () => rec?.label ?? '禁用' }}
-          </NSwitch>
-        );
-      }
+      render: row => (
+        <StatusSwitch value={row.status} disabled={!canWrite.value} onConfirm={(next: number) => handleToggleStatus(row, next)} />
+      )
     },
     {
       key: 'hideInMenu',
-      title: '隐藏',
+      title: $t('page.manage.menu.hideInMenu'),
       align: 'center',
       width: 80,
       render: row => {
@@ -135,15 +115,8 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       }
     },
     {
-      key: 'parentId',
-      title: '父级',
-      align: 'center',
-      width: 110,
-      render: row => (row.parentId ? row.parentId : <span class="text-disabled">-</span>)
-    },
-    {
       key: 'sortOrder',
-      title: '排序',
+      title: $t('page.manage.menu.order'),
       align: 'center',
       width: 70,
       render: row => row.sortOrder ?? 0
@@ -158,7 +131,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         <div class="flex-center justify-end gap-8px">
           {row.menuType === 1 && (
             <NButton type="primary" ghost size="small" disabled={!canWrite.value} onClick={() => handleAddChild(row)}>
-              新增子菜单
+              {$t('page.manage.menu.addChildMenu')}
             </NButton>
           )}
           <NButton type="primary" ghost size="small" disabled={!canWrite.value} onClick={() => handleEdit(row)}>
@@ -181,6 +154,29 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
 });
 
 const { checkedRowKeys, onDeleted } = useTableOperate(data, 'id', getData);
+
+/** 树形表：首次拿到树后默认全展开（便于总览），之后用户可自由折叠/展开（v-model 受控，不再强制全展）。
+ *  `default-expand-all` 对异步加载数据不生效，故用 ref + 一次性 watch 初始化。 */
+const expandedRowKeys = ref<string[]>([]);
+const stopExpandInit = watch(
+  data,
+  nodes => {
+    if (!nodes?.length) return;
+    const keys: string[] = [];
+    const walk = (ns: Api.SystemManage.Menu[]) => {
+      for (const n of ns) {
+        if (n.children?.length) {
+          keys.push(n.id);
+          walk(n.children);
+        }
+      }
+    };
+    walk(nodes);
+    expandedRowKeys.value = keys;
+    stopExpandInit();
+  },
+  { immediate: true }
+);
 
 const operateType = ref<OperateType>('add');
 /** 编辑行数据，或新增子菜单时的父节点 */
@@ -242,7 +238,7 @@ function menuToCommand(menu: Api.SystemManage.Menu, overrides: Partial<Api.Syste
 async function handleToggleStatus(row: Api.SystemManage.Menu, next: number) {
   const { error } = await fetchUpdateMenu(row.id, menuToCommand(row, { status: next }));
   if (!error) {
-    window.$message?.success?.(next === 1 ? '已启用' : '已禁用');
+    window.$message?.success?.(next === 1 ? $t('page.manage.common.enableSuccess') : $t('page.manage.common.disableSuccess'));
   }
   // 成功/失败都刷新：成功持久化、失败回滚开关
   await getData();
@@ -267,9 +263,9 @@ async function handleBatchDelete() {
   checkedRowKeys.value = [];
 
   if (failed === 0) {
-    window.$message?.success?.(`已删除 ${ids.length} 个菜单`);
+    window.$message?.success?.($t('page.manage.common.batchDeleteSuccess', { count: ids.length }));
   } else {
-    window.$message?.warning?.(`${ids.length - failed} 个成功、${failed} 个失败（可能存在子菜单）`);
+    window.$message?.warning?.($t('page.manage.common.batchDeletePartial', { success: ids.length - failed, fail: failed }));
   }
 
   await getData();
@@ -278,7 +274,7 @@ async function handleBatchDelete() {
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
-    <NCard title="菜单管理" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+    <NCard :title="$t('page.manage.menu.title')" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
@@ -292,21 +288,22 @@ async function handleBatchDelete() {
       </template>
       <NDataTable
         v-model:checked-row-keys="checkedRowKeys"
+        v-model:expanded-row-keys="expandedRowKeys"
         :columns="columns"
         :data="data"
         size="small"
         :flex-height="!appStore.isMobile"
-        :scroll-x="1280"
+        class="sm:h-full"
+        :scroll-x="scrollX"
         :loading="loading"
-        remote
         :row-key="getRowKey"
-        :pagination="mobilePagination"
+        :indent="24"
       />
       <MenuOperateModal
         v-model:visible="visible"
         :operate-type="operateType"
         :row-data="editingData"
-        @submitted="getDataByPage"
+        @submitted="getData"
       />
     </NCard>
   </div>

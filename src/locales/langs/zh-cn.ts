@@ -306,6 +306,164 @@ const local: App.I18n.Schema = {
         desc5: 'Soybean 刚才把工作台页面随便写了一些，凑合能看了！'
       },
       creativity: '创意'
+    },
+    manage: {
+      common: {
+        status: {
+          enable: '启用',
+          disable: '禁用'
+        },
+        enableSuccess: '已启用',
+        disableSuccess: '已禁用',
+        batchDeleteSuccess: '已删除 {count} 项',
+        batchDeletePartial: '{success} 项成功、{fail} 项失败'
+      },
+      role: {
+        title: '角色列表',
+        roleName: '角色名称',
+        roleCode: '角色编码',
+        roleStatus: '角色状态',
+        roleDesc: '角色描述',
+        menuAuth: '菜单权限',
+        buttonAuth: '按钮权限',
+        order: '排序',
+        keyword: '关键词',
+        assignMenu: '分配菜单',
+        assignPermission: '分配权限',
+        superAdminCodeLocked: '超管编码不可修改',
+        roleNameLengthRule: '名称长度不能超过 50',
+        roleCodeRule: '编码须以字母开头，仅含字母、数字、下划线（≤50）',
+        defaultHome: '默认首页',
+        homePlaceholder: '选择落地页 route name（选填）',
+        noMenuToAssign: '暂无可分配菜单',
+        form: {
+          roleName: '请输入角色名称',
+          roleCode: '请输入角色编码',
+          roleStatus: '请选择角色状态',
+          roleDesc: '请输入描述',
+          order: '数字越小越靠前',
+          keyword: '名称/编码/描述'
+        },
+        addRole: '新增角色',
+        editRole: '编辑角色'
+      },
+      user: {
+        title: '用户列表',
+        userName: '用户名',
+        userGender: '性别',
+        nickName: '昵称',
+        userPhone: '手机号',
+        userEmail: '邮箱',
+        userStatus: '用户状态',
+        userRole: '用户角色',
+        password: '密码',
+        createdAt: '创建时间',
+        keyword: '关键词',
+        resetPwd: '重置密码',
+        assignRole: '分配角色',
+        userNameRule: '4-20 位字母、数字或下划线',
+        pwdRule: '8-20 位、须含字母+数字',
+        noRoleToAssign: '暂无可分配角色',
+        newPassword: '新密码',
+        confirmPassword: '确认新密码',
+        form: {
+          userName: '请输入用户名',
+          userGender: '请选择性别',
+          nickName: '请输入昵称',
+          userPhone: '请输入手机号',
+          userEmail: '请输入邮箱',
+          userStatus: '请选择状态',
+          userRole: '请选择用户角色',
+          password: '8-20 位、须含字母+数字',
+          keyword: '用户名/昵称',
+          confirmPassword: '请再次输入新密码'
+        },
+        addUser: '新增用户',
+        editUser: '编辑用户',
+        gender: {
+          male: '男',
+          female: '女'
+        }
+      },
+      menu: {
+        home: '首页',
+        title: '菜单列表',
+        id: 'ID',
+        parentId: '父级菜单ID',
+        menuType: '菜单类型',
+        menuName: '菜单名称',
+        routeName: '路由名称',
+        routePath: '路由路径',
+        pathParam: '路径参数',
+        layout: '布局',
+        page: '页面组件',
+        i18nKey: '国际化key',
+        icon: '图标',
+        localIcon: '本地图标',
+        iconTypeTitle: '图标类型',
+        order: '排序',
+        constant: '常量路由',
+        keepAlive: '缓存路由',
+        href: '外链',
+        hideInMenu: '隐藏菜单',
+        activeMenu: '高亮的菜单',
+        multiTab: '支持多页签',
+        fixedIndexInTab: '固定在页签中的序号',
+        query: '路由参数',
+        button: '按钮',
+        buttonCode: '按钮编码',
+        buttonDesc: '按钮描述',
+        menuStatus: '菜单状态',
+        routePathAuto: '由路由名称自动生成',
+        i18nKeyAuto: '由路由名称自动生成',
+        form: {
+          home: '请选择首页',
+          menuType: '请选择菜单类型',
+          menuName: '请输入菜单名称',
+          routeName: '请输入路由名称',
+          routePath: '请输入路由路径',
+          pathParam: '请输入路径参数',
+          page: '请选择页面组件',
+          layout: '请选择布局组件',
+          i18nKey: '请输入国际化key',
+          icon: '请输入图标',
+          localIcon: '请选择本地图标',
+          order: '请输入排序',
+          keepAlive: '请选择是否缓存路由',
+          href: '请输入外链',
+          hideInMenu: '请选择是否隐藏菜单',
+          activeMenu: '请选择高亮的菜单的路由名称',
+          multiTab: '请选择是否支持多标签',
+          fixedInTab: '请选择是否固定在页签中',
+          fixedIndexInTab: '请输入固定在页签中的序号',
+          queryKey: '请输入路由参数Key',
+          queryValue: '请输入路由参数Value',
+          button: '请选择是否按钮',
+          buttonCode: '请输入按钮编码',
+          buttonDesc: '请输入按钮描述',
+          menuStatus: '请选择菜单状态'
+        },
+        addMenu: '新增菜单',
+        editMenu: '编辑菜单',
+        addChildMenu: '新增子菜单',
+        type: {
+          directory: '目录',
+          menu: '菜单'
+        },
+        iconType: {
+          iconify: 'iconify图标',
+          local: '本地图标'
+        }
+      },
+      permission: {
+        module: {
+          user: '用户',
+          role: '角色',
+          menu: '菜单',
+          permission: '权限'
+        },
+        noPermissionToAssign: '暂无可分配权限'
+      }
     }
   },
   form: {

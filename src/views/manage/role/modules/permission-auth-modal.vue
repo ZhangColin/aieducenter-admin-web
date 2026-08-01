@@ -24,7 +24,7 @@ const visible = defineModel<boolean>('visible', {
   default: false
 });
 
-const title = computed(() => `分配权限 — ${props.role.name}`);
+const title = computed(() => `${$t('page.manage.role.assignPermission')} — ${props.role.name}`);
 
 /** NTree 节点：分组 key 加前缀避免与权限 code 冲突 */
 interface PermTreeNode {
@@ -33,12 +33,12 @@ interface PermTreeNode {
   children?: PermTreeNode[];
 }
 
-/** 权限资源段 → 中文标签（未知资源原样展示） */
-const RESOURCE_LABEL: Record<string, string> = {
-  user: '用户',
-  role: '角色',
-  menu: '菜单',
-  permission: '权限'
+/** 权限资源段 → i18n key（未知资源原样展示） */
+const RESOURCE_LABEL_KEY: Record<string, App.I18n.I18nKey> = {
+  user: 'page.manage.permission.module.user',
+  role: 'page.manage.permission.module.role',
+  menu: 'page.manage.permission.module.menu',
+  permission: 'page.manage.permission.module.permission'
 };
 
 /** 把扁平权限按 `admin:<resource>:<action>` 的 resource 段分组成两级树 */
@@ -57,7 +57,7 @@ function buildPermissionTree(perms: Api.SystemManage.Permission[]): PermTreeNode
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([resource, items]) => ({
       key: `__group__:${resource}`,
-      label: RESOURCE_LABEL[resource] ?? resource,
+      label: RESOURCE_LABEL_KEY[resource] ? $t(RESOURCE_LABEL_KEY[resource]) : resource,
       children: items
         .sort((a, b) => a.code.localeCompare(b.code))
         .map(p => ({ key: p.code, label: p.name || p.code }))
@@ -87,14 +87,12 @@ function init() {
 }
 
 async function handleSubmit() {
-  // 后端 AssignPermissionsCommand @NotEmpty——空集禁提交（按钮已禁，双保险）
-  if (checks.value.length === 0) return;
-
+  // 空集 = 清空该角色全部权限（后端 AssignPermissionsCommand 已去 @NotEmpty，服务层 clear-then-add，同菜单分配）
   submitting.value = true;
   try {
     const { error } = await fetchAssignRolePermissions(props.role.id, { permissionCodes: checks.value });
     if (!error) {
-      window.$message?.success?.('分配权限成功');
+      window.$message?.success?.($t('common.updateSuccess'));
       emit('assigned', checks.value);
       visible.value = false;
     }
@@ -110,7 +108,7 @@ watch(visible, val => {
 
 <template>
   <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
-    <NEmpty v-if="!loading && tree.length === 0" description="暂无可分配权限" />
+    <NEmpty v-if="!loading && tree.length === 0" :description="$t('page.manage.permission.noPermissionToAssign')" />
     <NTree
       v-else
       v-model:checked-keys="checks"
@@ -129,7 +127,7 @@ watch(visible, val => {
     <template #footer>
       <NSpace justify="end" :size="16">
         <NButton @click="visible = false">{{ $t('common.cancel') }}</NButton>
-        <NButton type="primary" :disabled="checks.length === 0" :loading="submitting" @click="handleSubmit">
+        <NButton type="primary" :loading="submitting" @click="handleSubmit">
           {{ $t('common.confirm') }}
         </NButton>
       </NSpace>

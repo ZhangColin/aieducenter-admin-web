@@ -1,12 +1,13 @@
 <script setup lang="tsx">
 import { computed, ref } from 'vue';
-import { NButton, NPopconfirm, NSwitch, NTag } from 'naive-ui';
-import { SUPER_ADMIN_ROLE_CODE, enableStatusRecord } from '@/constants/business';
+import { NButton, NPopconfirm, NTag } from 'naive-ui';
+import { SUPER_ADMIN_ROLE_CODE } from '@/constants/business';
 import { fetchDeleteRole, fetchGetRoleList, fetchUpdateRoleStatus } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { $t } from '@/locales';
+import StatusSwitch from '../components/status-switch.vue';
 import RoleOperateDrawer from './modules/role-operate-drawer.vue';
 import RoleSearch from './modules/role-search.vue';
 
@@ -48,7 +49,7 @@ function buildParams(p: Api.SystemManage.RoleSearchParams) {
   };
 }
 
-const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination } = useNaivePaginatedTable({
+const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } = useNaivePaginatedTable({
   api: () => fetchGetRoleList(buildParams(searchParams.value)),
   transform: response => defaultTransform(response),
   onPaginationParamsChange: params => {
@@ -65,21 +66,14 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       disabled: (row: Api.SystemManage.Role) => isProtected(row)
     },
     {
-      key: 'index',
-      title: $t('common.index'),
-      align: 'center',
-      width: 64,
-      render: (_, index) => index + 1
-    },
-    {
       key: 'name',
-      title: '角色名称',
+      title: $t('page.manage.role.roleName'),
       align: 'center',
       minWidth: 120
     },
     {
       key: 'code',
-      title: '角色编码',
+      title: $t('page.manage.role.roleCode'),
       align: 'center',
       minWidth: 160,
       render: row => (
@@ -90,38 +84,30 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     },
     {
       key: 'description',
-      title: '描述',
+      title: $t('page.manage.role.roleDesc'),
       minWidth: 180,
       render: row => row.description || '-'
     },
     {
       key: 'sortOrder',
-      title: '排序',
+      title: $t('page.manage.role.order'),
       align: 'center',
       width: 80,
       render: row => row.sortOrder
     },
     {
       key: 'status',
-      title: '状态',
+      title: $t('page.manage.role.roleStatus'),
       align: 'center',
       width: 90,
-      render: row => {
-        const rec = enableStatusRecord[row.status];
-
-        return (
-          <NSwitch
-            value={row.status}
-            checked-value={1}
-            unchecked-value={0}
-            // SUPER_ADMIN 角色后端不可禁（守卫在 AdminRole.disable()），UI 锁定启用
-            disabled={!canWrite.value || isProtected(row)}
-            onChange={(val: string | number | boolean) => handleToggleStatus(row, Number(val))}
-          >
-            {{ checked: () => rec?.label ?? '启用', unchecked: () => rec?.label ?? '禁用' }}
-          </NSwitch>
-        );
-      }
+      // SUPER_ADMIN 角色后端不可禁（守卫在 AdminRole.disable()），UI 锁定启用
+      render: row => (
+        <StatusSwitch
+          value={row.status}
+          disabled={!canWrite.value || isProtected(row)}
+          onConfirm={(next: number) => handleToggleStatus(row, next)}
+        />
+      )
     },
     {
       key: 'operate',
@@ -168,7 +154,7 @@ async function handleToggleStatus(row: Api.SystemManage.Role, next: number) {
   const { error } = await fetchUpdateRoleStatus(row.id, next);
 
   if (!error) {
-    window.$message?.success?.(next === 1 ? '已启用' : '已禁用');
+    window.$message?.success?.(next === 1 ? $t('page.manage.common.enableSuccess') : $t('page.manage.common.disableSuccess'));
   }
 
   // 成功/失败都刷新：成功持久化、失败回滚开关
@@ -196,9 +182,9 @@ async function handleBatchDelete() {
   checkedRowKeys.value = [];
 
   if (failed === 0) {
-    window.$message?.success?.(`已删除 ${ids.length} 个角色`);
+    window.$message?.success?.($t('page.manage.common.batchDeleteSuccess', { count: ids.length }));
   } else {
-    window.$message?.warning?.(`${ids.length - failed} 个成功、${failed} 个失败`);
+    window.$message?.warning?.($t('page.manage.common.batchDeletePartial', { success: ids.length - failed, fail: failed }));
   }
 
   await getData();
@@ -208,7 +194,7 @@ async function handleBatchDelete() {
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
     <RoleSearch v-model:model="searchParams" @search="getDataByPage(1)" />
-    <NCard title="角色管理" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+    <NCard :title="$t('page.manage.role.title')" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
@@ -226,7 +212,8 @@ async function handleBatchDelete() {
         :data="data"
         size="small"
         :flex-height="!appStore.isMobile"
-        :scroll-x="960"
+        class="sm:h-full"
+        :scroll-x="scrollX"
         :loading="loading"
         remote
         :row-key="getRowKey"

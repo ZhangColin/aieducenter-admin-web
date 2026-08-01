@@ -34,7 +34,7 @@ const visible = defineModel<boolean>('visible', {
 const { formRef, validate, restoreValidation } = useNaiveForm();
 const { defaultRequiredRule } = useFormRules();
 
-const title = computed(() => (props.operateType === 'add' ? '新增用户' : '编辑用户'));
+const title = computed(() => (props.operateType === 'add' ? $t('page.manage.user.addUser') : $t('page.manage.user.editUser')));
 const isEdit = computed(() => props.operateType === 'edit');
 
 interface UserModel {
@@ -56,19 +56,19 @@ const submitting = ref(false);
 const rules = computed<Record<string, App.Global.FormRule | App.Global.FormRule[]>>(() => ({
   username: [
     defaultRequiredRule,
-    { pattern: /^[a-zA-Z0-9_]{4,20}$/, message: '4-20 位字母、数字或下划线', trigger: 'change' }
+    { pattern: /^[a-zA-Z0-9_]{4,20}$/, message: $t('page.manage.user.userNameRule'), trigger: 'change' }
   ],
   // 编辑态无密码字段，规则置空（validate() 会校验所有规则，故编辑态不能保留密码必填）
-  password: isEdit.value ? [] : [defaultRequiredRule, { pattern: REG_PWD, message: '8-20 位、须含字母+数字', trigger: 'change' }],
+  password: isEdit.value ? [] : [defaultRequiredRule, { pattern: REG_PWD, message: $t('page.manage.user.pwdRule'), trigger: 'change' }],
   nickname: [defaultRequiredRule],
   email: {
     trigger: ['blur', 'input'],
-    message: '邮箱格式不正确',
+    message: $t('form.email.invalid'),
     validator: (_rule, value: string) => !value || REG_EMAIL.test(value)
   },
   phone: {
     trigger: ['blur', 'input'],
-    message: '手机号格式不正确',
+    message: $t('form.phone.invalid'),
     validator: (_rule, value: string) => !value || REG_PHONE.test(value)
   }
 }));
@@ -142,38 +142,38 @@ watch(visible, val => {
   <NDrawer v-model:show="visible" display-directive="show" :width="420">
     <NDrawerContent :title="title" :native-scrollbar="false" closable>
       <NForm ref="formRef" :model="model" :rules="rules" label-placement="top">
-        <NFormItem label="用户名" path="username">
+        <NFormItem :label="$t('page.manage.user.userName')" path="username">
           <NInput
             v-model:value="model.username"
-            :placeholder="isEdit ? '' : '4-20 位字母、数字或下划线'"
+            :placeholder="isEdit ? '' : $t('page.manage.user.userNameRule')"
             :disabled="isEdit"
           />
         </NFormItem>
-        <NFormItem v-if="!isEdit" label="密码" path="password">
+        <NFormItem v-if="!isEdit" :label="$t('page.manage.user.password')" path="password">
           <NInput
             v-model:value="model.password"
             type="password"
             show-password-on="click"
-            placeholder="8-20 位、须含字母+数字"
+            :placeholder="$t('page.manage.user.form.password')"
           />
         </NFormItem>
-        <NFormItem label="昵称" path="nickname">
-          <NInput v-model:value="model.nickname" placeholder="请输入昵称" />
+        <NFormItem :label="$t('page.manage.user.nickName')" path="nickname">
+          <NInput v-model:value="model.nickname" :placeholder="$t('page.manage.user.form.nickName')" />
         </NFormItem>
-        <NFormItem label="邮箱" path="email">
-          <NInput v-model:value="model.email" placeholder="请输入邮箱（选填）" />
+        <NFormItem :label="$t('page.manage.user.userEmail')" path="email">
+          <NInput v-model:value="model.email" :placeholder="$t('page.manage.user.form.userEmail')" />
         </NFormItem>
-        <NFormItem label="手机号" path="phone">
-          <NInput v-model:value="model.phone" placeholder="请输入手机号（选填）" />
+        <NFormItem :label="$t('page.manage.user.userPhone')" path="phone">
+          <NInput v-model:value="model.phone" :placeholder="$t('page.manage.user.form.userPhone')" />
         </NFormItem>
-        <NFormItem label="性别" path="gender">
+        <NFormItem :label="$t('page.manage.user.userGender')" path="gender">
           <NRadioGroup v-model:value="model.gender">
-            <NRadio v-for="item in userGenderOptions" :key="item.value" :value="item.value" :label="item.label" />
+            <NRadio v-for="item in userGenderOptions" :key="item.value" :value="item.value" :label="$t(item.label)" />
           </NRadioGroup>
         </NFormItem>
       </NForm>
       <NSpace v-if="isEdit" :size="12" class="mt-8px">
-        <NButton @click="openRoleAuth">分配角色</NButton>
+        <NButton @click="openRoleAuth">{{ $t('page.manage.user.assignRole') }}</NButton>
       </NSpace>
       <template #footer>
         <NSpace :size="16">

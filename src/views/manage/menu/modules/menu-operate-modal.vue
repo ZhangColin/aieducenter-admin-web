@@ -45,9 +45,9 @@ const { defaultRequiredRule } = useFormRules();
 
 const title = computed(() => {
   const titles: Record<OperateType, string> = {
-    add: '新增菜单',
-    addChild: '新增子菜单',
-    edit: '编辑菜单'
+    add: $t('page.manage.menu.addMenu'),
+    addChild: $t('page.manage.menu.addChildMenu'),
+    edit: $t('page.manage.menu.editMenu')
   };
   return titles[props.operateType];
 });
@@ -309,54 +309,54 @@ watch(() => model.value.menuType, syncRouteByType);
     <NScrollbar class="h-480px pr-20px">
       <NForm ref="formRef" :model="model" :rules="rules" label-placement="left" :label-width="100">
         <NGrid responsive="screen" item-responsive>
-          <NFormItemGi span="24 m:12" label="菜单类型" path="menuType">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.menuType')" path="menuType">
             <NRadioGroup v-model:value="model.menuType" :disabled="disabledMenuType">
-              <NRadio v-for="item in menuTypeOptions" :key="item.value" :value="item.value" :label="item.label" />
+              <NRadio v-for="item in menuTypeOptions" :key="item.value" :value="item.value" :label="$t(item.label)" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="菜单名称" path="menuName">
-            <NInput v-model:value="model.menuName" :maxlength="100" placeholder="请输入菜单名称" />
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.menuName')" path="menuName">
+            <NInput v-model:value="model.menuName" :maxlength="100" :placeholder="$t('page.manage.menu.form.menuName')" />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="路由名称" path="routeName">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.routeName')" path="routeName">
             <NInput
               v-model:value="model.routeName"
               :maxlength="100"
               :disabled="disabledMenuType"
-              placeholder="如 manage_user（view route name）"
+              :placeholder="$t('page.manage.menu.form.routeName')"
             />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="路由路径" path="routePath">
-            <NInput v-model:value="model.routePath" disabled placeholder="由路由名称自动生成" />
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.routePath')" path="routePath">
+            <NInput v-model:value="model.routePath" disabled :placeholder="$t('page.manage.menu.routePathAuto')" />
           </NFormItemGi>
-          <NFormItemGi v-if="model.menuType === 2" span="24 m:12" label="路径参数" path="pathParam">
-            <NInput v-model:value="model.pathParam" placeholder="如 id（生成 /:id，选填）" />
+          <NFormItemGi v-if="model.menuType === 2" span="24 m:12" :label="$t('page.manage.menu.pathParam')" path="pathParam">
+            <NInput v-model:value="model.pathParam" :placeholder="$t('page.manage.menu.form.pathParam')" />
           </NFormItemGi>
-          <NFormItemGi v-if="showLayout" span="24 m:12" label="布局" path="layout">
-            <NSelect v-model:value="model.layout" :options="layoutOptions" placeholder="选择布局" />
+          <NFormItemGi v-if="showLayout" span="24 m:12" :label="$t('page.manage.menu.layout')" path="layout">
+            <NSelect v-model:value="model.layout" :options="layoutOptions" :placeholder="$t('page.manage.menu.form.layout')" />
           </NFormItemGi>
-          <NFormItemGi v-if="showPage" span="24 m:12" label="页面" path="page">
+          <NFormItemGi v-if="showPage" span="24 m:12" :label="$t('page.manage.menu.page')" path="page">
             <NSelect
               v-model:value="model.page"
               :options="pageOptions"
               filterable
               tag
-              placeholder="选择或输入页面 route name"
+              :placeholder="$t('page.manage.menu.form.page')"
             />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="i18nKey" path="i18nKey">
-            <NInput v-model:value="model.i18nKey" :maxlength="100" placeholder="由路由名称自动生成" />
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.i18nKey')" path="i18nKey">
+            <NInput v-model:value="model.i18nKey" :maxlength="100" :placeholder="$t('page.manage.menu.i18nKeyAuto')" />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="排序" path="sortOrder">
-            <NInputNumber v-model:value="model.sortOrder" :min="0" class="w-full" placeholder="数字越小越靠前" />
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.order')" path="sortOrder">
+            <NInputNumber v-model:value="model.sortOrder" :min="0" class="w-full" :placeholder="$t('page.manage.menu.form.order')" />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="图标类型" path="iconType">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.iconTypeTitle')" path="iconType">
             <NRadioGroup v-model:value="model.iconType">
-              <NRadio v-for="item in menuIconTypeOptions" :key="item.value" :value="item.value" :label="item.label" />
+              <NRadio v-for="item in menuIconTypeOptions" :key="item.value" :value="item.value" :label="$t(item.label)" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="图标" path="icon">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.icon')" path="icon">
             <template v-if="model.iconType === 1">
-              <NInput v-model:value="model.icon" :maxlength="100" placeholder="如 mdi:menu" class="flex-1">
+              <NInput v-model:value="model.icon" :maxlength="100" :placeholder="$t('page.manage.menu.form.icon')" class="flex-1">
                 <template #suffix>
                   <SvgIcon v-if="model.icon" :icon="model.icon" class="text-icon" />
                 </template>
@@ -366,68 +366,68 @@ watch(() => model.value.menuType, syncRouteByType);
               <NSelect
                 v-model:value="model.icon"
                 filterable
-                placeholder="选择本地图标"
+                :placeholder="$t('page.manage.menu.form.localIcon')"
                 :options="localIconOptions"
               />
             </template>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="状态" path="status">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.menuStatus')" path="status">
             <NRadioGroup v-model:value="model.status">
-              <NRadio v-for="item in enableStatusOptions" :key="item.value" :value="item.value" :label="item.label" />
+              <NRadio v-for="item in enableStatusOptions" :key="item.value" :value="item.value" :label="$t(item.label)" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="缓存" path="keepAlive">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.keepAlive')" path="keepAlive">
             <NRadioGroup v-model:value="model.keepAlive">
-              <NRadio :value="true" label="是" />
-              <NRadio :value="false" label="否" />
+              <NRadio :value="true" :label="$t('common.yesOrNo.yes')" />
+              <NRadio :value="false" :label="$t('common.yesOrNo.no')" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="常驻" path="constant">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.constant')" path="constant">
             <NRadioGroup v-model:value="model.constant">
-              <NRadio :value="true" label="是" />
-              <NRadio :value="false" label="否" />
+              <NRadio :value="true" :label="$t('common.yesOrNo.yes')" />
+              <NRadio :value="false" :label="$t('common.yesOrNo.no')" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="外链" path="href">
-            <NInput v-model:value="model.href" :maxlength="255" placeholder="https://...（选填）" />
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.href')" path="href">
+            <NInput v-model:value="model.href" :maxlength="255" :placeholder="$t('page.manage.menu.form.href')" />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="隐藏菜单" path="hideInMenu">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.hideInMenu')" path="hideInMenu">
             <NRadioGroup v-model:value="model.hideInMenu">
-              <NRadio :value="true" label="是" />
-              <NRadio :value="false" label="否" />
+              <NRadio :value="true" :label="$t('common.yesOrNo.yes')" />
+              <NRadio :value="false" :label="$t('common.yesOrNo.no')" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi v-if="model.hideInMenu" span="24 m:12" label="高亮菜单" path="activeMenu">
+          <NFormItemGi v-if="model.hideInMenu" span="24 m:12" :label="$t('page.manage.menu.activeMenu')" path="activeMenu">
             <NSelect
               v-model:value="model.activeMenu"
               :options="pageOptions"
               clearable
               filterable
               tag
-              placeholder="隐藏时高亮的 route name（选填）"
+              :placeholder="$t('page.manage.menu.form.activeMenu')"
             />
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="多标签" path="multiTab">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.multiTab')" path="multiTab">
             <NRadioGroup v-model:value="model.multiTab">
-              <NRadio :value="true" label="是" />
-              <NRadio :value="false" label="否" />
+              <NRadio :value="true" :label="$t('common.yesOrNo.yes')" />
+              <NRadio :value="false" :label="$t('common.yesOrNo.no')" />
             </NRadioGroup>
           </NFormItemGi>
-          <NFormItemGi span="24 m:12" label="固定标签" path="fixedIndexInTab">
+          <NFormItemGi span="24 m:12" :label="$t('page.manage.menu.fixedIndexInTab')" path="fixedIndexInTab">
             <NInputNumber
               v-model:value="model.fixedIndexInTab"
               class="w-full"
               clearable
               :min="0"
-              placeholder="固定在标签栏的位置（选填）"
+              :placeholder="$t('page.manage.menu.form.fixedIndexInTab')"
             />
           </NFormItemGi>
-          <NFormItemGi span="24" label="路由参数">
+          <NFormItemGi span="24" :label="$t('page.manage.menu.query')">
             <NDynamicInput
               v-model:value="model.query"
               preset="pair"
-              key-placeholder="参数名 key"
-              value-placeholder="参数值 value"
+              :key-placeholder="$t('page.manage.menu.form.queryKey')"
+              :value-placeholder="$t('page.manage.menu.form.queryValue')"
             >
               <template #action="{ index, create, remove }">
                 <NSpace class="ml-12px">

@@ -555,6 +555,164 @@ declare namespace App {
           };
           creativity: string;
         };
+        manage: {
+          common: {
+            status: {
+              enable: string;
+              disable: string;
+            };
+            enableSuccess: string;
+            disableSuccess: string;
+            batchDeleteSuccess: string;
+            batchDeletePartial: string;
+          };
+          role: {
+            title: string;
+            roleName: string;
+            roleCode: string;
+            roleStatus: string;
+            roleDesc: string;
+            menuAuth: string;
+            buttonAuth: string;
+            order: string;
+            keyword: string;
+            assignMenu: string;
+            assignPermission: string;
+            superAdminCodeLocked: string;
+            roleNameLengthRule: string;
+            roleCodeRule: string;
+            defaultHome: string;
+            homePlaceholder: string;
+            noMenuToAssign: string;
+            form: {
+              roleName: string;
+              roleCode: string;
+              roleStatus: string;
+              roleDesc: string;
+              order: string;
+              keyword: string;
+            };
+            addRole: string;
+            editRole: string;
+          };
+          user: {
+            title: string;
+            userName: string;
+            userGender: string;
+            nickName: string;
+            userPhone: string;
+            userEmail: string;
+            userStatus: string;
+            userRole: string;
+            password: string;
+            createdAt: string;
+            keyword: string;
+            resetPwd: string;
+            assignRole: string;
+            userNameRule: string;
+            pwdRule: string;
+            noRoleToAssign: string;
+            newPassword: string;
+            confirmPassword: string;
+            form: {
+              userName: string;
+              userGender: string;
+              nickName: string;
+              userPhone: string;
+              userEmail: string;
+              userStatus: string;
+              userRole: string;
+              password: string;
+              keyword: string;
+              confirmPassword: string;
+            };
+            addUser: string;
+            editUser: string;
+            gender: {
+              male: string;
+              female: string;
+            };
+          };
+          menu: {
+            home: string;
+            title: string;
+            id: string;
+            parentId: string;
+            menuType: string;
+            menuName: string;
+            routeName: string;
+            routePath: string;
+            pathParam: string;
+            layout: string;
+            page: string;
+            i18nKey: string;
+            icon: string;
+            localIcon: string;
+            iconTypeTitle: string;
+            order: string;
+            constant: string;
+            keepAlive: string;
+            href: string;
+            hideInMenu: string;
+            activeMenu: string;
+            multiTab: string;
+            fixedIndexInTab: string;
+            query: string;
+            button: string;
+            buttonCode: string;
+            buttonDesc: string;
+            menuStatus: string;
+            routePathAuto: string;
+            i18nKeyAuto: string;
+            form: {
+              home: string;
+              menuType: string;
+              menuName: string;
+              routeName: string;
+              routePath: string;
+              pathParam: string;
+              page: string;
+              layout: string;
+              i18nKey: string;
+              icon: string;
+              localIcon: string;
+              order: string;
+              keepAlive: string;
+              href: string;
+              hideInMenu: string;
+              activeMenu: string;
+              multiTab: string;
+              fixedInTab: string;
+              fixedIndexInTab: string;
+              queryKey: string;
+              queryValue: string;
+              button: string;
+              buttonCode: string;
+              buttonDesc: string;
+              menuStatus: string;
+            };
+            addMenu: string;
+            editMenu: string;
+            addChildMenu: string;
+            type: {
+              directory: string;
+              menu: string;
+            };
+            iconType: {
+              iconify: string;
+              local: string;
+            };
+          };
+          permission: {
+            module: {
+              user: string;
+              role: string;
+              menu: string;
+              permission: string;
+            };
+            noPermissionToAssign: string;
+          };
+        };
       };
       form: {
         required: string;

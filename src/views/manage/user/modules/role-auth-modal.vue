@@ -25,7 +25,7 @@ const visible = defineModel<boolean>('visible', {
   default: false
 });
 
-const title = computed(() => `分配角色 — ${props.user.nickname || props.user.username}`);
+const title = computed(() => `${$t('page.manage.user.assignRole')} — ${props.user.nickname || props.user.username}`);
 
 /** 全量启用角色（选项源；GET /roles/all 精简 {id,name,code}） */
 const roleList = ref<Api.SystemManage.RoleOption[]>([]);
@@ -41,7 +41,7 @@ const submitting = ref(false);
  */
 const options = computed(() =>
   roleList.value.map(r => ({
-    label: `${r.name}（${r.code}）`,
+    label: `${r.name} (${r.code})`,
     value: r.id,
     disabled: props.user.breakGlass && r.code === SUPER_ADMIN_ROLE_CODE
   }))
@@ -77,14 +77,13 @@ async function load() {
 }
 
 async function handleSubmit() {
-  // 后端 AssignRolesCommand.roleIds @NotEmpty——空集禁提交（按钮已禁，双保险）
-  if (checks.value.length === 0) return;
-
+  // 空集 = 清空该用户全部角色（后端 AssignRolesCommand 已去 @NotEmpty，服务层 clear-then-add；
+  // 破窗号由后端「必须保留 SUPER_ADMIN」守卫兜底，本弹窗初始化亦强制补回）
   submitting.value = true;
   try {
     const { error } = await fetchAssignUserRoles(props.user.id, { roleIds: checks.value });
     if (!error) {
-      window.$message?.success?.('分配角色成功');
+      window.$message?.success?.($t('common.updateSuccess'));
       emit('assigned', checks.value);
       visible.value = false;
     }
@@ -105,20 +104,20 @@ watch(visible, val => {
 
 <template>
   <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
-    <NEmpty v-if="!loading && roleList.length === 0" description="暂无可分配角色" />
+    <NEmpty v-if="!loading && roleList.length === 0" :description="$t('page.manage.user.noRoleToAssign')" />
     <NSelect
       v-else
       v-model:value="checks"
       multiple
       :options="options"
       :loading="loading"
-      placeholder="请选择角色"
+      :placeholder="$t('page.manage.user.form.userRole')"
       max-tag-count="responsive"
     />
     <template #footer>
       <NSpace justify="end" :size="16">
         <NButton @click="visible = false">{{ $t('common.cancel') }}</NButton>
-        <NButton type="primary" :disabled="checks.length === 0" :loading="submitting" @click="handleSubmit">
+        <NButton type="primary" :loading="submitting" @click="handleSubmit">
           {{ $t('common.confirm') }}
         </NButton>
       </NSpace>

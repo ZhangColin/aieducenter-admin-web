@@ -310,6 +310,164 @@ const local: App.I18n.Schema = {
         desc5: 'Soybean just wrote some of the workbench pages casually, and it was enough to see!'
       },
       creativity: 'Creativity'
+    },
+    manage: {
+      common: {
+        status: {
+          enable: 'Enable',
+          disable: 'Disable'
+        },
+        enableSuccess: 'Enabled',
+        disableSuccess: 'Disabled',
+        batchDeleteSuccess: 'Deleted {count} item(s)',
+        batchDeletePartial: '{success} succeeded, {fail} failed'
+      },
+      role: {
+        title: 'Role List',
+        roleName: 'Role Name',
+        roleCode: 'Role Code',
+        roleStatus: 'Role Status',
+        roleDesc: 'Role Description',
+        menuAuth: 'Menu Auth',
+        buttonAuth: 'Button Auth',
+        order: 'Order',
+        keyword: 'Keyword',
+        assignMenu: 'Assign Menu',
+        assignPermission: 'Assign Permission',
+        superAdminCodeLocked: 'Super admin code cannot be modified',
+        roleNameLengthRule: 'Name length cannot exceed 50',
+        roleCodeRule: 'Code must start with a letter; only letters, digits, underscores (≤50)',
+        defaultHome: 'Default Home',
+        homePlaceholder: 'Landing page route name (optional)',
+        noMenuToAssign: 'No menus to assign',
+        form: {
+          roleName: 'Please enter role name',
+          roleCode: 'Please enter role code',
+          roleStatus: 'Please select role status',
+          roleDesc: 'Please enter description',
+          order: 'Smaller number comes first',
+          keyword: 'Name / Code / Desc'
+        },
+        addRole: 'Add Role',
+        editRole: 'Edit Role'
+      },
+      user: {
+        title: 'User List',
+        userName: 'User Name',
+        userGender: 'Gender',
+        nickName: 'Nick Name',
+        userPhone: 'Phone Number',
+        userEmail: 'Email',
+        userStatus: 'User Status',
+        userRole: 'User Role',
+        password: 'Password',
+        createdAt: 'Created At',
+        keyword: 'Keyword',
+        resetPwd: 'Reset Password',
+        assignRole: 'Assign Role',
+        userNameRule: '4-20 letters, digits or underscores',
+        pwdRule: '8-20 chars, must include letter + digit',
+        noRoleToAssign: 'No roles to assign',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm New Password',
+        form: {
+          userName: 'Please enter user name',
+          userGender: 'Please select gender',
+          nickName: 'Please enter nick name',
+          userPhone: 'Please enter phone number',
+          userEmail: 'Please enter email',
+          userStatus: 'Please select status',
+          userRole: 'Please select user role',
+          password: '8-20 chars, must include letter + digit',
+          keyword: 'Username / Nickname',
+          confirmPassword: 'Please enter the new password again'
+        },
+        addUser: 'Add User',
+        editUser: 'Edit User',
+        gender: {
+          male: 'Male',
+          female: 'Female'
+        }
+      },
+      menu: {
+        home: 'Home',
+        title: 'Menu List',
+        id: 'ID',
+        parentId: 'Parent ID',
+        menuType: 'Menu Type',
+        menuName: 'Menu Name',
+        routeName: 'Route Name',
+        routePath: 'Route Path',
+        pathParam: 'Path Param',
+        layout: 'Layout Component',
+        page: 'Page Component',
+        i18nKey: 'I18n Key',
+        icon: 'Icon',
+        localIcon: 'Local Icon',
+        iconTypeTitle: 'Icon Type',
+        order: 'Order',
+        constant: 'Constant',
+        keepAlive: 'Keep Alive',
+        href: 'Href',
+        hideInMenu: 'Hide In Menu',
+        activeMenu: 'Active Menu',
+        multiTab: 'Multi Tab',
+        fixedIndexInTab: 'Fixed Index In Tab',
+        query: 'Query Params',
+        button: 'Button',
+        buttonCode: 'Button Code',
+        buttonDesc: 'Button Desc',
+        menuStatus: 'Menu Status',
+        routePathAuto: 'Auto-generated from route name',
+        i18nKeyAuto: 'Auto-generated from route name',
+        form: {
+          home: 'Please select home',
+          menuType: 'Please select menu type',
+          menuName: 'Please enter menu name',
+          routeName: 'Please enter route name',
+          routePath: 'Please enter route path',
+          pathParam: 'Please enter path param',
+          page: 'Please select page component',
+          layout: 'Please select layout component',
+          i18nKey: 'Please enter i18n key',
+          icon: 'Please enter icon',
+          localIcon: 'Please select local icon',
+          order: 'Please enter order',
+          keepAlive: 'Please select whether to cache route',
+          href: 'Please enter href',
+          hideInMenu: 'Please select whether to hide menu',
+          activeMenu: 'Please select route name of the highlighted menu',
+          multiTab: 'Please select whether to support multiple tabs',
+          fixedInTab: 'Please select whether to fix in the tab',
+          fixedIndexInTab: 'Please enter the index fixed in the tab',
+          queryKey: 'Please enter route parameter Key',
+          queryValue: 'Please enter route parameter Value',
+          button: 'Please select whether it is a button',
+          buttonCode: 'Please enter button code',
+          buttonDesc: 'Please enter button description',
+          menuStatus: 'Please select menu status'
+        },
+        addMenu: 'Add Menu',
+        editMenu: 'Edit Menu',
+        addChildMenu: 'Add Child Menu',
+        type: {
+          directory: 'Directory',
+          menu: 'Menu'
+        },
+        iconType: {
+          iconify: 'Iconify Icon',
+          local: 'Local Icon'
+        }
+      },
+      permission: {
+        module: {
+          user: 'User',
+          role: 'Role',
+          menu: 'Menu',
+          permission: 'Permission'
+        },
+        noPermissionToAssign: 'No permissions to assign'
+      }
     }
   },
   form: {
