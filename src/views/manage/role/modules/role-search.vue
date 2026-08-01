@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toRaw } from 'vue';
 import { jsonClone } from '@sa/utils';
+import { enableStatusOptions } from '@/constants/business';
 import { $t } from '@/locales';
 
 defineOptions({
@@ -43,6 +44,9 @@ function search() {
         </NFormItemGi>
         <NFormItemGi span="24 s:12 m:6" label="关键词" class="pr-24px">
           <NInput v-model:value="model.keyword" placeholder="名称/编码/描述" clearable />
+        </NFormItemGi>
+        <NFormItemGi span="24 s:12 m:6" label="状态" class="pr-24px">
+          <NSelect v-model:value="model.status" :options="enableStatusOptions" placeholder="请选择状态" clearable />
         </NFormItemGi>
         <NFormItemGi span="24 m:6" class="pr-24px">
           <NSpace class="w-full" justify="end">

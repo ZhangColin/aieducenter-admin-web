@@ -94,7 +94,15 @@ async function handleSubmit() {
   try {
     const { name, code, description, sortOrder } = model.value;
     if (isEdit.value && props.rowData) {
-      const { error } = await fetchUpdateRole(props.rowData.id, { name, code, description, sortOrder });
+      const { error } = await fetchUpdateRole(props.rowData.id, {
+        name,
+        code,
+        description,
+        sortOrder,
+        // home 经「分配菜单」弹窗修改；后端 update 为全量替换，省略即清空 home，
+        // 故须回传当前值（localRole 已随弹窗同步）。
+        home: localRole.value?.home ?? null
+      });
       if (!error) {
         window.$message?.success?.($t('common.updateSuccess'));
         closeDrawer();
@@ -126,8 +134,11 @@ function openButtonAuth() {
 }
 
 /** 分配成功：同步本地副本（避免不关抽屉再次打开看到旧值），并上抛刷新列表 */
-function handleMenusAssigned(menuIds: string[]) {
-  if (localRole.value) localRole.value.menuIds = menuIds;
+function handleMenusAssigned(payload: { menuIds: string[]; home: string | null }) {
+  if (localRole.value) {
+    localRole.value.menuIds = payload.menuIds;
+    localRole.value.home = payload.home;
+  }
   emit('submitted');
 }
 

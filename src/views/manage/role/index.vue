@@ -1,8 +1,8 @@
 <script setup lang="tsx">
 import { computed, ref } from 'vue';
-import { NButton, NPopconfirm, NTag } from 'naive-ui';
-import { SUPER_ADMIN_ROLE_CODE } from '@/constants/business';
-import { fetchDeleteRole, fetchGetRoleList } from '@/service/api';
+import { NButton, NPopconfirm, NSwitch, NTag } from 'naive-ui';
+import { SUPER_ADMIN_ROLE_CODE, enableStatusRecord } from '@/constants/business';
+import { fetchDeleteRole, fetchGetRoleList, fetchUpdateRoleStatus } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
@@ -29,20 +29,22 @@ const searchParams = ref<Api.SystemManage.RoleSearchParams>({
   name: null,
   code: null,
   keyword: null,
+  status: null,
   page: 0,
   size: 10
 });
 
 /** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 0-based */
 function buildParams(p: Api.SystemManage.RoleSearchParams) {
-  const { name, code, keyword, page, size } = p;
+  const { name, code, keyword, status, page, size } = p;
 
   return {
     page,
     size,
     ...(name ? { name } : {}),
     ...(code ? { code } : {}),
-    ...(keyword ? { keyword } : {})
+    ...(keyword ? { keyword } : {}),
+    ...(status != null ? { status } : {})
   };
 }
 
@@ -100,6 +102,28 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       render: row => row.sortOrder
     },
     {
+      key: 'status',
+      title: '状态',
+      align: 'center',
+      width: 90,
+      render: row => {
+        const rec = enableStatusRecord[row.status];
+
+        return (
+          <NSwitch
+            value={row.status}
+            checked-value={1}
+            unchecked-value={0}
+            // SUPER_ADMIN 角色后端不可禁（守卫在 AdminRole.disable()），UI 锁定启用
+            disabled={!canWrite.value || isProtected(row)}
+            onChange={(val: string | number | boolean) => handleToggleStatus(row, Number(val))}
+          >
+            {{ checked: () => rec?.label ?? '启用', unchecked: () => rec?.label ?? '禁用' }}
+          </NSwitch>
+        );
+      }
+    },
+    {
       key: 'operate',
       title: $t('common.operate'),
       align: 'center',
@@ -138,6 +162,17 @@ function getRowKey(row: Api.SystemManage.Role) {
 
 function edit(id: string) {
   handleEdit(id);
+}
+
+async function handleToggleStatus(row: Api.SystemManage.Role, next: number) {
+  const { error } = await fetchUpdateRoleStatus(row.id, next);
+
+  if (!error) {
+    window.$message?.success?.(next === 1 ? '已启用' : '已禁用');
+  }
+
+  // 成功/失败都刷新：成功持久化、失败回滚开关
+  await getData();
 }
 
 async function handleDelete(id: string) {

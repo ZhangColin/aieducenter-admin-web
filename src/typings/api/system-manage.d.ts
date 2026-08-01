@@ -79,7 +79,8 @@ declare namespace Api {
      *
      * - `id` Long→字符串；`menuIds` 为后端 Set<Long>→字符串数组
      * - `menuIds` / `permissionCodes` = 该角色**当前**已分配集合，分配弹窗直接用它回显，无需 GET /roles/{id}
-     * - 角色无 status 字段（区别于用户）
+     * - `status` 整数（1=启用 / 0=禁用，同用户）；SUPER_ADMIN 角色后端不可禁（守卫在 `AdminRole.disable()`）
+     * - `home` 默认首页 route name（可空，经 `PUT /roles/{id}` UpdateRoleCommand 提交，**非**分配菜单端点）。REQ-10
      */
     interface Role {
       id: string;
@@ -87,6 +88,10 @@ declare namespace Api {
       code: string;
       description: string | null;
       sortOrder: number;
+      /** 1=启用 / 0=禁用（同用户）。REQ-10 */
+      status: number;
+      /** 默认首页 route name（可空）。REQ-10 */
+      home: string | null;
       menuIds: string[];
       permissionCodes: string[];
     }
@@ -112,6 +117,8 @@ declare namespace Api {
       code?: string | null;
       /** 名称/编码/描述模糊（后端 keyword blurry） */
       keyword?: string | null;
+      /** 1=启用 / 0=禁用；null/undefined = 不过滤。REQ-10（后端 AdminRoleQuery.status） */
+      status?: number | null;
       /** 0-based */
       page: number;
       size: number;
@@ -123,6 +130,8 @@ declare namespace Api {
       code: string;
       description?: string | null;
       sortOrder?: number | null;
+      /** 默认首页 route name（可空）。REQ-10 */
+      home?: string | null;
     }
 
     /** PUT /roles/{id}（后端 UpdateRoleCommand；与 Create 同构） */
@@ -131,9 +140,11 @@ declare namespace Api {
       code: string;
       description?: string | null;
       sortOrder?: number | null;
+      /** 默认首页 route name（可空）。REQ-10 —— 分配菜单弹窗经此端点改 home */
+      home?: string | null;
     }
 
-    /** PUT /roles/{id}/menus（后端 AssignMenusCommand；menuIds @NotEmpty，不能存空） */
+    /** PUT /roles/{id}/menus（后端 AssignMenusCommand；全量替换，空集=清空——REQ-10 已去 @NotEmpty） */
     interface AssignMenusCommand {
       menuIds: string[];
     }

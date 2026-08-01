@@ -123,7 +123,16 @@ export function fetchDeleteRole(id: string) {
   });
 }
 
-/** 分配菜单（PUT /roles/{id}/menus；menuIds @NotEmpty，前端禁空提交） */
+/** 启停角色（PUT /roles/{id}/status?status=1|0；SUPER_ADMIN 角色后端拦截禁用）。REQ-10 */
+export function fetchUpdateRoleStatus(id: string, status: number) {
+  return request<null>({
+    url: `/roles/${id}/status`,
+    method: 'put',
+    params: { status }
+  });
+}
+
+/** 分配菜单（PUT /roles/{id}/menus；menuIds 全量替换，空集=清空——REQ-10 已去 @NotEmpty） */
 export function fetchAssignRoleMenus(id: string, body: Api.SystemManage.AssignMenusCommand) {
   return request<null>({
     url: `/roles/${id}/menus`,

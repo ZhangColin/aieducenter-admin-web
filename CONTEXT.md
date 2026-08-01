@@ -165,6 +165,12 @@
   - **角色列只读回显**：用列表项自带 `roles[]`（无需详情）；分配角色仍走 #14 的 `RoleAuthModal` 独立端点。Soybean `example` 列表无角色列——本列为本项目需求自加。
   - **E2E（curl 直连 + 浏览器点测 3001）全通过**：gender 创建(男)/编辑(男→女，回显正确)/搜索(phone 单选、gender=女 单选且排除 null)/列表 roles 回显(admin→超级管理员)；typecheck + lint 通过。
   - 文件：`src/constants/business.ts`（gender 常量）、`src/typings/api/{auth,system-manage}.d.ts`（`AdminUser.gender/genderName`、`UserSearchParams.phone/gender`、`UserCreate/Update.gender`）、`src/views/manage/user/{index,user-search,user-operate-drawer}`。
+- **T4 角色字段补齐 ✅（2026-08-01，#17 / spec #13 Phase 2，REQ-10）** — 角色管理页补齐 Soybean 字段：① 列表「状态」`NSwitch` 列 + 搜索「状态」`NSelect` 筛选，提交 `PUT /roles/{id}/status`（复用 T2 用户页整范式——Soybean `example` 状态列是只读 NTag + 写路径全 stub，故按本项目已验证的用户开关范式做、非照搬 example）；② 分配菜单弹窗顶部加「默认首页」route name `NSelect`，选项从已加载菜单树 `menuType=2`(menu/叶子) 节点的 `routeName` 派生（Soybean `getAllPages` 在本仓无后端端点——route name 是 `@elegant-router` 构建期产物，REQ-8 决策「前端自派生」，直接复用弹窗已拉的菜单树），经 `PUT /roles/{id}` UpdateRoleCommand 提交（home 属角色字段、**非**分配菜单端点）。后端 REQ-10（PR #16）已交付：`GET /roles` 项含 `status/home`、`AdminRoleQuery.status`、`PUT /roles/{id}/status`、去 3 处 `@NotEmpty`。
+  - **SUPER_ADMIN 锁定**：角色 status 开关对超管行 `disabled`（后端 `AdminRole.disable()` 守卫，实测禁用 403「超级管理员角色不能禁用」），与 T3 的删除/code 保护一致。
+  - **顺带**：去分配菜单弹窗的「空集禁提交」（REQ-10 已去 `AssignMenusCommand @NotEmpty`，空集=清空，旧禁用已成 stale）。注：分配权限 / 用户分配角色两弹窗的空集禁用未动（非 #17 范围，留作 REQ-10 后续跟进）。
+  - **修 home 清空 bug（code-review 发现）**：后端 `update()` 全量替换（`setHome(command.home())`），抽屉 `fetchUpdateRole` 原不传 home → 编辑资料即清空默认首页。修：抽屉回传 `localRole.home`（弹窗内改 home 已同步进 localRole）。curl 复现（省略 home → 清空）+ 修复后点测（编辑描述、home 保留）验证。
+  - **E2E（curl 直连 + 浏览器点测 3001）全通过**：status 启→禁→启（持久化）、status 筛选（禁用=仅该行）、SUPER_ADMIN 开关 disabled、home 下拉（4 个 route name 选项）选择→持久化 `home=manage_role`、编辑资料不清空 home；typecheck + lint 通过。
+  - 文件：`src/views/manage/role/{index,modules/role-search,modules/menu-auth-modal,modules/role-operate-drawer}`、`src/service/api/system-manage.ts`（+`fetchUpdateRoleStatus`）、`src/typings/api/system-manage.d.ts`（Role +status/home、RoleSearchParams +status、RoleCreate/Update +home）。详见 issue admin-web#17。
 - **主线安排：REQ-6 已提 + 并行做 T3（2026-07-29）** — REQ-1 解锁 sidebar 真数据 + 菜单管理页（SPEC #1 原 out-of-scope），但实测发现种子数据与前端错位 → REQ-6 已提后端（issue #8，见下），前端并行做 T3 角色管理页；REQ-6 回来后另立 spec 做 sidebar + 菜单管理页。**种子结构决策：加一层 GROUP**——一级「控制台」MENU + 「系统管理」GROUP 收纳 RBAC 叶子，双面板有真实两级内容可验证渲染（否决：保持扁平 → 二级面板永空无法验证；否决：一次提完整导航规划 → 超出 RBAC 范围）。
 
 ## 待决策（前端内部）
