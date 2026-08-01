@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { jsonClone } from '@sa/utils';
+import { userGenderOptions } from '@/constants/business';
 import { REG_EMAIL, REG_PHONE, REG_PWD } from '@/constants/reg';
 import { fetchCreateUser, fetchUpdateUser } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
@@ -42,10 +43,11 @@ interface UserModel {
   nickname: string;
   email: string | null;
   phone: string | null;
+  gender: number | null;
 }
 
 function createDefaultModel(): UserModel {
-  return { username: '', password: '', nickname: '', email: null, phone: null };
+  return { username: '', password: '', nickname: '', email: null, phone: null, gender: null };
 }
 
 const model = ref<UserModel>(createDefaultModel());
@@ -90,7 +92,7 @@ function openRoleAuth() {
   roleAuthVisible.value = true;
 }
 
-/** 分配成功：上抛刷新列表（角色即时生效；列表暂无角色列，刷新为一致性 + 为 REQ-11 角色列预留） */
+/** 分配成功：上抛刷新列表（列表含「角色」列，刷新后即时回显新角色） */
 function handleRolesAssigned() {
   emit('submitted');
 }
@@ -101,11 +103,12 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     if (isEdit.value && props.rowData) {
-      const { nickname, email, phone } = model.value;
+      const { nickname, email, phone, gender } = model.value;
       const { error } = await fetchUpdateUser(props.rowData.id, {
         nickname,
         email,
         phone,
+        gender,
         avatar: props.rowData.avatar
       });
       if (!error) {
@@ -114,8 +117,8 @@ async function handleSubmit() {
         emit('submitted');
       }
     } else {
-      const { username, password, nickname, email, phone } = model.value;
-      const { error } = await fetchCreateUser({ username, password, nickname, email, phone });
+      const { username, password, nickname, email, phone, gender } = model.value;
+      const { error } = await fetchCreateUser({ username, password, nickname, email, phone, gender });
       if (!error) {
         window.$message?.success?.($t('common.addSuccess'));
         closeDrawer();
@@ -162,6 +165,11 @@ watch(visible, val => {
         </NFormItem>
         <NFormItem label="手机号" path="phone">
           <NInput v-model:value="model.phone" placeholder="请输入手机号（选填）" />
+        </NFormItem>
+        <NFormItem label="性别" path="gender">
+          <NRadioGroup v-model:value="model.gender">
+            <NRadio v-for="item in userGenderOptions" :key="item.value" :value="item.value" :label="item.label" />
+          </NRadioGroup>
         </NFormItem>
       </NForm>
       <NSpace v-if="isEdit" :size="12" class="mt-8px">

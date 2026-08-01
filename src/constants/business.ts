@@ -16,6 +16,23 @@ export const enableStatusRecord: Record<number, { label: string; tagType: NaiveU
 };
 
 /**
+ * 用户性别（admin 后端整数语义：1=男 / 2=女；null=未填写，0 非法）。
+ *
+ * 与 Soybean 默认的字符串性别（'1'/'2'，见 Api.SystemManage.UserGender）枚举值一致，
+ * 仅本项目后端为整数——按整数对接，勿混用。
+ */
+export const userGenderOptions: CommonType.Option<number>[] = [
+  { label: '男', value: 1 },
+  { label: '女', value: 2 }
+];
+
+/** gender → { label, tagType }，用于 NTag / NRadioGroup 渲染 */
+export const userGenderRecord: Record<number, { label: string; tagType: NaiveUI.ThemeColor }> = {
+  1: { label: '男', tagType: 'primary' },
+  2: { label: '女', tagType: 'error' }
+};
+
+/**
  * 超管角色编码（后端 `AdminRole.isSuperAdmin()` 即按此 code 判定）。
  * 角色行无服务端 `breakGlass` 标志（区别于用户），故按 code 兜底：该角色不可删、编辑时 code 不可改。
  */

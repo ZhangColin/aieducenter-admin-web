@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import { computed, ref } from 'vue';
-import { NButton, NPopconfirm, NSwitch } from 'naive-ui';
-import { enableStatusRecord } from '@/constants/business';
+import { NButton, NPopconfirm, NSwitch, NTag } from 'naive-ui';
+import { enableStatusRecord, userGenderRecord } from '@/constants/business';
 import { fetchDeleteUser, fetchGetUserList, fetchUpdateUserStatus } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuthStore } from '@/store/modules/auth';
@@ -28,20 +28,24 @@ const searchParams = ref<Api.SystemManage.UserSearchParams>({
   username: null,
   status: null,
   keyword: null,
+  phone: null,
+  gender: null,
   page: 0,
   size: 10
 });
 
 /** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 0-based */
 function buildParams(p: Api.SystemManage.UserSearchParams) {
-  const { username, status, keyword, page, size } = p;
+  const { username, status, keyword, phone, gender, page, size } = p;
 
   return {
     page,
     size,
     ...(username ? { username } : {}),
     ...(status != null ? { status } : {}),
-    ...(keyword ? { keyword } : {})
+    ...(keyword ? { keyword } : {}),
+    ...(phone ? { phone } : {}),
+    ...(gender != null ? { gender } : {})
   };
 }
 
@@ -79,6 +83,36 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       title: '昵称',
       align: 'center',
       minWidth: 120
+    },
+    {
+      key: 'gender',
+      title: '性别',
+      align: 'center',
+      width: 80,
+      render: row => {
+        if (row.gender == null) return '-';
+        const rec = userGenderRecord[row.gender];
+
+        return <NTag type={rec?.tagType ?? 'default'} size="small">{rec?.label ?? '-'}</NTag>;
+      }
+    },
+    {
+      key: 'roles',
+      title: '角色',
+      align: 'center',
+      minWidth: 160,
+      render: row => {
+        if (!row.roles?.length) return '-';
+        return (
+          <div class="flex-center flex-wrap gap-6px">
+            {row.roles.map(role => (
+              <NTag key={role.id} type="primary" size="small">
+                {role.name}
+              </NTag>
+            ))}
+          </div>
+        );
+      }
     },
     {
       key: 'phone',
@@ -245,7 +279,7 @@ async function handleToggleStatus(row: Api.SystemManage.User, next: number) {
         :data="data"
         size="small"
         :flex-height="!appStore.isMobile"
-        :scroll-x="1140"
+        :scroll-x="1380"
         :loading="loading"
         remote
         :row-key="getRowKey"

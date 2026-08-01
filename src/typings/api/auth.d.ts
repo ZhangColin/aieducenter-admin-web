@@ -35,6 +35,10 @@ declare namespace Api {
       email: string | null;
       phone: string | null;
       avatar: string | null;
+      /** 性别整数：1=男 / 2=女；null=未填写（0 非法）。REQ-11 */
+      gender?: number | null;
+      /** 性别中文名（后端序列化）；null=未填写。REQ-11。前端列渲染用 `userGenderRecord`（同 `statusName` 范式，此字段仅契约对齐） */
+      genderName?: string | null;
       /** 1=激活 0=禁用 */
       status: number;
       statusName: string;
@@ -42,9 +46,9 @@ declare namespace Api {
       createdAt: string;
       updatedAt: string;
       /**
-       * 该用户已分配角色。仅 `GET /users/{id}` 详情填充 `{id,name,code}`；
-       * 列表 `GET /users` 与 `GET /auth/current` 因后端 `@JsonInclude(NON_NULL)` **不含**——
-       * 「分配角色」回显须取详情。REQ-4。
+       * 该用户已分配角色 `{id,name,code}`。REQ-4 + REQ-11：
+       * - `GET /users/{id}` 详情 与 `GET /users` **列表** 均填充（REQ-11 起，列表「角色」列直接读此）；
+       * - `GET /auth/current` **不含**（后端 `@JsonInclude(NON_NULL)`，/auth/current 不回填 roles）。
        */
       roles?: Api.SystemManage.UserRole[] | null;
     }

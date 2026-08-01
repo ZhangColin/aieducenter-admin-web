@@ -14,8 +14,9 @@ declare namespace Api {
     type User = Api.Auth.AdminUser;
 
     /**
-     * 用户详情 `GET /users/{id}` 回显的精简角色引用（后端 AdminUserResponse.roles）。
-     * 列表/`/auth/current` 不含（@JsonInclude(NON_NULL)），仅详情填充。
+     * 用户角色精简引用（后端 AdminUserResponse.roles 项）。
+     * REQ-4 + REQ-11：`GET /users/{id}` 详情 与 `GET /users` 列表均填充；
+     * `/auth/current` 不含（后端 @JsonInclude(NON_NULL)）。
      */
     interface UserRole {
       id: string;
@@ -33,6 +34,10 @@ declare namespace Api {
       status?: number | null;
       /** 用户名/昵称模糊匹配（后端 keyword） */
       keyword?: string | null;
+      /** 手机号模糊匹配（后端 phone）；null/undefined = 不过滤。REQ-11 */
+      phone?: string | null;
+      /** 1=男 / 2=女；null/undefined = 不过滤。REQ-11 */
+      gender?: number | null;
       /** 0-based */
       page: number;
       size: number;
@@ -45,6 +50,8 @@ declare namespace Api {
       nickname: string;
       email?: string | null;
       phone?: string | null;
+      /** 1=男 / 2=女 / null=未填写。REQ-11 */
+      gender?: number | null;
     }
 
     /** PUT /users/{id}（后端 UpdateAdminUserCommand；username 不可改、status 经独立接口切换） */
@@ -53,6 +60,8 @@ declare namespace Api {
       email?: string | null;
       phone?: string | null;
       avatar?: string | null;
+      /** 1=男 / 2=女 / null=未填写。REQ-11 */
+      gender?: number | null;
     }
 
     /** PUT /users/{id}/password（后端 ResetPasswordCommand） */
