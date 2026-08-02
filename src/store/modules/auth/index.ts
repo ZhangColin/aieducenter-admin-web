@@ -28,11 +28,17 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     buttons: []
   });
 
-  /** is super role in static route */
+  /**
+   * 是否超管（按角色码判定，static / dynamic 两种路由模式通用）。
+   *
+   * 名字沿用 Soybean 的 `isStaticSuper`：超管后端 bypass 权限校验，/auth/current 返回的
+   * permissions 恒为空数组——dynamic 模式下若判定带 `VITE_AUTH_ROUTE_MODE` 条件会恒 false，
+   * 导致 `hasAuth` 超管放行失效、写按钮全灭（动态菜单 #21 翻模式硬前置）。
+   */
   const isStaticSuper = computed(() => {
-    const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
+    const { VITE_STATIC_SUPER_ROLE } = import.meta.env;
 
-    return VITE_AUTH_ROUTE_MODE === 'static' && userInfo.roles.includes(VITE_STATIC_SUPER_ROLE);
+    return userInfo.roles.includes(VITE_STATIC_SUPER_ROLE);
   });
 
   /** Is login */

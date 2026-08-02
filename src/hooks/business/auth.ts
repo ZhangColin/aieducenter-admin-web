@@ -8,7 +8,7 @@ export function useAuth() {
       return false;
     }
 
-    // 超管（static 模式 isStaticSuper）后端 bypass 权限校验，故 /auth/current 返回的
+    // 超管（isStaticSuper，static/dynamic 两模式通用）后端 bypass 权限校验，故 /auth/current 返回的
     // permissions 为空。若不在此放行，超管会看不到任何写操作按钮（hasAuth 全 false）。
     if (authStore.isStaticSuper) {
       return true;

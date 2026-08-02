@@ -53,13 +53,14 @@ declare namespace Api {
       roles?: Api.SystemManage.UserRole[] | null;
     }
 
-    /** GET /auth/current 的响应（后端 CurrentUserResponse） */
+    /**
+     * GET /auth/current 的响应（后端 CurrentUserResponse）。
+     * REQ-13 起收敛为身份域 `{user, roleCodes, permissions}`——导航（menus/home）挪到 `GET /menus/my`（见 `Api.Route.MyNavigation`）。
+     */
     interface CurrentUser {
       user: AdminUser;
       roleCodes: string[];
       permissions: string[];
-      /** static 路由模式暂不消费；动态菜单 ticket（#11）再用 */
-      menus: BackendMenu[];
     }
 
     /**

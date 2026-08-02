@@ -1,8 +1,9 @@
-import type { RouteLocationNormalizedLoaded, RouteRecordRaw, _RouteRecordBase } from 'vue-router';
+import type { RouteLocationNormalizedLoaded, RouteMeta, RouteRecordRaw, _RouteRecordBase } from 'vue-router';
 import type { ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
 import { isDev } from '@/constants/env';
 import { useSvgIcon } from '@/hooks/common/icon';
-import { $t } from '@/locales';
+import { $t, isI18nKeyExist } from '@/locales';
+import { generatedRoutes } from '@/router/elegant/routes';
 
 /**
  * Filter auth routes by roles
@@ -374,4 +375,148 @@ export function transformMenuToSearchMenus(menus: App.Global.Menu[], treeMap: Ap
     }
     return acc;
   }, treeMap);
+}
+
+/**
+ * Transform backend menu tree to Soybean MenuRoute tree
+ *
+ * 动态菜单（#21 / spec #20 决策 2）：后端「我的导航」菜单树（REQ-13 `GET /menus/my`，
+ * Soybean 路由生成器模型）→ Soybean `MenuRoute` 树。信任契约——status 过滤是服务端职责，这里不再过滤。
+ *
+ * @param menus Backend menu tree
+ */
+export function transformBackendMenuToMenuRoutes(menus: Api.Auth.BackendMenu[]): Api.Route.MenuRoute[] {
+  return menus.map(transformBackendMenuToMenuRoute);
+}
+
+/**
+ * Transform backend menu to MenuRoute
+ *
+ * @param menu Backend menu
+ */
+function transformBackendMenuToMenuRoute(menu: Api.Auth.BackendMenu): Api.Route.MenuRoute {
+  const {
+    id,
+    menuName,
+    routeName,
+    routePath,
+    component,
+    icon,
+    iconType,
+    i18nKey,
+    keepAlive,
+    constant,
+    multiTab,
+    hideInMenu,
+    activeMenu,
+    href,
+    fixedIndexInTab,
+    query,
+    sortOrder,
+    children
+  } = menu;
+
+  const meta: RouteMeta = {
+    title: menuName,
+    i18nKey: getValidI18nKey(i18nKey),
+    order: sortOrder,
+    keepAlive,
+    constant,
+    multiTab,
+    hideInMenu,
+    activeMenu: activeMenu as RouteKey | null | undefined,
+    href,
+    fixedIndexInTab,
+    query
+  };
+
+  // iconType: 1=iconify → meta.icon；2=local svg → meta.localIcon
+  if (icon) {
+    if (iconType === 1) {
+      meta.icon = icon;
+    } else if (iconType === 2) {
+      meta.localIcon = icon;
+    }
+  }
+
+  const route: Api.Route.MenuRoute = {
+    id,
+    name: routeName,
+    path: routePath,
+    meta
+  };
+
+  // component 原样透传（后端已是 `layout.base$view.x` / `view.x` 格式；directory 可为 null）
+  if (component) {
+    route.component = component;
+  }
+
+  if (children?.length) {
+    route.children = transformBackendMenuToMenuRoutes(children);
+  }
+
+  return route;
+}
+
+/**
+ * Get valid i18n key of menu
+ *
+ * 菜单名显示兜底（spec #20 决策 6）：i18nKey 在 zh-CN 与 en-US 均缺键 → 置 null（label 回退 menuName）——
+ * 「不管是没配，还是配了读不到，就用菜单名称」。
+ *
+ * @param i18nKey Backend menu i18n key
+ */
+function getValidI18nKey(i18nKey?: string | null): App.I18n.I18nKey | null {
+  if (i18nKey && isI18nKeyExist(i18nKey)) {
+    return i18nKey as App.I18n.I18nKey;
+  }
+
+  return null;
+}
+
+/**
+ * Resolve the home route key from backend "my navigation" data
+ *
+ * home 兜底链（#21 / spec #20 决策 5）：
+ * 1. 后端 `home` 非空且为本地已知路由 → 用之；
+ * 2. 否则按 sortOrder 取第一个可见（非 hideInMenu）叶子菜单（menuType=2）的 routeName；
+ * 3. 都没有（用户零菜单的退化场景）→ null（不特殊处理，Soybean 默认落 not-found）。
+ *
+ * @param home Backend role-derived home route name
+ * @param menus Backend menu tree
+ */
+export function getHomeRouteKeyByBackendMenus(home: string | null, menus: Api.Auth.BackendMenu[]): string | null {
+  if (home && isRouteExistByRouteName(home as RouteKey, generatedRoutes)) {
+    return home;
+  }
+
+  return getFirstVisibleLeafRouteName(menus);
+}
+
+/**
+ * Get the first visible (non hideInMenu) leaf menu's routeName in navigation order
+ *
+ * sortOrder 逐层排序后先序遍历——与 sidebar 展示顺序一致。
+ *
+ * @param menus Backend menu tree
+ */
+function getFirstVisibleLeafRouteName(menus: Api.Auth.BackendMenu[]): string | null {
+  const sortedMenus = [...menus].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  for (const menu of sortedMenus) {
+    // menuType: 1=directory 2=menu；只有 menu 可作为落地页
+    if (menu.menuType === 2 && !menu.hideInMenu) {
+      return menu.routeName;
+    }
+
+    if (menu.children?.length) {
+      const childRouteName = getFirstVisibleLeafRouteName(menu.children);
+
+      if (childRouteName) {
+        return childRouteName;
+      }
+    }
+  }
+
+  return null;
 }
