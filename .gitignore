@@ -38,3 +38,4 @@ src-tauri/target
 # build/legacy artifacts (非 Soybean)
 .next/
 *.tsbuildinfo
+.gstack/
