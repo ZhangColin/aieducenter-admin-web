@@ -267,9 +267,9 @@ async function handleSubmit() {
   const params = getSubmitParams();
   submitting.value = true;
   try {
-    // 菜单变更在下次刷新/重新登录后才反映到导航（Soybean 会话内不热更），提示维护人员生效时机（#23——add/edit 提交同一文案）
-    const onSaveSuccess = () => {
-      window.$message?.success?.($t('page.manage.menu.updateSuccess'));
+    // 菜单变更在下次刷新/重新登录后才反映到导航（Soybean 会话内不热更），提示维护人员生效时机（#23——add/edit 各自文案）
+    const onSaveSuccess = (i18nKey: App.I18n.I18nKey) => {
+      window.$message?.success?.($t(i18nKey));
       closeModal();
       emit('submitted');
     };
@@ -277,12 +277,12 @@ async function handleSubmit() {
     if (props.operateType === 'edit' && props.rowData) {
       const { error } = await fetchUpdateMenu(props.rowData.id, params);
       if (!error) {
-        onSaveSuccess();
+        onSaveSuccess('page.manage.menu.updateSuccess');
       }
     } else {
       const { error } = await fetchCreateMenu(params);
       if (!error) {
-        onSaveSuccess();
+        onSaveSuccess('page.manage.menu.addSuccess');
       }
     }
   } finally {
