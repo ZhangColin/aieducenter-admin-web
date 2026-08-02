@@ -450,6 +450,7 @@ const local: App.I18n.Schema = {
         addMenu: 'Add Menu',
         editMenu: 'Edit Menu',
         addChildMenu: 'Add Child Menu',
+        updateSuccess: 'Update successful, refresh the page for navigation to take effect',
         type: {
           directory: 'Directory',
           menu: 'Menu'

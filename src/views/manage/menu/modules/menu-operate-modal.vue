@@ -267,19 +267,22 @@ async function handleSubmit() {
   const params = getSubmitParams();
   submitting.value = true;
   try {
+    // 菜单变更在下次刷新/重新登录后才反映到导航（Soybean 会话内不热更），提示维护人员生效时机（#23——add/edit 提交同一文案）
+    const onSaveSuccess = () => {
+      window.$message?.success?.($t('page.manage.menu.updateSuccess'));
+      closeModal();
+      emit('submitted');
+    };
+
     if (props.operateType === 'edit' && props.rowData) {
       const { error } = await fetchUpdateMenu(props.rowData.id, params);
       if (!error) {
-        window.$message?.success?.($t('common.updateSuccess'));
-        closeModal();
-        emit('submitted');
+        onSaveSuccess();
       }
     } else {
       const { error } = await fetchCreateMenu(params);
       if (!error) {
-        window.$message?.success?.($t('common.addSuccess'));
-        closeModal();
-        emit('submitted');
+        onSaveSuccess();
       }
     }
   } finally {

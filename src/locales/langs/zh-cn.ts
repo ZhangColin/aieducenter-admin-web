@@ -446,6 +446,7 @@ const local: App.I18n.Schema = {
         addMenu: '新增菜单',
         editMenu: '编辑菜单',
         addChildMenu: '新增子菜单',
+        updateSuccess: '更新成功，刷新页面后导航生效',
         type: {
           directory: '目录',
           menu: '菜单'
