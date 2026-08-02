@@ -1,6 +1,10 @@
-import type { RouteKey } from '@elegant-router/types';
+import type { LastLevelRouteKey, RouteKey } from '@elegant-router/types';
 import { generatedRoutes } from '@/router/elegant/routes';
-import { isRouteExistByRouteName } from '@/store/modules/route/shared';
+import {
+  getHomeRouteKeyByBackendMenus,
+  isRouteExistByRouteName,
+  transformBackendMenuToMenuRoutes
+} from '@/store/modules/route/shared';
 import { request } from '../request';
 
 /**
@@ -19,9 +23,28 @@ export async function fetchGetConstantRoutes(): Promise<{ data: Api.Route.MenuRo
   return { data: constantRoutes, error: null };
 }
 
-/** get user routes */
-export function fetchGetUserRoutes() {
-  return request<Api.Route.UserRoute>({ url: '/route/getUserRoutes' });
+/**
+ * get user routes
+ *
+ * 动态路由闭环（#22 / spec #20 决策 3）：打 REQ-13「我的导航」端点 `GET /menus/my`，
+ * 响应 `{home, menus}` 直通映射为 Soybean `UserRoute` 的 `{routes, home}`——
+ * `menus`（已按角色裁剪、只含启用）经转换器 → `MenuRoute` 树；`home` 经兜底链校验，
+ * 兜底链仍为空（用户零菜单的退化场景）→ 回落 `VITE_ROUTE_HOME`，路由未注册自然落
+ * not-found（spec 决策 5：不特殊处理）。route store / 守卫保持 upstream 逐字。
+ */
+export async function fetchGetUserRoutes() {
+  const { data, error, response } = await request<Api.Route.MyNavigation>({ url: '/menus/my' });
+
+  if (error) {
+    return { data: null, error, response };
+  }
+
+  const routes = transformBackendMenuToMenuRoutes(data.menus);
+
+  const home = (getHomeRouteKeyByBackendMenus(data.home, data.menus) ??
+    import.meta.env.VITE_ROUTE_HOME) as LastLevelRouteKey;
+
+  return { data: { routes, home }, error: null, response };
 }
 
 /**
