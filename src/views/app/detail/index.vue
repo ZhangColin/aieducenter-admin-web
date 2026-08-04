@@ -10,6 +10,7 @@ import {
   fetchUpdateApp
 } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
+import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 
@@ -22,6 +23,12 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const tabStore = useTabStore();
+
+function backToList() {
+  tabStore.replaceTab('app_list');
+}
 
 // ---- data loading ----
 const detail = ref<Api.SystemManage.AppDetail | null>(null);
@@ -185,6 +192,14 @@ onMounted(() => {
 
 <template>
   <div class="detail-container">
+    <div class="mb-16px">
+      <NButton @click="backToList">
+        <template #icon>
+          <icon-ic-round-arrow-back class="text-icon" />
+        </template>
+        {{ $t('common.back') }}
+      </NButton>
+    </div>
     <div v-if="loading" class="flex-center min-h-300px">
       <NSpin />
     </div>

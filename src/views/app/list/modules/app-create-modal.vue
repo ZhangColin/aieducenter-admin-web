@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { fetchCreateApp } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
-import { useRouterPush } from '@/hooks/common/router';
+import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 
 defineOptions({
@@ -15,7 +15,7 @@ const visible = defineModel<boolean>('visible', {
 
 const { formRef: createFormRef, validate: validateCreate, restoreValidation } = useNaiveForm();
 const { defaultRequiredRule } = useFormRules();
-const { routerPushByKey } = useRouterPush();
+const tabStore = useTabStore();
 
 interface CreateModel {
   appCode: string;
@@ -67,8 +67,8 @@ async function handleSubmit() {
     if (!error && data) {
       window.$message?.success?.($t('common.addSuccess'));
       close();
-      // 创建成功后跳转到详情页
-      routerPushByKey('app_detail', { params: { id: data } });
+      // 创建成功后替换当前 Tab 到详情页
+      tabStore.replaceTab('app_detail', { params: { id: data } });
     }
   } finally {
     submitting.value = false;

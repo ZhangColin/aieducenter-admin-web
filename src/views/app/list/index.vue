@@ -4,7 +4,7 @@ import { NButton } from 'naive-ui';
 import { enableStatusRecord } from '@/constants/business';
 import { fetchDisableApp, fetchEnableApp, fetchGetAppList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
-import { useRouterPush } from '@/hooks/common/router';
+import { useTabStore } from '@/store/modules/tab';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
@@ -15,7 +15,7 @@ defineOptions({
 });
 
 const appStore = useAppStore();
-const { routerPushByKey } = useRouterPush();
+const tabStore = useTabStore();
 
 const searchParams = ref<Api.SystemManage.AppSearchParams>({
   keyword: null,
@@ -108,7 +108,7 @@ function getRowKey(row: Api.SystemManage.AppSummary) {
 }
 
 function toDetail(id: string) {
-  routerPushByKey('app_detail', { params: { id } });
+  tabStore.replaceTab('app_detail', { params: { id } });
 }
 
 async function handleToggleStatus(row: Api.SystemManage.AppSummary, next: number) {
