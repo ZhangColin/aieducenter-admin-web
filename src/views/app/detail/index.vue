@@ -287,11 +287,9 @@ onMounted(() => {
             </NButton>
           </template>
 
-          <NGrid :x-gap="24" :cols="2" responsive="screen">
-            <!-- apiKey with copy -->
-            <NGi span="2 m:1">
-              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.apiKey') }}</div>
-              <NInput :value="detail.apiKey.apiKey" readonly>
+          <NDescriptions :column="descColumn" bordered size="small" label-placement="left">
+            <NDescriptionsItem :label="$t('page.manage.app.apiKey')">
+              <NInput :value="detail.apiKey.apiKey" readonly size="small">
                 <template #suffix>
                   <NButton
                     text
@@ -303,38 +301,26 @@ onMounted(() => {
                   </NButton>
                 </template>
               </NInput>
-            </NGi>
-            <!-- apiSecret with masked status -->
-            <NGi span="2 m:1">
-              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.apiSecret') }}</div>
-              <div class="flex items-center gap-8px min-h-34px">
-                <template v-if="hasApiSecret">
-                  <span class="text-14px text-disabled">••••••••••••</span>
-                  <NTag type="success" size="small">{{ $t('page.manage.app.masked') }}</NTag>
-                </template>
-                <template v-else>
-                  <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
-                </template>
-              </div>
-            </NGi>
-            <!-- apiKey status -->
-            <NGi span="2 m:1">
-              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.status') }}</div>
-              <NTag :type="detail.apiKey.status === 1 ? 'success' : 'default'" size="small">
-                {{ detail.apiKey.statusName }}
-              </NTag>
-            </NGi>
-          </NGrid>
+            </NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.app.apiSecret')">
+              <template v-if="hasApiSecret">
+                <span class="text-14px text-disabled">••••••••••••</span>
+                <NTag type="success" size="small" class="ml-8px">{{ $t('page.manage.app.masked') }}</NTag>
+              </template>
+              <template v-else>
+                <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
+              </template>
+            </NDescriptionsItem>
+          </NDescriptions>
         </NCard>
 
         <!-- ===== Block 3: SSO Client ===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
           <!-- Read-only info: clientId + status, only when SSO is configured -->
           <template v-if="hasSsoClient">
-            <NGrid :x-gap="24" :cols="2" responsive="screen">
-              <NGi span="2 m:1">
-                <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.clientId') }}</div>
-                <NInput :value="detail.ssoClient!.clientId" readonly>
+            <NDescriptions :column="descColumn" bordered size="small" label-placement="left" class="mb-16px">
+              <NDescriptionsItem :label="$t('page.manage.app.clientId')">
+                <NInput :value="detail.ssoClient!.clientId" readonly size="small">
                   <template #suffix>
                     <NButton
                       text
@@ -346,14 +332,13 @@ onMounted(() => {
                     </NButton>
                   </template>
                 </NInput>
-              </NGi>
-              <NGi span="2 m:1">
-                <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.status') }}</div>
+              </NDescriptionsItem>
+              <NDescriptionsItem :label="$t('page.manage.app.status')">
                 <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
                   {{ detail.ssoClient!.statusName }}
                 </NTag>
-              </NGi>
-            </NGrid>
+              </NDescriptionsItem>
+            </NDescriptions>
             <NDivider />
           </template>
 
