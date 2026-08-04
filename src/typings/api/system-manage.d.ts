@@ -313,12 +313,11 @@ declare namespace Api {
       statusName: string;
     }
 
-    /** GET /apps/{id} 详情聚合 */
-    interface AppDetail {
-      app: AppSummary;
+    /** GET /apps/{id} 详情聚合——后端返回扁平 AppSummary + apiKey + 可选 ssoClient */
+    interface AppDetail extends AppSummary {
       apiKey: AppApiKey;
-      /** null = 未配置 SSO */
-      ssoClient: AppSsoClient | null;
+      /** null = 未配置 SSO；不返回 = 未配置 */
+      ssoClient?: AppSsoClient | null;
     }
 
     /** POST /apps 创建命令 */
