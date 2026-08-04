@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { fetchCreateApp } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
-import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 
 defineOptions({
@@ -13,9 +12,12 @@ const visible = defineModel<boolean>('visible', {
   default: false
 });
 
+const emit = defineEmits<{
+  created: [id: string];
+}>();
+
 const { formRef: createFormRef, validate: validateCreate, restoreValidation } = useNaiveForm();
 const { defaultRequiredRule } = useFormRules();
-const tabStore = useTabStore();
 
 interface CreateModel {
   appCode: string;
@@ -67,8 +69,7 @@ async function handleSubmit() {
     if (!error && data) {
       window.$message?.success?.($t('common.addSuccess'));
       close();
-      // 创建成功后替换当前 Tab 到详情页
-      tabStore.replaceTab('app_detail', { params: { id: data } });
+      emit('created', data);
     }
   } finally {
     submitting.value = false;

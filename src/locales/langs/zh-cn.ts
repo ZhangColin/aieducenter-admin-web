@@ -232,8 +232,7 @@ const local: App.I18n.Schema = {
     manage_role: '角色管理',
     manage_menu: '菜单管理',
     app: '应用管理',
-    app_list: '应用',
-    app_detail: '应用详情'
+    app_list: '应用'
   },
   page: {
     login: {

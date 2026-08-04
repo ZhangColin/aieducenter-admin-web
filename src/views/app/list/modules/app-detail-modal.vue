@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import {
   fetchDisableApp,
   fetchEnableApp,
@@ -9,34 +9,34 @@ import {
   fetchUpdateApp
 } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
-import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 import { enableStatusRecord } from '@/constants/business';
 
 defineOptions({
-  name: 'AppDetail'
+  name: 'AppDetailModal'
 });
 
+const visible = defineModel<boolean>('visible', { default: false });
+
 interface Props {
-  id: string;
+  appId: string;
 }
 
 const props = defineProps<Props>();
 
-const tabStore = useTabStore();
-
-function backToList() {
-  tabStore.replaceTab('app_list');
-}
+const emit = defineEmits<{
+  saved: [];
+}>();
 
 // ---- data loading ----
 const detail = ref<Api.SystemManage.AppDetail | null>(null);
-const loading = ref(true);
+const loading = ref(false);
 
 async function loadDetail() {
+  if (!props.appId) return;
   loading.value = true;
-  const { data, error } = await fetchGetAppDetail(props.id);
+  const { data, error } = await fetchGetAppDetail(props.appId);
   if (!error && data) {
     detail.value = data;
     initEditableFields();
@@ -44,6 +44,14 @@ async function loadDetail() {
   }
   loading.value = false;
 }
+
+watch(visible, async val => {
+  if (val) {
+    await loadDetail();
+  } else {
+    detail.value = null;
+  }
+});
 
 // ---- Block 1: Basic Info ----
 const { formRef: basicFormRef, validate: validateBasic, restoreValidation: restoreBasicValidation } = useNaiveForm();
@@ -68,12 +76,13 @@ async function saveBasic() {
   await validateBasic();
   savingBasic.value = true;
   try {
-    const { error } = await fetchUpdateApp(props.id, {
+    const { error } = await fetchUpdateApp(props.appId, {
       name: basicModel.value.name,
       description: basicModel.value.description || null
     });
     if (!error) {
       window.$message?.success?.($t('common.updateSuccess'));
+      emit('saved');
       await loadDetail();
     }
   } finally {
@@ -82,9 +91,10 @@ async function saveBasic() {
 }
 
 async function handleToggleStatus(next: number) {
-  const { error } = await (next === 1 ? fetchEnableApp : fetchDisableApp)(props.id);
+  const { error } = await (next === 1 ? fetchEnableApp : fetchDisableApp)(props.appId);
   if (!error) {
     window.$message?.success?.(next === 1 ? $t('page.manage.common.enableSuccess') : $t('page.manage.common.disableSuccess'));
+    emit('saved');
   }
   await loadDetail();
 }
@@ -98,11 +108,12 @@ const generatingApiKey = ref(false);
 async function handleGenerateApiKey() {
   generatingApiKey.value = true;
   try {
-    const { data, error } = await fetchGenerateApiKey(props.id);
+    const { data, error } = await fetchGenerateApiKey(props.appId);
     if (!error && data) {
       secretModalTitle.value = $t('page.manage.app.secretModal.title');
       secretValue.value = data.apiSecret;
       secretModalVisible.value = true;
+      emit('saved');
       await loadDetail();
     }
   } finally {
@@ -169,7 +180,7 @@ async function handleSaveSso() {
   }
   savingSso.value = true;
   try {
-    const { data, error } = await fetchSaveSsoClient(props.id, {
+    const { data, error } = await fetchSaveSsoClient(props.appId, {
       redirectUris: uris,
       scopes: ssoModel.value.scopes.filter(s => s.trim()),
       grants: ssoModel.value.grants.filter(g => g.trim())
@@ -181,6 +192,7 @@ async function handleSaveSso() {
         secretModalVisible.value = true;
       }
       window.$message?.success?.($t('common.updateSuccess'));
+      emit('saved');
       await loadDetail();
     }
   } finally {
@@ -207,34 +219,19 @@ function closeSecretModal() {
 const hasApiSecret = computed(() => detail.value?.apiKey?.status === 1);
 const hasSsoClient = computed(() => detail.value?.ssoClient != null);
 
-onMounted(() => {
-  loadDetail();
+const modalTitle = computed(() => {
+  if (!detail.value) return $t('page.manage.app.detail');
+  return `${detail.value.name} (${$t(enableStatusRecord[detail.value.status])})`;
 });
 </script>
 
 <template>
-  <div class="detail-container">
-    <!-- Loading -->
+  <NModal v-model:show="visible" preset="card" :title="modalTitle" style="width: 720px">
     <div v-if="loading" class="flex-center min-h-300px">
       <NSpin />
     </div>
 
     <template v-else-if="detail">
-      <!-- ===== Page Header (non-card chrome) ===== -->
-      <div class="flex flex-wrap items-center gap-x-12px gap-y-8px mb-20px lt-sm:flex-col lt-sm:items-start">
-        <div class="flex items-center gap-8px min-w-0">
-          <NButton text @click="backToList">
-            <template #icon>
-              <icon-ic-round-arrow-back class="text-icon" />
-            </template>
-          </NButton>
-          <h1 class="text-18px font-semibold truncate">{{ detail.name }}</h1>
-          <NTag :type="detail.status === 1 ? 'success' : 'default'" size="small">
-            {{ $t(enableStatusRecord[detail.status]) }}
-          </NTag>
-        </div>
-      </div>
-
       <NSpace vertical :size="16">
         <!-- ===== Block 1: Basic Info ===== -->
         <NCard :title="$t('page.manage.app.basicInfo')" :bordered="false" size="small" class="card-wrapper">
@@ -244,7 +241,6 @@ onMounted(() => {
             </NButton>
           </template>
 
-          <!-- Read-only fields: label-value table -->
           <div class="desc-table mb-20px">
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.manage.app.appCode') }}</div>
@@ -264,7 +260,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Editable fields: NForm -->
           <NForm ref="basicFormRef" :model="basicModel" :rules="basicRules" label-placement="left" :label-width="100">
             <NFormItem path="name" :label="$t('page.manage.app.appName')">
               <NInput v-model:value="basicModel.name" />
@@ -323,7 +318,6 @@ onMounted(() => {
 
         <!-- ===== Block 3: SSO Client ===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
-          <!-- Read-only info: clientId + status, only when SSO is configured -->
           <template v-if="hasSsoClient">
             <div class="desc-table mb-16px">
               <div class="desc-row">
@@ -355,7 +349,6 @@ onMounted(() => {
             <NDivider />
           </template>
 
-          <!-- Edit form: always visible so new SSO config can be filled in -->
           <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.redirectUris') }}</div>
           <div v-for="(uri, i) in ssoModel.redirectUris" :key="i" class="flex items-center gap-8px mb-8px">
             <NInput v-model:value="ssoModel.redirectUris[i]" placeholder="https://example.com/callback" class="flex-1" />
@@ -396,7 +389,7 @@ onMounted(() => {
         </NSpace>
       </template>
     </NModal>
-  </div>
+  </NModal>
 </template>
 
 <style scoped>

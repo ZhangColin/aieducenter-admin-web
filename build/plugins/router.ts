@@ -19,10 +19,6 @@ export function setupElegantRouter() {
         return `/login/:module(${moduleReg})?`;
       }
 
-      if (key === 'app_detail') {
-        return '/app/list/:id';
-      }
-
       return routePath;
     },
     onRouteMetaGen(routeName) {
@@ -37,11 +33,6 @@ export function setupElegantRouter() {
 
       if (constantRoutes.includes(key)) {
         meta.constant = true;
-      }
-
-      if (key === 'app_detail') {
-        meta.hideInMenu = true;
-        meta.activeMenu = 'app_list';
       }
 
       return meta;

@@ -4,18 +4,17 @@ import { NButton } from 'naive-ui';
 import { enableStatusRecord } from '@/constants/business';
 import { fetchDisableApp, fetchEnableApp, fetchGetAppList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
-import { useTabStore } from '@/store/modules/tab';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 import AppCreateModal from './modules/app-create-modal.vue';
+import AppDetailModal from './modules/app-detail-modal.vue';
 
 defineOptions({
   name: 'AppList'
 });
 
 const appStore = useAppStore();
-const tabStore = useTabStore();
 
 const searchParams = ref<Api.SystemManage.AppSearchParams>({
   keyword: null,
@@ -107,8 +106,23 @@ function getRowKey(row: Api.SystemManage.AppSummary) {
   return row.id;
 }
 
+/** detail modal */
+const detailModalVisible = ref(false);
+const selectedAppId = ref('');
+
 function toDetail(id: string) {
-  tabStore.replaceTab('app_detail', { params: { id } });
+  selectedAppId.value = id;
+  detailModalVisible.value = true;
+}
+
+function onAppCreated(id: string) {
+  selectedAppId.value = id;
+  detailModalVisible.value = true;
+  getData();
+}
+
+function onDetailSaved() {
+  getData();
 }
 
 async function handleToggleStatus(row: Api.SystemManage.AppSummary, next: number) {
@@ -201,7 +215,8 @@ function handleReset() {
         :pagination="mobilePagination"
       />
     </NCard>
-    <AppCreateModal v-model:visible="createVisible" />
+    <AppCreateModal v-model:visible="createVisible" @created="onAppCreated" />
+    <AppDetailModal v-model:visible="detailModalVisible" :app-id="selectedAppId" @saved="onDetailSaved" />
   </div>
 </template>
 
