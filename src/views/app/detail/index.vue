@@ -13,7 +13,6 @@ import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 import { enableStatusRecord } from '@/constants/business';
-import { useAppStore } from '@/store/modules/app';
 
 defineOptions({
   name: 'AppDetail'
@@ -205,10 +204,8 @@ function closeSecretModal() {
 }
 
 // ---- computed ----
-const appStore = useAppStore();
 const hasApiSecret = computed(() => detail.value?.apiKey?.status === 1);
 const hasSsoClient = computed(() => detail.value?.ssoClient != null);
-const descColumn = computed(() => (appStore.isMobile ? 1 : 2));
 
 onMounted(() => {
   loadDetail();
@@ -248,7 +245,7 @@ onMounted(() => {
           </template>
 
           <!-- Read-only fields: NDescriptions -->
-          <NDescriptions :column="descColumn" bordered size="small" class="mb-20px" label-placement="left">
+          <NDescriptions :column="2" bordered size="small" class="mb-20px">
             <NDescriptionsItem :label="$t('page.manage.app.appCode')">
               <span class="text-14px">{{ detail.appCode }}</span>
             </NDescriptionsItem>
@@ -287,7 +284,7 @@ onMounted(() => {
             </NButton>
           </template>
 
-          <NDescriptions :column="descColumn" bordered size="small" label-placement="left">
+          <NDescriptions :column="2" bordered size="small">
             <NDescriptionsItem :label="$t('page.manage.app.apiKey')">
               <NInput :value="detail.apiKey.apiKey" readonly size="small">
                 <template #suffix>
@@ -318,7 +315,7 @@ onMounted(() => {
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
           <!-- Read-only info: clientId + status, only when SSO is configured -->
           <template v-if="hasSsoClient">
-            <NDescriptions :column="descColumn" bordered size="small" label-placement="left" class="mb-16px">
+            <NDescriptions :column="2" bordered size="small" class="mb-16px">
               <NDescriptionsItem :label="$t('page.manage.app.clientId')">
                 <NInput :value="detail.ssoClient!.clientId" readonly size="small">
                   <template #suffix>
