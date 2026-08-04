@@ -226,7 +226,7 @@ const modalTitle = computed(() => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :title="modalTitle" style="width: 720px">
+  <NModal v-model:show="visible" preset="card" :title="modalTitle" :mask-closable="false" :close-on-esc="false" style="width: 720px">
     <div v-if="loading" class="flex-center min-h-300px">
       <NSpin />
     </div>
