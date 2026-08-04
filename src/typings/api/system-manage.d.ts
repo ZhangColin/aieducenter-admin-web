@@ -264,5 +264,94 @@ declare namespace Api {
       /** 1=启用 / 0=禁用 */
       status?: number;
     }
+
+    /**
+     * 应用管理（admin 后端 /api/admin/apps）
+     *
+     * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+     * status 整数 1=启用 / 0=禁用。
+     */
+
+    /** GET /apps 搜索参数 */
+    interface AppSearchParams {
+      /** name + appCode 模糊（后端 keyword） */
+      keyword?: string | null;
+      /** 1=启用 / 0=禁用；null/undefined = 不过滤 */
+      status?: number | null;
+      /** 0-based */
+      page: number;
+      size: number;
+    }
+
+    /** 后端 AppSummaryResponse（GET /apps 列表项） */
+    interface AppSummary {
+      id: string;
+      appCode: string;
+      name: string;
+      description: string | null;
+      /** 0=禁用, 1=启用 */
+      status: number;
+      statusName: string;
+      createdAt: string;
+      updatedAt: string;
+    }
+
+    /** 后端 AppApiKeyResponse（详情中 apiKey 子对象） */
+    interface AppApiKey {
+      apiKey: string;
+      status: number;
+      statusName: string;
+    }
+
+    /** 后端 AppSsoClientResponse（详情中 ssoClient 子对象；null=未配置） */
+    interface AppSsoClient {
+      clientId: string;
+      redirectUris: string[];
+      scopes: string[];
+      grants: string[];
+      status: number;
+      statusName: string;
+    }
+
+    /** GET /apps/{id} 详情聚合 */
+    interface AppDetail {
+      app: AppSummary;
+      apiKey: AppApiKey;
+      /** null = 未配置 SSO */
+      ssoClient: AppSsoClient | null;
+    }
+
+    /** POST /apps 创建命令 */
+    interface AppCreateCommand {
+      /** 4-64位小写字母数字连字符 */
+      appCode: string;
+      /** 最长128 */
+      name: string;
+      /** 最长512 */
+      description?: string | null;
+    }
+
+    /** PUT /apps/{id} 更新命令 */
+    interface AppUpdateCommand {
+      name: string;
+      description?: string | null;
+    }
+
+    /** POST /apps/{id}/api-key 响应——apiSecret 仅返回一次 */
+    interface ApiKeyResponse {
+      apiSecret: string;
+    }
+
+    /** POST /apps/{id}/sso-client 请求体 */
+    interface SsoClientCommand {
+      redirectUris: string[];
+      scopes: string[];
+      grants: string[];
+    }
+
+    /** POST /apps/{id}/sso-client 响应——clientSecret 仅返回一次 */
+    interface SsoClientResponse {
+      clientSecret: string;
+    }
   }
 }

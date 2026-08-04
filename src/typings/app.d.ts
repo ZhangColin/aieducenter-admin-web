@@ -705,6 +705,51 @@ declare namespace App {
               local: string;
             };
           };
+          app: {
+            title: string;
+            appCode: string;
+            appName: string;
+            description: string;
+            status: string;
+            createdAt: string;
+            updatedAt: string;
+            keyword: string;
+            detail: string;
+            createApp: string;
+            deleteApp: string;
+            apiKey: string;
+            apiSecret: string;
+            ssoClient: string;
+            clientId: string;
+            redirectUris: string;
+            scopes: string;
+            grants: string;
+            notGenerated: string;
+            generateSecret: string;
+            resetSecret: string;
+            configSso: string;
+            updateSso: string;
+            resetSso: string;
+            save: string;
+            basicInfo: string;
+            secretModal: {
+              title: string;
+              description: string;
+              copied: string;
+              done: string;
+            };
+            appCodeRule: string;
+            appNameLengthRule: string;
+            appDescriptionLengthRule: string;
+            ssoRedirectUriRequired: string;
+            addRedirectUri: string;
+            form: {
+              appCode: string;
+              appName: string;
+              description: string;
+              keyword: string;
+            };
+          };
           permission: {
             module: {
               user: string;

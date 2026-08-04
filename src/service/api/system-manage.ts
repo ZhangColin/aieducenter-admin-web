@@ -227,3 +227,77 @@ export function fetchDeleteMenu(id: string) {
     method: 'delete'
   });
 }
+
+/**
+ * 应用管理（admin 后端 /api/admin/apps）
+ *
+ * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ */
+
+/** 应用分页列表（GET /apps） */
+export function fetchGetAppList(params: Api.SystemManage.AppSearchParams) {
+  return request<Api.Common.PageResponse<Api.SystemManage.AppSummary>>({
+    url: '/apps',
+    method: 'get',
+    params
+  });
+}
+
+/** 应用详情聚合（GET /apps/{id}；含 app + apiKey + ssoClient） */
+export function fetchGetAppDetail(id: string) {
+  return request<Api.SystemManage.AppDetail>({
+    url: `/apps/${id}`,
+    method: 'get'
+  });
+}
+
+/** 创建应用（POST /apps；返回新应用 id，Long→字符串） */
+export function fetchCreateApp(body: Api.SystemManage.AppCreateCommand) {
+  return request<string>({
+    url: '/apps',
+    method: 'post',
+    data: body
+  });
+}
+
+/** 更新应用基本信息（PUT /apps/{id}；name + description） */
+export function fetchUpdateApp(id: string, body: Api.SystemManage.AppUpdateCommand) {
+  return request<null>({
+    url: `/apps/${id}`,
+    method: 'put',
+    data: body
+  });
+}
+
+/** 停用应用（PUT /apps/{id}/disable） */
+export function fetchDisableApp(id: string) {
+  return request<null>({
+    url: `/apps/${id}/disable`,
+    method: 'put'
+  });
+}
+
+/** 启用应用（PUT /apps/{id}/enable） */
+export function fetchEnableApp(id: string) {
+  return request<null>({
+    url: `/apps/${id}/enable`,
+    method: 'put'
+  });
+}
+
+/** 生成/重置 API Key（POST /apps/{id}/api-key；apiSecret 仅返回一次） */
+export function fetchGenerateApiKey(id: string) {
+  return request<Api.SystemManage.ApiKeyResponse>({
+    url: `/apps/${id}/api-key`,
+    method: 'post'
+  });
+}
+
+/** 创建/更新 SSO Client（POST /apps/{id}/sso-client；clientSecret 仅返回一次） */
+export function fetchSaveSsoClient(id: string, body: Api.SystemManage.SsoClientCommand) {
+  return request<Api.SystemManage.SsoClientResponse>({
+    url: `/apps/${id}/sso-client`,
+    method: 'post',
+    data: body
+  });
+}

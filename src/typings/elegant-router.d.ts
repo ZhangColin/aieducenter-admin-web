@@ -20,6 +20,9 @@ declare module "@elegant-router/types" {
     "403": "/403";
     "404": "/404";
     "500": "/500";
+    "app": "/app";
+    "app_detail": "/app/list/:id";
+    "app_list": "/app/list";
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
@@ -61,6 +64,7 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "app"
     | "home"
     | "iframe-page"
     | "login"
@@ -86,6 +90,8 @@ declare module "@elegant-router/types" {
     | "500"
     | "iframe-page"
     | "login"
+    | "app_detail"
+    | "app_list"
     | "home"
     | "manage_menu"
     | "manage_role"

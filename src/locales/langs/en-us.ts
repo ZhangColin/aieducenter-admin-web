@@ -233,7 +233,10 @@ const local: App.I18n.Schema = {
     manage: 'System',
     manage_user: 'User Manage',
     manage_role: 'Role Manage',
-    manage_menu: 'Menu Manage'
+    manage_menu: 'Menu Manage',
+    app: 'App Management',
+    app_list: 'Apps',
+    app_detail: 'App Detail'
   },
   page: {
     login: {
@@ -459,6 +462,51 @@ const local: App.I18n.Schema = {
         iconType: {
           iconify: 'Iconify Icon',
           local: 'Local Icon'
+        }
+      },
+      app: {
+        title: 'App List',
+        appCode: 'App Code',
+        appName: 'App Name',
+        description: 'Description',
+        status: 'Status',
+        createdAt: 'Created At',
+        updatedAt: 'Updated At',
+        keyword: 'Keyword',
+        detail: 'Detail',
+        createApp: 'Create App',
+        deleteApp: 'Delete App',
+        apiKey: 'API Key',
+        apiSecret: 'API Secret',
+        ssoClient: 'SSO Client',
+        clientId: 'Client ID',
+        redirectUris: 'Redirect URIs',
+        scopes: 'Scopes',
+        grants: 'Grants',
+        notGenerated: 'Not Generated',
+        generateSecret: 'Generate Secret',
+        resetSecret: 'Reset Secret',
+        configSso: 'Configure SSO',
+        updateSso: 'Update SSO',
+        resetSso: 'Reset SSO',
+        save: 'Save',
+        basicInfo: 'Basic Info',
+        secretModal: {
+          title: 'Secret Generated',
+          description: 'This secret will only be displayed once. Please copy and save it securely.',
+          copied: 'Copied',
+          done: 'Copied, Close'
+        },
+        appCodeRule: '4-64 lowercase letters, digits or hyphens',
+        appNameLengthRule: 'Name length cannot exceed 128',
+        appDescriptionLengthRule: 'Description length cannot exceed 512',
+        ssoRedirectUriRequired: 'At least one redirect URI is required',
+        addRedirectUri: 'Add Redirect URI',
+        form: {
+          appCode: 'Please enter app code',
+          appName: 'Please enter app name',
+          description: 'Please enter description',
+          keyword: 'App name/code'
         }
       },
       permission: {

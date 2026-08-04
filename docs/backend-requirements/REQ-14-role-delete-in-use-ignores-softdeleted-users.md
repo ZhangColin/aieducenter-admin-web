@@ -2,7 +2,7 @@
 
 > 发现于：admin-web issue [#23](https://github.com/ZhangColin/aieducenter-admin-web/issues/23) E2E 测试数据清理（2026-08-02）
 > 同类先例：REQ-5（用户/角色软删查询不过滤 deleted，已修复）——本条是软删过滤在「角色删除守卫」路径上的漏网
-> 状态：**待提后端**（本文件为前端侧需求记录；尚未提交后端 issue）
+> 状态：**后端处理中**（已提后端 issue [#24](https://github.com/ZhangColin/aieducenter-admin/issues/24)（2026-08-02）；2026-08-03 用户确认后端方向——尽量放弃软删除，即使保留也由后端彻底处理）
 
 ## 现象
 

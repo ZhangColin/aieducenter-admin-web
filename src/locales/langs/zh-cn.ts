@@ -229,7 +229,10 @@ const local: App.I18n.Schema = {
     manage: '系统管理',
     manage_user: '用户管理',
     manage_role: '角色管理',
-    manage_menu: '菜单管理'
+    manage_menu: '菜单管理',
+    app: '应用管理',
+    app_list: '应用',
+    app_detail: '应用详情'
   },
   page: {
     login: {
@@ -455,6 +458,51 @@ const local: App.I18n.Schema = {
         iconType: {
           iconify: 'iconify图标',
           local: '本地图标'
+        }
+      },
+      app: {
+        title: '应用列表',
+        appCode: '应用编码',
+        appName: '应用名称',
+        description: '描述',
+        status: '状态',
+        createdAt: '创建时间',
+        updatedAt: '更新时间',
+        keyword: '关键词',
+        detail: '详情',
+        createApp: '创建应用',
+        deleteApp: '删除应用',
+        apiKey: 'API Key',
+        apiSecret: 'API Secret',
+        ssoClient: 'SSO Client',
+        clientId: 'Client ID',
+        redirectUris: '回调地址',
+        scopes: '授权范围',
+        grants: '授权类型',
+        notGenerated: '未生成',
+        generateSecret: '生成 Secret',
+        resetSecret: '重置 Secret',
+        configSso: '配置 SSO',
+        updateSso: '更新 SSO',
+        resetSso: '重置 SSO',
+        save: '保存',
+        basicInfo: '基本信息',
+        secretModal: {
+          title: '密钥已生成',
+          description: '以下密钥仅展示一次，请立即复制并妥善保存',
+          copied: '已复制',
+          done: '已复制，关闭'
+        },
+        appCodeRule: '4-64位小写字母、数字或连字符',
+        appNameLengthRule: '名称长度不能超过 128',
+        appDescriptionLengthRule: '描述长度不能超过 512',
+        ssoRedirectUriRequired: '至少需要一条回调地址',
+        addRedirectUri: '添加回调地址',
+        form: {
+          appCode: '请输入应用编码',
+          appName: '请输入应用名称',
+          description: '请输入描述',
+          keyword: '应用名称/编码'
         }
       },
       permission: {
