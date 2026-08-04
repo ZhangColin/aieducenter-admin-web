@@ -503,6 +503,9 @@ const local: App.I18n.Schema = {
         appDescriptionLengthRule: 'Description length cannot exceed 512',
         ssoRedirectUriRequired: 'At least one redirect URI is required',
         addRedirectUri: 'Add Redirect URI',
+        copy: 'Copy',
+        copySuccess: 'Copied',
+        masked: 'Generated (Masked)',
         form: {
           appCode: 'Please enter app code',
           appName: 'Please enter app name',

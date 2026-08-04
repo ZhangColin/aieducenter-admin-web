@@ -744,6 +744,9 @@ declare namespace App {
             appDescriptionLengthRule: string;
             ssoRedirectUriRequired: string;
             addRedirectUri: string;
+            copy: string;
+            copySuccess: string;
+            masked: string;
             form: {
               appCode: string;
               appName: string;

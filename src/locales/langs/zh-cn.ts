@@ -499,6 +499,9 @@ const local: App.I18n.Schema = {
         appDescriptionLengthRule: '描述长度不能超过 512',
         ssoRedirectUriRequired: '至少需要一条回调地址',
         addRedirectUri: '添加回调地址',
+        copy: '复制',
+        copySuccess: '已复制',
+        masked: '已生成（脱敏）',
         form: {
           appCode: '请输入应用编码',
           appName: '请输入应用名称',

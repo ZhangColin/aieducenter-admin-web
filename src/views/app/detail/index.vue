@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { NButton, NDivider, NTag } from 'naive-ui';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   fetchDisableApp,
   fetchEnableApp,
@@ -13,6 +12,8 @@ import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { useTabStore } from '@/store/modules/tab';
 import { $t } from '@/locales';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
+import { enableStatusRecord } from '@/constants/business';
+import { useAppStore } from '@/store/modules/app';
 
 defineOptions({
   name: 'AppDetail'
@@ -110,6 +111,28 @@ async function handleGenerateApiKey() {
   }
 }
 
+// ---- Clipboard ----
+const copiedKey = ref('');
+const copyFeedbackTimer = ref<ReturnType<typeof setTimeout>>();
+
+async function copyToClipboard(text: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedKey.value = label;
+    window.$message?.success?.($t('page.manage.app.copySuccess'));
+    if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
+    copyFeedbackTimer.value = setTimeout(() => {
+      copiedKey.value = '';
+    }, 2000);
+  } catch {
+    // clipboard API not available — user can still select + Ctrl+C
+  }
+}
+
+onBeforeUnmount(() => {
+  if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
+});
+
 // ---- Block 3: SSO Client ----
 const ssoModel = ref({ redirectUris: [''] as string[], scopes: [] as string[], grants: [] as string[] });
 
@@ -182,8 +205,10 @@ function closeSecretModal() {
 }
 
 // ---- computed ----
+const appStore = useAppStore();
 const hasApiSecret = computed(() => detail.value?.apiKey?.status === 1);
 const hasSsoClient = computed(() => detail.value?.ssoClient != null);
+const descColumn = computed(() => (appStore.isMobile ? 1 : 2));
 
 onMounted(() => {
   loadDetail();
@@ -192,123 +217,171 @@ onMounted(() => {
 
 <template>
   <div class="detail-container">
-    <div class="mb-16px">
-      <NButton @click="backToList">
-        <template #icon>
-          <icon-ic-round-arrow-back class="text-icon" />
-        </template>
-        {{ $t('common.back') }}
-      </NButton>
-    </div>
+    <!-- Loading -->
     <div v-if="loading" class="flex-center min-h-300px">
       <NSpin />
     </div>
 
-    <NSpace v-else-if="detail" vertical :size="16">
-      <!-- Block 1: Basic Info -->
-      <NCard :title="$t('page.manage.app.basicInfo')" :bordered="false" size="small" class="card-wrapper">
-        <NForm ref="basicFormRef" :model="basicModel" :rules="basicRules" label-placement="left" :label-width="100">
-          <NGrid :x-gap="24" :cols="2" responsive="screen">
-            <NFormItemGi span="2 m:1" :label="$t('page.manage.app.appCode')">
-              <span class="text-14px">{{ detail.appCode }}</span>
-            </NFormItemGi>
-            <NFormItemGi span="2 m:1" :label="$t('page.manage.app.status')">
-              <StatusSwitch :value="detail.status" @confirm="handleToggleStatus" />
-            </NFormItemGi>
-            <NFormItemGi span="2" path="name" :label="$t('page.manage.app.appName')">
-              <NInput v-model:value="basicModel.name" />
-            </NFormItemGi>
-            <NFormItemGi span="2" path="description" :label="$t('page.manage.app.description')">
-              <NInput v-model:value="basicModel.description" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" />
-            </NFormItemGi>
-            <NFormItemGi span="2 m:1" :label="$t('page.manage.app.createdAt')">
-              <span class="text-14px text-disabled">{{ detail.createdAt || '-' }}</span>
-            </NFormItemGi>
-            <NFormItemGi span="2 m:1" :label="$t('page.manage.app.updatedAt')">
-              <span class="text-14px text-disabled">{{ detail.updatedAt || '-' }}</span>
-            </NFormItemGi>
-          </NGrid>
-        </NForm>
-        <div class="flex justify-end mt-16px">
-          <NButton type="primary" :loading="savingBasic" @click="saveBasic">{{ $t('page.manage.app.save') }}</NButton>
-        </div>
-      </NCard>
-
-      <!-- Block 2: API Key -->
-      <NCard :title="$t('page.manage.app.apiKey')" :bordered="false" size="small" class="card-wrapper">
-        <NGrid :x-gap="24" :cols="2" responsive="screen">
-          <NGi span="2 m:1">
-            <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.appCode') }}</div>
-            <div class="text-14px">{{ detail.apiKey.apiKey }}</div>
-          </NGi>
-          <NGi span="2 m:1">
-            <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.apiSecret') }}</div>
-            <div class="text-14px">
-              <template v-if="hasApiSecret">
-                <span class="text-disabled">••••••••</span>
-              </template>
-              <template v-else>
-                <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
-              </template>
-            </div>
-          </NGi>
-          <NGi span="2 m:1">
-            <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.status') }}</div>
-            <NTag :type="detail.apiKey.status === 1 ? 'success' : 'default'" size="small">
-              {{ detail.apiKey.statusName }}
-            </NTag>
-          </NGi>
-        </NGrid>
-        <div class="flex justify-end mt-16px">
-          <NButton :type="hasApiSecret ? 'warning' : 'primary'" :loading="generatingApiKey" @click="handleGenerateApiKey">
-            {{ hasApiSecret ? $t('page.manage.app.resetSecret') : $t('page.manage.app.generateSecret') }}
+    <template v-else-if="detail">
+      <!-- ===== Page Header (non-card chrome) ===== -->
+      <div class="flex flex-wrap items-center gap-x-12px gap-y-8px mb-20px lt-sm:flex-col lt-sm:items-start">
+        <div class="flex items-center gap-8px min-w-0">
+          <NButton text @click="backToList">
+            <template #icon>
+              <icon-ic-round-arrow-back class="text-icon" />
+            </template>
           </NButton>
+          <h1 class="text-18px font-semibold truncate">{{ detail.name }}</h1>
+          <NTag :type="detail.status === 1 ? 'success' : 'default'" size="small">
+            {{ $t(enableStatusRecord[detail.status]) }}
+          </NTag>
         </div>
-      </NCard>
+      </div>
 
-      <!-- Block 3: SSO Client -->
-      <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
-        <!-- Read-only info: clientId + status, only when SSO is configured -->
-        <template v-if="hasSsoClient">
+      <NSpace vertical :size="16">
+        <!-- ===== Block 1: Basic Info ===== -->
+        <NCard :title="$t('page.manage.app.basicInfo')" :bordered="false" size="small" class="card-wrapper">
+          <template #header-extra>
+            <NButton type="primary" size="small" :loading="savingBasic" @click="saveBasic">
+              {{ $t('page.manage.app.save') }}
+            </NButton>
+          </template>
+
+          <!-- Read-only fields: NDescriptions -->
+          <NDescriptions :column="descColumn" bordered size="small" class="mb-20px" label-placement="left">
+            <NDescriptionsItem :label="$t('page.manage.app.appCode')">
+              <span class="text-14px">{{ detail.appCode }}</span>
+            </NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.app.status')">
+              <StatusSwitch :value="detail.status" @confirm="handleToggleStatus" />
+            </NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.app.createdAt')">
+              <span class="text-14px text-disabled">{{ detail.createdAt || '-' }}</span>
+            </NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.app.updatedAt')">
+              <span class="text-14px text-disabled">{{ detail.updatedAt || '-' }}</span>
+            </NDescriptionsItem>
+          </NDescriptions>
+
+          <!-- Editable fields: NForm -->
+          <NForm ref="basicFormRef" :model="basicModel" :rules="basicRules" label-placement="left" :label-width="100">
+            <NFormItem path="name" :label="$t('page.manage.app.appName')">
+              <NInput v-model:value="basicModel.name" />
+            </NFormItem>
+            <NFormItem path="description" :label="$t('page.manage.app.description')">
+              <NInput v-model:value="basicModel.description" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" />
+            </NFormItem>
+          </NForm>
+        </NCard>
+
+        <!-- ===== Block 2: API Key ===== -->
+        <NCard :title="$t('page.manage.app.apiKey')" :bordered="false" size="small" class="card-wrapper">
+          <template #header-extra>
+            <NButton
+              :type="hasApiSecret ? 'warning' : 'primary'"
+              size="small"
+              :loading="generatingApiKey"
+              @click="handleGenerateApiKey"
+            >
+              {{ hasApiSecret ? $t('page.manage.app.resetSecret') : $t('page.manage.app.generateSecret') }}
+            </NButton>
+          </template>
+
           <NGrid :x-gap="24" :cols="2" responsive="screen">
+            <!-- apiKey with copy -->
             <NGi span="2 m:1">
-              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.clientId') }}</div>
-              <div class="text-14px">{{ detail.ssoClient!.clientId }}</div>
+              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.apiKey') }}</div>
+              <NInput :value="detail.apiKey.apiKey" readonly>
+                <template #suffix>
+                  <NButton
+                    text
+                    size="tiny"
+                    :type="copiedKey === 'apikey' ? 'success' : 'default'"
+                    @click="copyToClipboard(detail.apiKey.apiKey, 'apikey')"
+                  >
+                    {{ copiedKey === 'apikey' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
+                  </NButton>
+                </template>
+              </NInput>
             </NGi>
+            <!-- apiSecret with masked status -->
+            <NGi span="2 m:1">
+              <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.apiSecret') }}</div>
+              <div class="flex items-center gap-8px min-h-34px">
+                <template v-if="hasApiSecret">
+                  <span class="text-14px text-disabled">••••••••••••</span>
+                  <NTag type="success" size="small">{{ $t('page.manage.app.masked') }}</NTag>
+                </template>
+                <template v-else>
+                  <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
+                </template>
+              </div>
+            </NGi>
+            <!-- apiKey status -->
             <NGi span="2 m:1">
               <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.status') }}</div>
-              <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
-                {{ detail.ssoClient!.statusName }}
+              <NTag :type="detail.apiKey.status === 1 ? 'success' : 'default'" size="small">
+                {{ detail.apiKey.statusName }}
               </NTag>
             </NGi>
           </NGrid>
-          <NDivider />
-        </template>
+        </NCard>
 
-        <!-- Edit form: always visible so new SSO config can be filled in -->
-        <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.redirectUris') }}</div>
-        <div v-for="(uri, i) in ssoModel.redirectUris" :key="i" class="flex items-center gap-8px mb-8px">
-          <NInput v-model:value="ssoModel.redirectUris[i]" placeholder="https://example.com/callback" class="flex-1" />
-          <NButton size="small" :disabled="ssoModel.redirectUris.length <= 1" @click="removeRedirectUri(i)">-</NButton>
-        </div>
-        <NButton size="small" class="mb-16px" @click="addRedirectUri">{{ $t('page.manage.app.addRedirectUri') }}</NButton>
+        <!-- ===== Block 3: SSO Client ===== -->
+        <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
+          <!-- Read-only info: clientId + status, only when SSO is configured -->
+          <template v-if="hasSsoClient">
+            <NGrid :x-gap="24" :cols="2" responsive="screen">
+              <NGi span="2 m:1">
+                <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.clientId') }}</div>
+                <NInput :value="detail.ssoClient!.clientId" readonly>
+                  <template #suffix>
+                    <NButton
+                      text
+                      size="tiny"
+                      :type="copiedKey === 'clientid' ? 'success' : 'default'"
+                      @click="copyToClipboard(detail.ssoClient!.clientId, 'clientid')"
+                    >
+                      {{ copiedKey === 'clientid' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
+                    </NButton>
+                  </template>
+                </NInput>
+              </NGi>
+              <NGi span="2 m:1">
+                <div class="text-12px text-disabled mb-4px">{{ $t('page.manage.app.status') }}</div>
+                <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
+                  {{ detail.ssoClient!.statusName }}
+                </NTag>
+              </NGi>
+            </NGrid>
+            <NDivider />
+          </template>
 
-        <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.scopes') }}</div>
-        <NDynamicTags v-model:value="ssoModel.scopes" class="mb-16px" />
+          <!-- Edit form: always visible so new SSO config can be filled in -->
+          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.redirectUris') }}</div>
+          <div v-for="(uri, i) in ssoModel.redirectUris" :key="i" class="flex items-center gap-8px mb-8px">
+            <NInput v-model:value="ssoModel.redirectUris[i]" placeholder="https://example.com/callback" class="flex-1" />
+            <NButton size="small" :disabled="ssoModel.redirectUris.length <= 1" @click="removeRedirectUri(i)">-</NButton>
+          </div>
+          <NButton size="small" class="mb-16px" @click="addRedirectUri">{{ $t('page.manage.app.addRedirectUri') }}</NButton>
 
-        <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.grants') }}</div>
-        <NDynamicTags v-model:value="ssoModel.grants" class="mb-16px" />
+          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.scopes') }}</div>
+          <NDynamicTags v-model:value="ssoModel.scopes" class="mb-16px" />
 
-        <div class="flex justify-end gap-8px mt-16px">
-          <NButton type="primary" :loading="savingSso" @click="handleSaveSso">
-            {{ hasSsoClient ? $t('page.manage.app.updateSso') : $t('page.manage.app.configSso') }}
-          </NButton>
-          <NButton v-if="hasSsoClient" type="warning" :loading="savingSso" @click="handleSaveSso">
-            {{ $t('page.manage.app.resetSso') }}
-          </NButton>
-        </div>
-      </NCard>
-    </NSpace>
+          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.grants') }}</div>
+          <NDynamicTags v-model:value="ssoModel.grants" class="mb-16px" />
+
+          <div class="flex justify-end gap-8px mt-16px">
+            <NButton type="primary" :loading="savingSso" @click="handleSaveSso">
+              {{ hasSsoClient ? $t('page.manage.app.updateSso') : $t('page.manage.app.configSso') }}
+            </NButton>
+            <NButton v-if="hasSsoClient" type="warning" :loading="savingSso" @click="handleSaveSso">
+              {{ $t('page.manage.app.resetSso') }}
+            </NButton>
+          </div>
+        </NCard>
+      </NSpace>
+    </template>
 
     <!-- Secret Display Modal -->
     <NModal v-model:show="secretModalVisible" :title="secretModalTitle" preset="card" style="width: 520px">
