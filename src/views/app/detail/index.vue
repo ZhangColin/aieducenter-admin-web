@@ -244,21 +244,25 @@ onMounted(() => {
             </NButton>
           </template>
 
-          <!-- Read-only fields: NDescriptions -->
-          <NDescriptions :column="2" bordered size="small" class="mb-20px">
-            <NDescriptionsItem :label="$t('page.manage.app.appCode')">
-              <span class="text-14px">{{ detail.appCode }}</span>
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.app.status')">
-              <StatusSwitch :value="detail.status" @confirm="handleToggleStatus" />
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.app.createdAt')">
-              <span class="text-14px text-disabled">{{ detail.createdAt || '-' }}</span>
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.app.updatedAt')">
-              <span class="text-14px text-disabled">{{ detail.updatedAt || '-' }}</span>
-            </NDescriptionsItem>
-          </NDescriptions>
+          <!-- Read-only fields: label-value table -->
+          <div class="desc-table mb-20px">
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.appCode') }}</div>
+              <div class="desc-value"><span class="text-14px">{{ detail.appCode }}</span></div>
+            </div>
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.status') }}</div>
+              <div class="desc-value"><StatusSwitch :value="detail.status" @confirm="handleToggleStatus" /></div>
+            </div>
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.createdAt') }}</div>
+              <div class="desc-value"><span class="text-14px text-disabled">{{ detail.createdAt || '-' }}</span></div>
+            </div>
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.updatedAt') }}</div>
+              <div class="desc-value"><span class="text-14px text-disabled">{{ detail.updatedAt || '-' }}</span></div>
+            </div>
+          </div>
 
           <!-- Editable fields: NForm -->
           <NForm ref="basicFormRef" :model="basicModel" :rules="basicRules" label-placement="left" :label-width="100">
@@ -284,58 +288,70 @@ onMounted(() => {
             </NButton>
           </template>
 
-          <NDescriptions :column="2" bordered size="small">
-            <NDescriptionsItem :label="$t('page.manage.app.apiKey')">
-              <NInput :value="detail.apiKey.apiKey" readonly size="small">
-                <template #suffix>
-                  <NButton
-                    text
-                    size="tiny"
-                    :type="copiedKey === 'apikey' ? 'success' : 'default'"
-                    @click="copyToClipboard(detail.apiKey.apiKey, 'apikey')"
-                  >
-                    {{ copiedKey === 'apikey' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
-                  </NButton>
+          <div class="desc-table">
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.apiKey') }}</div>
+              <div class="desc-value">
+                <NInput :value="detail.apiKey.apiKey" readonly size="small">
+                  <template #suffix>
+                    <NButton
+                      text
+                      size="tiny"
+                      :type="copiedKey === 'apikey' ? 'success' : 'default'"
+                      @click="copyToClipboard(detail.apiKey.apiKey, 'apikey')"
+                    >
+                      {{ copiedKey === 'apikey' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
+                    </NButton>
+                  </template>
+                </NInput>
+              </div>
+            </div>
+            <div class="desc-row">
+              <div class="desc-label">{{ $t('page.manage.app.apiSecret') }}</div>
+              <div class="desc-value">
+                <template v-if="hasApiSecret">
+                  <span class="text-14px text-disabled">••••••••••••</span>
+                  <NTag type="success" size="small" class="ml-8px">{{ $t('page.manage.app.masked') }}</NTag>
                 </template>
-              </NInput>
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.app.apiSecret')">
-              <template v-if="hasApiSecret">
-                <span class="text-14px text-disabled">••••••••••••</span>
-                <NTag type="success" size="small" class="ml-8px">{{ $t('page.manage.app.masked') }}</NTag>
-              </template>
-              <template v-else>
-                <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
-              </template>
-            </NDescriptionsItem>
-          </NDescriptions>
+                <template v-else>
+                  <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
+                </template>
+              </div>
+            </div>
+          </div>
         </NCard>
 
         <!-- ===== Block 3: SSO Client ===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
           <!-- Read-only info: clientId + status, only when SSO is configured -->
           <template v-if="hasSsoClient">
-            <NDescriptions :column="2" bordered size="small" class="mb-16px">
-              <NDescriptionsItem :label="$t('page.manage.app.clientId')">
-                <NInput :value="detail.ssoClient!.clientId" readonly size="small">
-                  <template #suffix>
-                    <NButton
-                      text
-                      size="tiny"
-                      :type="copiedKey === 'clientid' ? 'success' : 'default'"
-                      @click="copyToClipboard(detail.ssoClient!.clientId, 'clientid')"
-                    >
-                      {{ copiedKey === 'clientid' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
-                    </NButton>
-                  </template>
-                </NInput>
-              </NDescriptionsItem>
-              <NDescriptionsItem :label="$t('page.manage.app.status')">
-                <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
-                  {{ detail.ssoClient!.statusName }}
-                </NTag>
-              </NDescriptionsItem>
-            </NDescriptions>
+            <div class="desc-table mb-16px">
+              <div class="desc-row">
+                <div class="desc-label">{{ $t('page.manage.app.clientId') }}</div>
+                <div class="desc-value">
+                  <NInput :value="detail.ssoClient!.clientId" readonly size="small">
+                    <template #suffix>
+                      <NButton
+                        text
+                        size="tiny"
+                        :type="copiedKey === 'clientid' ? 'success' : 'default'"
+                        @click="copyToClipboard(detail.ssoClient!.clientId, 'clientid')"
+                      >
+                        {{ copiedKey === 'clientid' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
+                      </NButton>
+                    </template>
+                  </NInput>
+                </div>
+              </div>
+              <div class="desc-row">
+                <div class="desc-label">{{ $t('page.manage.app.status') }}</div>
+                <div class="desc-value">
+                  <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
+                    {{ detail.ssoClient!.statusName }}
+                  </NTag>
+                </div>
+              </div>
+            </div>
             <NDivider />
           </template>
 
@@ -383,4 +399,43 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.desc-table {
+  border: 1px solid var(--n-border-color);
+  border-radius: var(--n-border-radius);
+}
+.desc-row {
+  display: flex;
+  border-bottom: 1px solid var(--n-border-color);
+}
+.desc-row:last-child {
+  border-bottom: none;
+}
+.desc-label {
+  flex-shrink: 0;
+  width: 120px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--n-text-color-3);
+  background: var(--n-color-embedded);
+  border-right: 1px solid var(--n-border-color);
+}
+.desc-value {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 639px) {
+  .desc-row {
+    flex-direction: column;
+  }
+  .desc-label {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--n-border-color);
+  }
+}
+</style>
