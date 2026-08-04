@@ -308,7 +308,7 @@ watch(() => model.value.menuType, syncRouteByType);
 </script>
 
 <template>
-  <NModal v-model:show="visible" :title="title" preset="card" class="w-800px">
+  <NModal v-model:show="visible" :title="title" preset="card" :mask-closable="false" :close-on-esc="false" class="w-800px">
     <NScrollbar class="h-480px pr-20px">
       <NForm ref="formRef" :model="model" :rules="rules" label-placement="left" :label-width="100">
         <NGrid responsive="screen" item-responsive>

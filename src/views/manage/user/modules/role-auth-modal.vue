@@ -103,7 +103,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
+  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false" :close-on-esc="false">
     <NEmpty v-if="!loading && roleList.length === 0" :description="$t('page.manage.user.noRoleToAssign')" />
     <NSelect
       v-else

@@ -111,7 +111,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
+  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false" :close-on-esc="false">
     <div class="flex-y-center gap-12px pb-12px">
       <span class="whitespace-nowrap">{{ $t('page.manage.role.defaultHome') }}</span>
       <NSelect

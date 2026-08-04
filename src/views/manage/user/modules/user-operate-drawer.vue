@@ -139,7 +139,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" display-directive="show" :width="420">
+  <NDrawer v-model:show="visible" display-directive="show" :width="420" :mask-closable="false">
     <NDrawerContent :title="title" :native-scrollbar="false" closable>
       <NForm ref="formRef" :model="model" :rules="rules" label-placement="top">
         <NFormItem :label="$t('page.manage.user.userName')" path="username">

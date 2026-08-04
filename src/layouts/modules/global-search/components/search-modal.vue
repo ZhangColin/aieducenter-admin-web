@@ -91,7 +91,8 @@ registerShortcut();
 
 <template>
   <NModal
-    v-model:show="visible"
+    v-model:show="visible" :mask-closable="false"
+    :close-on-esc="false"
     :segmented="{ footer: 'soft' }"
     :closable="false"
     preset="card"

@@ -85,7 +85,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" :title="$t('page.manage.app.createApp')" preset="card" style="width: 480px">
+  <NModal v-model:show="visible" :title="$t('page.manage.app.createApp')" preset="card" :mask-closable="false" :close-on-esc="false" style="width: 480px">
     <NForm ref="createFormRef" :model="model" :rules="rules" label-placement="top">
       <NFormItem :label="$t('page.manage.app.appCode')" path="appCode">
         <NInput v-model:value="model.appCode" :placeholder="$t('page.manage.app.form.appCode')" />

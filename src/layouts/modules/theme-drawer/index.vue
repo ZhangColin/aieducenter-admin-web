@@ -28,7 +28,7 @@ const drawerWidth = computed(() => {
 </script>
 
 <template>
-  <NDrawer v-model:show="appStore.themeDrawerVisible" display-directive="show" :width="drawerWidth">
+  <NDrawer v-model:show="appStore.themeDrawerVisible" display-directive="show" :width="drawerWidth" :mask-closable="false">
     <NDrawerContent :title="$t('theme.themeDrawerTitle')" :native-scrollbar="false" closable>
       <NTabs v-model:value="activeTab" type="segment" size="medium" class="mb-16px">
         <NTab name="appearance" :tab="$t('theme.tabs.appearance')"></NTab>

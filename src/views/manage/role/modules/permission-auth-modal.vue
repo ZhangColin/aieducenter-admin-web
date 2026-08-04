@@ -107,7 +107,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false">
+  <NModal v-model:show="visible" preset="card" :title="title" class="w-520px" :mask-closable="false" :close-on-esc="false">
     <NEmpty v-if="!loading && tree.length === 0" :description="$t('page.manage.permission.noPermissionToAssign')" />
     <NTree
       v-else

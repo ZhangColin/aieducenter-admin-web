@@ -72,7 +72,7 @@ watch(visible, val => {
 </script>
 
 <template>
-  <NModal v-model:show="visible" preset="card" :title="title" class="w-420px" :mask-closable="false">
+  <NModal v-model:show="visible" preset="card" :title="title" class="w-420px" :mask-closable="false" :close-on-esc="false">
     <NForm ref="formRef" :model="model" :rules="rules" label-placement="top">
       <NFormItem :label="$t('page.manage.user.newPassword')" path="newPassword">
         <NInput

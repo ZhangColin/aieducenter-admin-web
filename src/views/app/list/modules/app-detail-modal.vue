@@ -375,7 +375,7 @@ const modalTitle = computed(() => {
     </template>
 
     <!-- Secret Display Modal -->
-    <NModal v-model:show="secretModalVisible" :title="secretModalTitle" preset="card" style="width: 520px">
+    <NModal v-model:show="secretModalVisible" :title="secretModalTitle" preset="card" :mask-closable="false" :close-on-esc="false" style="width: 520px">
       <div class="text-14px mb-16px text-disabled">{{ $t('page.manage.app.secretModal.description') }}</div>
       <NInput :value="secretValue" type="textarea" readonly :autosize="{ minRows: 2, maxRows: 6 }" class="font-mono" />
       <template #footer>
