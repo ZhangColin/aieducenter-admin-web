@@ -497,6 +497,10 @@ const local: App.I18n.Schema = {
           copied: 'Copied',
           done: 'Copied, Close'
         },
+        resetSecretConfirm: {
+          title: 'Reset API Secret',
+          content: 'This will invalidate the existing secret immediately. All calls using the old secret will fail. Continue?'
+        },
         appCodeRule: '4-64 lowercase letters, digits or hyphens',
         appNameLengthRule: 'Name length cannot exceed 128',
         appDescriptionLengthRule: 'Description length cannot exceed 512',

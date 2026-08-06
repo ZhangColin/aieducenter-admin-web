@@ -217,6 +217,7 @@ function closeSecretModal() {
 }
 
 // ---- computed ----
+const hasApiKey = computed(() => detail.value?.apiKey != null);
 const hasApiSecret = computed(() => detail.value?.apiKey?.status === 1);
 const hasSsoClient = computed(() => detail.value?.ssoClient != null);
 
@@ -224,6 +225,29 @@ const modalTitle = computed(() => {
   if (!detail.value) return $t('page.manage.app.detail');
   return `${detail.value.name} (${$t(enableStatusRecord[detail.value.status])})`;
 });
+
+function confirmResetApiKey() {
+  window.$dialog?.warning({
+    title: $t('page.manage.app.resetSecretConfirm.title'),
+    content: $t('page.manage.app.resetSecretConfirm.content'),
+    positiveText: $t('common.confirm'),
+    negativeText: $t('common.cancel'),
+    positiveButtonProps: { type: 'error' },
+    onPositiveClick: () => handleGenerateApiKey()
+  });
+}
+
+/**
+ * Secret 按钮入口：已生成（重置）路径前置二次确认，防误点让线上旧密钥立即失效；
+ * 首次「生成」无确认、一键直达（新应用本就无密钥）。
+ */
+function handleSecretButtonClick() {
+  if (hasApiSecret.value) {
+    confirmResetApiKey();
+  } else {
+    handleGenerateApiKey();
+  }
+}
 </script>
 
 <template>
@@ -278,7 +302,7 @@ const modalTitle = computed(() => {
               :type="hasApiSecret ? 'warning' : 'primary'"
               size="small"
               :loading="generatingApiKey"
-              @click="handleGenerateApiKey"
+              @click="handleSecretButtonClick"
             >
               {{ hasApiSecret ? $t('page.manage.app.resetSecret') : $t('page.manage.app.generateSecret') }}
             </NButton>
@@ -288,18 +312,23 @@ const modalTitle = computed(() => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.manage.app.apiKey') }}</div>
               <div class="desc-value">
-                <NInput :value="detail.apiKey.apiKey" readonly size="small">
-                  <template #suffix>
-                    <NButton
-                      text
-                      size="tiny"
-                      :type="copiedKey === 'apikey' ? 'success' : 'default'"
-                      @click="copyToClipboard(detail.apiKey.apiKey, 'apikey')"
-                    >
-                      {{ copiedKey === 'apikey' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
-                    </NButton>
-                  </template>
-                </NInput>
+                <template v-if="hasApiKey">
+                  <NInput :value="detail.apiKey!.apiKey" readonly size="small">
+                    <template #suffix>
+                      <NButton
+                        text
+                        size="tiny"
+                        :type="copiedKey === 'apikey' ? 'success' : 'default'"
+                        @click="copyToClipboard(detail.apiKey!.apiKey, 'apikey')"
+                      >
+                        {{ copiedKey === 'apikey' ? $t('page.manage.app.copySuccess') : $t('page.manage.app.copy') }}
+                      </NButton>
+                    </template>
+                  </NInput>
+                </template>
+                <template v-else>
+                  <NTag type="warning" size="small">{{ $t('page.manage.app.notGenerated') }}</NTag>
+                </template>
               </div>
             </div>
             <div class="desc-row">

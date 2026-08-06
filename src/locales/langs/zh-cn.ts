@@ -493,6 +493,10 @@ const local: App.I18n.Schema = {
           copied: '已复制',
           done: '已复制，关闭'
         },
+        resetSecretConfirm: {
+          title: '重置 API Secret',
+          content: '此操作会使原有密钥立即失效，使用旧密钥的调用将全部失败。确定继续吗？'
+        },
         appCodeRule: '4-64位小写字母、数字或连字符',
         appNameLengthRule: '名称长度不能超过 128',
         appDescriptionLengthRule: '描述长度不能超过 512',

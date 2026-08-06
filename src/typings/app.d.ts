@@ -739,6 +739,10 @@ declare namespace App {
               copied: string;
               done: string;
             };
+            resetSecretConfirm: {
+              title: string;
+              content: string;
+            };
             appCodeRule: string;
             appNameLengthRule: string;
             appDescriptionLengthRule: string;
