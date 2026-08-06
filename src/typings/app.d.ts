@@ -736,8 +736,6 @@ declare namespace App {
             secretModal: {
               title: string;
               description: string;
-              copied: string;
-              done: string;
             };
             resetSecretConfirm: {
               title: string;

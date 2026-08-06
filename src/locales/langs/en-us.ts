@@ -493,9 +493,7 @@ const local: App.I18n.Schema = {
         basicInfo: 'Basic Info',
         secretModal: {
           title: 'Secret Generated',
-          description: 'This secret will only be displayed once. Please copy and save it securely.',
-          copied: 'Copied',
-          done: 'Copied, Close'
+          description: 'This secret will only be displayed once. Please copy and save it securely.'
         },
         resetSecretConfirm: {
           title: 'Reset API Secret',

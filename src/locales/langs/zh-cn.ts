@@ -489,9 +489,7 @@ const local: App.I18n.Schema = {
         basicInfo: '基本信息',
         secretModal: {
           title: '密钥已生成',
-          description: '以下密钥仅展示一次，请立即复制并妥善保存',
-          copied: '已复制',
-          done: '已复制，关闭'
+          description: '以下密钥仅展示一次，请立即复制并妥善保存'
         },
         resetSecretConfirm: {
           title: '重置 API Secret',

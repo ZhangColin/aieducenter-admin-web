@@ -201,21 +201,6 @@ async function handleSaveSso() {
   }
 }
 
-// ---- Secret Modal ----
-const secretCopied = ref(false);
-
-function handleCopySecret() {
-  navigator.clipboard.writeText(secretValue.value).then(() => {
-    secretCopied.value = true;
-  });
-}
-
-function closeSecretModal() {
-  secretModalVisible.value = false;
-  secretValue.value = '';
-  secretCopied.value = false;
-}
-
 // ---- computed ----
 const hasApiKey = computed(() => detail.value?.apiKey != null);
 const hasApiSecret = computed(() => detail.value?.apiKey?.status === 1);
@@ -410,11 +395,11 @@ function handleSecretButtonClick() {
       <NInput :value="secretValue" type="textarea" readonly :autosize="{ minRows: 2, maxRows: 6 }" class="font-mono" />
       <template #footer>
         <NSpace :size="16" justify="end">
-          <NButton v-if="!secretCopied" type="primary" @click="handleCopySecret">
-            {{ $t('page.manage.app.secretModal.copied') }}
+          <NButton type="primary" @click="copyToClipboard(secretValue, 'secret')">
+            {{ $t('page.manage.app.copy') }}
           </NButton>
-          <NButton @click="closeSecretModal">
-            {{ secretCopied ? $t('page.manage.app.secretModal.done') : $t('common.close') }}
+          <NButton @click="secretModalVisible = false; secretValue = ''">
+            {{ $t('common.close') }}
           </NButton>
         </NSpace>
       </template>
