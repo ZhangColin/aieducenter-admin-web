@@ -10,6 +10,7 @@ import {
 } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
+import { formatDateTime } from '@/utils/common';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 import { enableStatusRecord } from '@/constants/business';
 
@@ -252,11 +253,11 @@ const modalTitle = computed(() => {
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.manage.app.createdAt') }}</div>
-              <div class="desc-value"><span class="text-14px text-disabled">{{ detail.createdAt || '-' }}</span></div>
+              <div class="desc-value"><span class="text-14px text-disabled">{{ formatDateTime(detail.createdAt) }}</span></div>
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.manage.app.updatedAt') }}</div>
-              <div class="desc-value"><span class="text-14px text-disabled">{{ detail.updatedAt || '-' }}</span></div>
+              <div class="desc-value"><span class="text-14px text-disabled">{{ formatDateTime(detail.updatedAt) }}</span></div>
             </div>
           </div>
 

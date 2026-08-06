@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/modules/auth';
 import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { $t } from '@/locales';
+import { formatDateTime } from '@/utils/common';
 import StatusSwitch from '../components/status-switch.vue';
 import UserOperateDrawer from './modules/user-operate-drawer.vue';
 import UserResetPwdModal from './modules/user-reset-pwd-modal.vue';
@@ -141,7 +142,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       title: $t('page.manage.user.createdAt'),
       align: 'center',
       width: 170,
-      render: row => row.createdAt || '-'
+      render: row => formatDateTime(row.createdAt)
     },
     {
       key: 'operate',

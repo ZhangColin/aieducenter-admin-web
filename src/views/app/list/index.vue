@@ -6,6 +6,7 @@ import { fetchDisableApp, fetchEnableApp, fetchGetAppList } from '@/service/api'
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
+import { formatDateTime } from '@/utils/common';
 import StatusSwitch from '@/views/manage/components/status-switch.vue';
 import AppCreateModal from './modules/app-create-modal.vue';
 import AppDetailModal from './modules/app-detail-modal.vue';
@@ -76,7 +77,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       title: $t('page.manage.app.createdAt'),
       align: 'center',
       width: 170,
-      render: row => row.createdAt || '-'
+      render: row => formatDateTime(row.createdAt)
     },
     {
       key: 'operate',
