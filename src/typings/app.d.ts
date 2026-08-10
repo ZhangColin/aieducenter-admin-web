@@ -728,9 +728,10 @@ declare namespace App {
             notGenerated: string;
             generateSecret: string;
             resetSecret: string;
-            configSso: string;
-            updateSso: string;
-            resetSso: string;
+            provisionSso: string;
+            resetSsoSecret: string;
+            ssoNotProvisioned: string;
+            ssoNotProvisionedHint: string;
             save: string;
             basicInfo: string;
             secretModal: {
@@ -741,11 +742,13 @@ declare namespace App {
               title: string;
               content: string;
             };
+            resetSsoSecretConfirm: {
+              title: string;
+              content: string;
+            };
             appCodeRule: string;
             appNameLengthRule: string;
             appDescriptionLengthRule: string;
-            ssoRedirectUriRequired: string;
-            addRedirectUri: string;
             copy: string;
             copySuccess: string;
             masked: string;

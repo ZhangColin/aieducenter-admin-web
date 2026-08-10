@@ -486,9 +486,10 @@ const local: App.I18n.Schema = {
         notGenerated: 'Not Generated',
         generateSecret: 'Generate Secret',
         resetSecret: 'Reset Secret',
-        configSso: 'Configure SSO',
-        updateSso: 'Update SSO',
-        resetSso: 'Reset SSO',
+        provisionSso: 'Provision SSO',
+        resetSsoSecret: 'Reset Secret',
+        ssoNotProvisioned: 'SSO Not Provisioned',
+        ssoNotProvisionedHint: 'Provisioning generates a stable Client ID and reveals the Client Secret only once.',
         save: 'Save',
         basicInfo: 'Basic Info',
         secretModal: {
@@ -499,11 +500,13 @@ const local: App.I18n.Schema = {
           title: 'Reset API Secret',
           content: 'This will invalidate the existing secret immediately. All calls using the old secret will fail. Continue?'
         },
+        resetSsoSecretConfirm: {
+          title: 'Reset Secret',
+          content: 'This will invalidate the existing client_secret immediately. All integrations using the old secret will fail. The Client ID stays the same. Continue?'
+        },
         appCodeRule: '4-64 lowercase letters, digits or hyphens',
         appNameLengthRule: 'Name length cannot exceed 128',
         appDescriptionLengthRule: 'Description length cannot exceed 512',
-        ssoRedirectUriRequired: 'At least one redirect URI is required',
-        addRedirectUri: 'Add Redirect URI',
         copy: 'Copy',
         copySuccess: 'Copied',
         masked: 'Generated (Masked)',

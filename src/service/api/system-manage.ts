@@ -293,11 +293,14 @@ export function fetchGenerateApiKey(id: string) {
   });
 }
 
-/** 创建/更新 SSO Client（POST /apps/{id}/sso-client；clientSecret 仅返回一次） */
-export function fetchSaveSsoClient(id: string, body: Api.SystemManage.SsoClientCommand) {
-  return request<Api.SystemManage.SsoClientResponse>({
-    url: `/apps/${id}/sso-client`,
-    method: 'post',
-    data: body
+/**
+ * 开通 / 重置 SSO 密钥（POST /apps/{id}/sso-client/credentials；无 body）。
+ * 首次调用=开通（生成终身稳定的 clientId + 第一份 clientSecret）；后续调用=重置（轮换 clientSecret，clientId 不变）。
+ * 响应为全量视图，但仅消费一次性明文 clientSecret 做展示；clientId 经详情刷新揭示。
+ */
+export function fetchProvisionSsoCredentials(id: string) {
+  return request<Api.SystemManage.SsoCredentialsResponse>({
+    url: `/apps/${id}/sso-client/credentials`,
+    method: 'post'
   });
 }

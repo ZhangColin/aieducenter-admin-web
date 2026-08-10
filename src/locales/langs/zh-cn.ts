@@ -482,9 +482,10 @@ const local: App.I18n.Schema = {
         notGenerated: '未生成',
         generateSecret: '生成 Secret',
         resetSecret: '重置 Secret',
-        configSso: '配置 SSO',
-        updateSso: '更新 SSO',
-        resetSso: '重置 SSO',
+        provisionSso: '开通 SSO',
+        resetSsoSecret: '重置密钥',
+        ssoNotProvisioned: 'SSO 未开通',
+        ssoNotProvisionedHint: '开通后将生成终身稳定的 Client ID，并一次性展示 Client Secret。',
         save: '保存',
         basicInfo: '基本信息',
         secretModal: {
@@ -495,11 +496,13 @@ const local: App.I18n.Schema = {
           title: '重置 API Secret',
           content: '此操作会使原有密钥立即失效，使用旧密钥的调用将全部失败。确定继续吗？'
         },
+        resetSsoSecretConfirm: {
+          title: '重置密钥',
+          content: '此操作会使原有 client_secret 立即失效，使用旧密钥的接入将全部失败。Client ID 保持不变。确定继续吗？'
+        },
         appCodeRule: '4-64位小写字母、数字或连字符',
         appNameLengthRule: '名称长度不能超过 128',
         appDescriptionLengthRule: '描述长度不能超过 512',
-        ssoRedirectUriRequired: '至少需要一条回调地址',
-        addRedirectUri: '添加回调地址',
         copy: '复制',
         copySuccess: '已复制',
         masked: '已生成（脱敏）',

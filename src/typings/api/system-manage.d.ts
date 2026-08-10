@@ -342,15 +342,12 @@ declare namespace Api {
       apiSecret: string;
     }
 
-    /** POST /apps/{id}/sso-client 请求体 */
-    interface SsoClientCommand {
-      redirectUris: string[];
-      scopes: string[];
-      grants: string[];
-    }
-
-    /** POST /apps/{id}/sso-client 响应——clientSecret 仅返回一次 */
-    interface SsoClientResponse {
+    /**
+     * POST /apps/{id}/sso-client/credentials 响应。
+     * 首次调用=开通（生成终身稳定的 clientId + 第一份 clientSecret）；后续调用=重置（轮换 clientSecret，clientId 不变）。
+     * 后端返回全量视图，但前端仅消费一次性明文 clientSecret 做展示；clientId 经详情刷新揭示。
+     */
+    interface SsoCredentialsResponse {
       clientSecret: string;
     }
   }

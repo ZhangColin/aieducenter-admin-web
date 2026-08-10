@@ -5,7 +5,7 @@ import {
   fetchEnableApp,
   fetchGenerateApiKey,
   fetchGetAppDetail,
-  fetchSaveSsoClient,
+  fetchProvisionSsoCredentials,
   fetchUpdateApp
 } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
@@ -41,7 +41,6 @@ async function loadDetail() {
   if (!error && data) {
     detail.value = data;
     initEditableFields();
-    initSsoFields();
   }
   loading.value = false;
 }
@@ -144,60 +143,23 @@ onBeforeUnmount(() => {
   if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
 });
 
-// ---- Block 3: SSO Client ----
-const ssoModel = ref({ redirectUris: [''] as string[], scopes: [] as string[], grants: [] as string[] });
+// ---- Block 3: SSO Client（凭证轴：开通 / 重置密钥；配置=T2、启停用=T3）----
+const provisioningSso = ref(false);
 
-function initSsoFields() {
-  if (!detail.value) return;
-  const sso = detail.value.ssoClient;
-  if (sso) {
-    ssoModel.value.redirectUris = sso.redirectUris.length > 0 ? [...sso.redirectUris] : [''];
-    ssoModel.value.scopes = [...sso.scopes];
-    ssoModel.value.grants = [...sso.grants];
-  } else {
-    ssoModel.value.redirectUris = [''];
-    ssoModel.value.scopes = [];
-    ssoModel.value.grants = [];
-  }
-}
-
-function addRedirectUri() {
-  ssoModel.value.redirectUris.push('');
-}
-
-function removeRedirectUri(index: number) {
-  if (ssoModel.value.redirectUris.length > 1) {
-    ssoModel.value.redirectUris.splice(index, 1);
-  }
-}
-
-const savingSso = ref(false);
-
-async function handleSaveSso() {
-  const uris = ssoModel.value.redirectUris.filter(u => u.trim());
-  if (uris.length === 0) {
-    window.$message?.warning?.($t('page.manage.app.ssoRedirectUriRequired'));
-    return;
-  }
-  savingSso.value = true;
+async function handleProvisionSso() {
+  provisioningSso.value = true;
   try {
-    const { data, error } = await fetchSaveSsoClient(props.appId, {
-      redirectUris: uris,
-      scopes: ssoModel.value.scopes.filter(s => s.trim()),
-      grants: ssoModel.value.grants.filter(g => g.trim())
-    });
-    if (!error) {
-      if (data?.clientSecret) {
-        secretModalTitle.value = $t('page.manage.app.secretModal.title');
-        secretValue.value = data.clientSecret;
-        secretModalVisible.value = true;
-      }
-      window.$message?.success?.($t('common.updateSuccess'));
+    const { data, error } = await fetchProvisionSsoCredentials(props.appId);
+    if (!error && data) {
+      // 凭证端点返回一次性明文 clientSecret，复用共享密钥展示弹窗；clientId 经下方 loadDetail 揭示
+      secretModalTitle.value = $t('page.manage.app.secretModal.title');
+      secretValue.value = data.clientSecret;
+      secretModalVisible.value = true;
       emit('saved');
       await loadDetail();
     }
   } finally {
-    savingSso.value = false;
+    provisioningSso.value = false;
   }
 }
 
@@ -231,6 +193,29 @@ function handleSecretButtonClick() {
     confirmResetApiKey();
   } else {
     handleGenerateApiKey();
+  }
+}
+
+function confirmResetSsoSecret() {
+  window.$dialog?.warning({
+    title: $t('page.manage.app.resetSsoSecretConfirm.title'),
+    content: $t('page.manage.app.resetSsoSecretConfirm.content'),
+    positiveText: $t('common.confirm'),
+    negativeText: $t('common.cancel'),
+    positiveButtonProps: { type: 'error' },
+    onPositiveClick: () => handleProvisionSso()
+  });
+}
+
+/**
+ * SSO 凭证控件入口：已开通（重置密钥）路径前置二次确认，防误点让线上旧 client_secret 立即失效；
+ * 首次「开通」无确认、一键直达（本就无 SsoClient 可破坏）。复刻既有 apiSecret 的 handleSecretButtonClick 模式。
+ */
+function handleSsoCredentialClick() {
+  if (hasSsoClient.value) {
+    confirmResetSsoSecret();
+  } else {
+    handleProvisionSso();
   }
 }
 </script>
@@ -331,10 +316,21 @@ function handleSecretButtonClick() {
           </div>
         </NCard>
 
-        <!-- ===== Block 3: SSO Client ===== -->
+        <!-- ===== Block 3: SSO Client（凭证轴：开通 / 重置密钥；配置表单=T2、启停用=T3）===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
+          <template #header-extra>
+            <NButton
+              :type="hasSsoClient ? 'warning' : 'primary'"
+              size="small"
+              :loading="provisioningSso"
+              @click="handleSsoCredentialClick"
+            >
+              {{ hasSsoClient ? $t('page.manage.app.resetSsoSecret') : $t('page.manage.app.provisionSso') }}
+            </NButton>
+          </template>
+
           <template v-if="hasSsoClient">
-            <div class="desc-table mb-16px">
+            <div class="desc-table">
               <div class="desc-row">
                 <div class="desc-label">{{ $t('page.manage.app.clientId') }}</div>
                 <div class="desc-value">
@@ -352,39 +348,18 @@ function handleSecretButtonClick() {
                   </NInput>
                 </div>
               </div>
-              <div class="desc-row">
-                <div class="desc-label">{{ $t('page.manage.app.status') }}</div>
-                <div class="desc-value">
-                  <NTag :type="detail.ssoClient!.status === 1 ? 'success' : 'default'" size="small">
-                    {{ detail.ssoClient!.statusName }}
-                  </NTag>
-                </div>
-              </div>
             </div>
-            <NDivider />
           </template>
 
-          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.redirectUris') }}</div>
-          <div v-for="(uri, i) in ssoModel.redirectUris" :key="i" class="flex items-center gap-8px mb-8px">
-            <NInput v-model:value="ssoModel.redirectUris[i]" placeholder="https://example.com/callback" class="flex-1" />
-            <NButton size="small" :disabled="ssoModel.redirectUris.length <= 1" @click="removeRedirectUri(i)">-</NButton>
-          </div>
-          <NButton size="small" class="mb-16px" @click="addRedirectUri">{{ $t('page.manage.app.addRedirectUri') }}</NButton>
-
-          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.scopes') }}</div>
-          <NDynamicTags v-model:value="ssoModel.scopes" class="mb-16px" />
-
-          <div class="mb-8px text-14px font-medium">{{ $t('page.manage.app.grants') }}</div>
-          <NDynamicTags v-model:value="ssoModel.grants" class="mb-16px" />
-
-          <div class="flex justify-end gap-8px mt-16px">
-            <NButton type="primary" :loading="savingSso" @click="handleSaveSso">
-              {{ hasSsoClient ? $t('page.manage.app.updateSso') : $t('page.manage.app.configSso') }}
-            </NButton>
-            <NButton v-if="hasSsoClient" type="warning" :loading="savingSso" @click="handleSaveSso">
-              {{ $t('page.manage.app.resetSso') }}
-            </NButton>
-          </div>
+          <template v-else>
+            <NEmpty :description="$t('page.manage.app.ssoNotProvisioned')">
+              <template #extra>
+                <div class="text-12px text-disabled text-center max-w-360px">
+                  {{ $t('page.manage.app.ssoNotProvisionedHint') }}
+                </div>
+              </template>
+            </NEmpty>
+          </template>
         </NCard>
       </NSpace>
     </template>
