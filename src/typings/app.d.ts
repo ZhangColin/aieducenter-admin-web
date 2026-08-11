@@ -723,8 +723,13 @@ declare namespace App {
             ssoClient: string;
             clientId: string;
             redirectUris: string;
+            postLogoutRedirectUris: string;
             scopes: string;
             grants: string;
+            ssoConfig: string;
+            saveSsoConfig: string;
+            uriRequired: string;
+            uriPlaceholder: string;
             notGenerated: string;
             generateSecret: string;
             resetSecret: string;

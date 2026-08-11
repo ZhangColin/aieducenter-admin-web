@@ -8,7 +8,8 @@ import {
   fetchGenerateApiKey,
   fetchGetAppDetail,
   fetchProvisionSsoCredentials,
-  fetchUpdateApp
+  fetchUpdateApp,
+  fetchUpdateSsoClientConfig
 } from '@/service/api';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
@@ -65,10 +66,28 @@ const basicRules = {
   description: { max: 512, message: $t('page.manage.app.appDescriptionLengthRule'), trigger: 'input' }
 };
 
+// Block 3 配置表单模型：整份替换 redirectUris/postLogoutRedirectUris/scopes/grants（不碰凭证与状态）
+const ssoModel = ref({
+  redirectUris: [] as string[],
+  postLogoutRedirectUris: [] as string[],
+  scopes: [] as string[],
+  grants: [] as string[]
+});
+
 function initEditableFields() {
   if (!detail.value) return;
   basicModel.value.name = detail.value.name;
   basicModel.value.description = detail.value.description ?? '';
+  // 配置表单回显：未开通 SSO 时 ssoClient 为 null，置空（表单本就不渲染）
+  const sso = detail.value.ssoClient;
+  ssoModel.value = sso
+    ? {
+        redirectUris: [...sso.redirectUris],
+        postLogoutRedirectUris: [...sso.postLogoutRedirectUris],
+        scopes: [...sso.scopes],
+        grants: [...sso.grants]
+      }
+    : { redirectUris: [], postLogoutRedirectUris: [], scopes: [], grants: [] };
   restoreBasicValidation();
 }
 
@@ -145,7 +164,7 @@ onBeforeUnmount(() => {
   if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
 });
 
-// ---- Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置=T2 待做）----
+// ---- Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置表单）----
 const provisioningSso = ref(false);
 
 async function handleProvisionSso() {
@@ -177,6 +196,39 @@ async function handleToggleSsoStatus(next: number) {
     emit('saved');
   }
   await loadDetail();
+}
+
+const savingSsoConfig = ref(false);
+
+/**
+ * 保存 SSO 配置：整份 PUT 替换 redirectUris/postLogoutRedirectUris/scopes/grants，不轮换 secret、不改 status。
+ * 两 URI 列表前端兜底非空（空白条目忽略）；权威校验在后端（app-registry @NotEmpty），错误透传 onError。
+ * 成功后刷新详情（回显服务端权威态）+ emit('saved') 刷新列表。
+ */
+async function saveSsoConfig() {
+  const normalizeUris = (uris: string[]) => uris.map(uri => uri.trim()).filter(Boolean);
+  const redirectUris = normalizeUris(ssoModel.value.redirectUris);
+  const postLogoutRedirectUris = normalizeUris(ssoModel.value.postLogoutRedirectUris);
+  if (redirectUris.length === 0 || postLogoutRedirectUris.length === 0) {
+    window.$message?.warning?.($t('page.manage.app.uriRequired'));
+    return;
+  }
+  savingSsoConfig.value = true;
+  try {
+    const { error } = await fetchUpdateSsoClientConfig(props.appId, {
+      redirectUris,
+      postLogoutRedirectUris,
+      scopes: ssoModel.value.scopes,
+      grants: ssoModel.value.grants
+    });
+    if (!error) {
+      window.$message?.success?.($t('common.updateSuccess'));
+      emit('saved');
+      await loadDetail();
+    }
+  } finally {
+    savingSsoConfig.value = false;
+  }
 }
 
 // ---- computed ----
@@ -332,7 +384,7 @@ function handleSsoCredentialClick() {
           </div>
         </NCard>
 
-        <!-- ===== Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置表单=T2 待做）===== -->
+        <!-- ===== Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置表单）===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
           <template #header-extra>
             <NButton
@@ -370,6 +422,28 @@ function handleSsoCredentialClick() {
                   <StatusSwitch :value="detail.ssoClient!.status" @confirm="handleToggleSsoStatus" />
                 </div>
               </div>
+            </div>
+
+            <!-- 配置轴：redirectUris / postLogoutRedirectUris（动态增删行）/ scopes / grants（动态标签），整份 PUT 替换 -->
+            <NDivider title-placement="left" class="mt-16px">{{ $t('page.manage.app.ssoConfig') }}</NDivider>
+            <NForm :model="ssoModel" label-placement="top" :show-feedback="false">
+              <NFormItem :label="$t('page.manage.app.redirectUris')">
+                <NDynamicInput v-model:value="ssoModel.redirectUris" :placeholder="$t('page.manage.app.uriPlaceholder')" :min="1" />
+              </NFormItem>
+              <NFormItem :label="$t('page.manage.app.postLogoutRedirectUris')" class="mt-12px">
+                <NDynamicInput v-model:value="ssoModel.postLogoutRedirectUris" :placeholder="$t('page.manage.app.uriPlaceholder')" :min="1" />
+              </NFormItem>
+              <NFormItem :label="$t('page.manage.app.scopes')" class="mt-12px">
+                <NDynamicTags v-model:value="ssoModel.scopes" />
+              </NFormItem>
+              <NFormItem :label="$t('page.manage.app.grants')" class="mt-12px">
+                <NDynamicTags v-model:value="ssoModel.grants" />
+              </NFormItem>
+            </NForm>
+            <div class="mt-16px flex justify-end">
+              <NButton type="primary" size="small" :loading="savingSsoConfig" @click="saveSsoConfig">
+                {{ $t('page.manage.app.saveSsoConfig') }}
+              </NButton>
             </div>
           </template>
 

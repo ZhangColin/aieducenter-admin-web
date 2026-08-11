@@ -305,6 +305,20 @@ export function fetchProvisionSsoCredentials(id: string) {
   });
 }
 
+/**
+ * 整份替换 SSO 客户端配置（PUT /apps/{id}/sso-client；后端 UpdateSsoClientConfigCommand）。
+ * 不轮换 clientSecret、不改 status——只替换 redirectUris/postLogoutRedirectUris/scopes/grants。
+ * 配置校验（两 URI 列表 @NotEmpty）在后端 app-registry（admin BFF 纯透传、不加 @Valid）；前端做非空兜底。
+ * 响应为不含 clientSecret 的全量视图，前端仅据 error 判成败后 reload 详情，故返回 null。
+ */
+export function fetchUpdateSsoClientConfig(id: string, body: Api.SystemManage.SsoClientConfigCommand) {
+  return request<null>({
+    url: `/apps/${id}/sso-client`,
+    method: 'put',
+    data: body
+  });
+}
+
 /** 启用 SSO Client（PUT /apps/{id}/sso-client/enable；无 body，与所属应用启停用相互独立、不级联、不动凭证/配置） */
 export function fetchEnableSsoClient(id: string) {
   return request<null>({

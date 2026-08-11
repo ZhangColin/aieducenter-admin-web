@@ -307,6 +307,8 @@ declare namespace Api {
     interface AppSsoClient {
       clientId: string;
       redirectUris: string[];
+      /** OIDC RP-Initiated Logout 登出回跳白名单，与 redirectUris 平级、必填非空 */
+      postLogoutRedirectUris: string[];
       scopes: string[];
       grants: string[];
       status: number;
@@ -349,6 +351,18 @@ declare namespace Api {
      */
     interface SsoCredentialsResponse {
       clientSecret: string;
+    }
+
+    /**
+     * PUT /apps/{id}/sso-client 配置更新命令（后端 UpdateSsoClientConfigCommand）。
+     * 整份替换 SSO 配置——不触碰凭证（clientId/clientSecret）与状态。
+     * 两 URI 列表后端（app-registry）@NotEmpty；admin BFF 纯透传、不加 @Valid——前端做非空兜底，权威校验在后端、错误透传。
+     */
+    interface SsoClientConfigCommand {
+      redirectUris: string[];
+      postLogoutRedirectUris: string[];
+      scopes: string[];
+      grants: string[];
     }
   }
 }
