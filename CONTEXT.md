@@ -39,6 +39,13 @@
 | **权限三件套** | `AdminUser` / `AdminRole` / `AdminMenu` + 关联表；前端拿到 `roleCodes[]` / `permissions[]` / `menus[]` 做指令级控制 |
 | **permissions / roleCodes** | 登录时 `/auth/current` 拉取的权限码数组（如 `admin:user:read`）与角色编码数组（如 `SUPER_ADMIN`）；超管靠后端 bypass 放行 |
 | **财务上下文** | admin 内的只读限界上下文（非独立域）；从各能力域只读取数做收入确认/冲销——**后端尚未实现** |
+| **应用 (`App`)** | 平台接入的应用（第三方或自有）；admin 后端 `/apps` 管理。每个应用可附带可选的 ApiKey（API 鉴权）与 SsoClient（OIDC 接入），各自独立状态 |
+| **SsoClient** | 应用的 OIDC 客户端记录。四要素互相独立：身份（`clientId`，终身稳定）、密钥（`clientSecret`，仅一次性明文可见）、配置（`redirectUris`/`postLogoutRedirectUris`/`scopes`/`grants`）、状态（启用/禁用） |
+| **开通 (Provision)** | 首次创建某应用的 SsoClient——生成终身稳定的 `clientId` 与第一份 `clientSecret`（凭证端点的首次调用，无 body） |
+| **重置密钥 (Rotate secret)** | 凭证端点的后续调用；轮换 `clientSecret`，`clientId` 不变；旧密钥立即失效。与「开通」共用同一端点，区别仅在是否首次 |
+| **配置 (SsoClient Configuration)** | SsoClient 可变的 URI/权限/授权类型集合，整份替换；与凭证、状态三者互相独立。`redirectUris` 与 `postLogoutRedirectUris` 均必填非空 |
+| **启停用 (SsoClient Lifecycle)** | SsoClient 的启用/禁用切换，与所属应用的启停用相互独立 |
+| **postLogoutRedirectUris** | OIDC RP-Initiated Logout 的登出回跳白名单，与 `redirectUris` 平级、必填非空 |
 
 ---
 
