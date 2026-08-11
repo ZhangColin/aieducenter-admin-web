@@ -746,6 +746,8 @@ declare namespace App {
               title: string;
               content: string;
             };
+            ssoEnableSuccess: string;
+            ssoDisableSuccess: string;
             appCodeRule: string;
             appNameLengthRule: string;
             appDescriptionLengthRule: string;

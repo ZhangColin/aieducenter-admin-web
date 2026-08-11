@@ -304,3 +304,19 @@ export function fetchProvisionSsoCredentials(id: string) {
     method: 'post'
   });
 }
+
+/** 启用 SSO Client（PUT /apps/{id}/sso-client/enable；无 body，与所属应用启停用相互独立、不级联、不动凭证/配置） */
+export function fetchEnableSsoClient(id: string) {
+  return request<null>({
+    url: `/apps/${id}/sso-client/enable`,
+    method: 'put'
+  });
+}
+
+/** 停用 SSO Client（PUT /apps/{id}/sso-client/disable；无 body，与所属应用启停用相互独立、不级联、不动凭证/配置） */
+export function fetchDisableSsoClient(id: string) {
+  return request<null>({
+    url: `/apps/${id}/sso-client/disable`,
+    method: 'put'
+  });
+}

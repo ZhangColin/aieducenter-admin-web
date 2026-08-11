@@ -2,7 +2,9 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import {
   fetchDisableApp,
+  fetchDisableSsoClient,
   fetchEnableApp,
+  fetchEnableSsoClient,
   fetchGenerateApiKey,
   fetchGetAppDetail,
   fetchProvisionSsoCredentials,
@@ -143,7 +145,7 @@ onBeforeUnmount(() => {
   if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
 });
 
-// ---- Block 3: SSO Client（凭证轴：开通 / 重置密钥；配置=T2、启停用=T3）----
+// ---- Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置=T2 待做）----
 const provisioningSso = ref(false);
 
 async function handleProvisionSso() {
@@ -161,6 +163,20 @@ async function handleProvisionSso() {
   } finally {
     provisioningSso.value = false;
   }
+}
+
+/**
+ * SSO 启停用——与所属应用启停用相互独立（各自独立端点、不级联、不动凭证/配置）。
+ * 开关仅在 hasSsoClient 时渲染 → 未开通 404 不可达；StatusSwitch 只许切反态 → 同态 409 不可达，
+ * 故异常只走 onError 通用兜底，不特判。成功后刷新详情（开关反映新状态）+ emit('saved') 刷新列表。
+ */
+async function handleToggleSsoStatus(next: number) {
+  const { error } = await (next === 1 ? fetchEnableSsoClient : fetchDisableSsoClient)(props.appId);
+  if (!error) {
+    window.$message?.success?.(next === 1 ? $t('page.manage.app.ssoEnableSuccess') : $t('page.manage.app.ssoDisableSuccess'));
+    emit('saved');
+  }
+  await loadDetail();
 }
 
 // ---- computed ----
@@ -316,7 +332,7 @@ function handleSsoCredentialClick() {
           </div>
         </NCard>
 
-        <!-- ===== Block 3: SSO Client（凭证轴：开通 / 重置密钥；配置表单=T2、启停用=T3）===== -->
+        <!-- ===== Block 3: SSO Client（凭证轴：开通 / 重置密钥；启停用；配置表单=T2 待做）===== -->
         <NCard :title="$t('page.manage.app.ssoClient')" :bordered="false" size="small" class="card-wrapper">
           <template #header-extra>
             <NButton
@@ -346,6 +362,12 @@ function handleSsoCredentialClick() {
                       </NButton>
                     </template>
                   </NInput>
+                </div>
+              </div>
+              <div class="desc-row">
+                <div class="desc-label">{{ $t('page.manage.app.status') }}</div>
+                <div class="desc-value">
+                  <StatusSwitch :value="detail.ssoClient!.status" @confirm="handleToggleSsoStatus" />
                 </div>
               </div>
             </div>

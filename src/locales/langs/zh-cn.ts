@@ -500,6 +500,8 @@ const local: App.I18n.Schema = {
           title: '重置密钥',
           content: '此操作会使原有 client_secret 立即失效，使用旧密钥的接入将全部失败。Client ID 保持不变。确定继续吗？'
         },
+        ssoEnableSuccess: 'SSO 已启用',
+        ssoDisableSuccess: 'SSO 已禁用',
         appCodeRule: '4-64位小写字母、数字或连字符',
         appNameLengthRule: '名称长度不能超过 128',
         appDescriptionLengthRule: '描述长度不能超过 512',

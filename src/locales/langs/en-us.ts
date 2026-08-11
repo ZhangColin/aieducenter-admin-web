@@ -504,6 +504,8 @@ const local: App.I18n.Schema = {
           title: 'Reset Secret',
           content: 'This will invalidate the existing client_secret immediately. All integrations using the old secret will fail. The Client ID stays the same. Continue?'
         },
+        ssoEnableSuccess: 'SSO enabled',
+        ssoDisableSuccess: 'SSO disabled',
         appCodeRule: '4-64 lowercase letters, digits or hyphens',
         appNameLengthRule: 'Name length cannot exceed 128',
         appDescriptionLengthRule: 'Description length cannot exceed 512',
