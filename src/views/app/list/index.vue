@@ -197,7 +197,7 @@ function handleReset() {
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
-          :disabled-delete="true"
+          :hide-delete="true"
           :loading="loading"
           @add="openCreate"
           @refresh="getData"

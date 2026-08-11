@@ -106,6 +106,13 @@
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
 
+### 2026-08-11 批量删除：manage 页保留、应用页隐藏（grilling 定稿）
+
+- **背景**：四个列表页（user/role/menu/app）因共用 Soybean 原生 `TableHeaderOperation` 组件，默认都带「批量删除」按钮。后端**无任何批量删除端点**——user/role/menu 的批量删除是前端 `handleBatchDelete` for 循环**串行**调单删 `DELETE /{resource}/{id}` 模拟（非原子、部分失败留中间态），带 count/partial toast（自加 i18n key `batchDeleteSuccess/Partial`）。应用页本就无删除（后端 `/apps` 无 DELETE），按钮靠 `:disabled-delete="true"` 永久灰掉。
+- **域澄清**：当前 UI 的「批量删除」是**幻象**——非领域意义上的原子批量操作，而是 N 次独立单删 HTTP 请求的 UI 包装（无事务、部分失败有中间态）。保留即接受这个语义。
+- **决策**：① **user/role/menu 保留**批量删除现状（循环串行单删，非原子可接受——"既然已经能用就不删"，低频 RBAC 清理够用，**不提**后端批量端点 REQ）；② **应用页隐藏**批量删除按钮（应用无删除语义，灰按钮是 UI 噪音）；③ 实现 = 给 `TableHeaderOperation` 加 `hideDelete?: boolean` prop（默认 `false` 保持 Soybean 兼容、`v-if="!hideDelete"` 门控批量删除按钮），应用页 `:hide-delete="true"`——最小改动、升级债可控（升级只合一个 prop 的 diff）。`disabledDelete` prop 保留（Soybean 对齐、未来可用）。
+- **文件**：`src/components/advanced/table-header-operation.vue`（+`hideDelete` prop + `v-if` 门控）、`src/views/app/list/index.vue`（`:disabled-delete="true"`→`:hide-delete="true"`）。验证：typecheck + lint 干净 + 浏览器点测（应用页按钮消失 / 用户页按钮+selection 列俱在，新 prop 两条路径均覆盖）。
+
 ### 2026-08-01 动态菜单 grilling（#11 下游实现：翻 `VITE_AUTH_ROUTE_MODE=dynamic`）
 
 > 前置：#11 决策（前端转换器方向）已 CLOSED；REQ-8 已交付——`/auth/current.menus` 每节点带全量 Soybean 路由生成器字段（`component` 已是 `layout.base$view.x`/`view.x` 格式、`routeName` 与 elegant-router 生成名逐字一致）。本次 grill = 动态路由上线前的开放决策点。

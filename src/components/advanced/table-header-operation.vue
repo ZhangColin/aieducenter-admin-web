@@ -10,6 +10,8 @@ interface Props {
   /** 禁用「新增」按钮（如无写权限） */
   disabledAdd?: boolean;
   disabledDelete?: boolean;
+  /** 隐藏「批量删除」按钮（如该资源无删除语义） */
+  hideDelete?: boolean;
   loading?: boolean;
 }
 
@@ -50,7 +52,7 @@ function refresh() {
         </template>
         {{ $t('common.add') }}
       </NButton>
-      <NPopconfirm @positive-click="batchDelete">
+      <NPopconfirm v-if="!hideDelete" @positive-click="batchDelete">
         <template #trigger>
           <NButton size="small" ghost type="error" :disabled="disabledDelete">
             <template #icon>
