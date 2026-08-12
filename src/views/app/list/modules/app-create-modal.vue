@@ -13,7 +13,7 @@ const visible = defineModel<boolean>('visible', {
 });
 
 const emit = defineEmits<{
-  created: [id: string];
+  created: [detail: Api.SystemManage.AppDetail];
 }>();
 
 const { formRef: createFormRef, validate: validateCreate, restoreValidation } = useNaiveForm();
@@ -69,6 +69,7 @@ async function handleSubmit() {
     if (!error && data) {
       window.$message?.success?.($t('common.addSuccess'));
       close();
+      // 创建响应已是整份 AppDetailResponse（与 GET /apps/{id} 同构），直传详情弹窗复用，省一次冗余 GET
       emit('created', data);
     }
   } finally {

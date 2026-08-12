@@ -25,6 +25,8 @@ const visible = defineModel<boolean>('visible', { default: false });
 
 interface Props {
   appId: string;
+  /** 创建流程注入的详情种子（与 GET /apps/{id} 同构），复用创建响应省一次请求；列表「详情」入口不传 → 走 GET */
+  initialDetail?: Api.SystemManage.AppDetail | null;
 }
 
 const props = defineProps<Props>();
@@ -50,7 +52,13 @@ async function loadDetail() {
 
 watch(visible, async val => {
   if (val) {
-    await loadDetail();
+    if (props.initialDetail) {
+      // 创建响应已含整份 AppDetailResponse（与 GET /apps/{id} 同构）——直接复用，跳过冗余 GET
+      detail.value = props.initialDetail;
+      initEditableFields();
+    } else {
+      await loadDetail();
+    }
   } else {
     detail.value = null;
   }

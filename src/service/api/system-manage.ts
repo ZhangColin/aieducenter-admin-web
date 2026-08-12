@@ -251,9 +251,9 @@ export function fetchGetAppDetail(id: string) {
   });
 }
 
-/** 创建应用（POST /apps；返回新应用 id，Long→字符串） */
+/** 创建应用（POST /apps；返回新建应用详情聚合 AppDetailResponse，Long→字符串） */
 export function fetchCreateApp(body: Api.SystemManage.AppCreateCommand) {
-  return request<string>({
+  return request<Api.SystemManage.AppDetail>({
     url: '/apps',
     method: 'post',
     data: body

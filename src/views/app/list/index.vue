@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { NButton } from 'naive-ui';
 import { enableStatusRecord } from '@/constants/business';
 import { fetchDisableApp, fetchEnableApp, fetchGetAppList } from '@/service/api';
@@ -110,17 +110,25 @@ function getRowKey(row: Api.SystemManage.AppSummary) {
 /** detail modal */
 const detailModalVisible = ref(false);
 const selectedAppId = ref('');
+/** 创建流程注入的详情种子（与 GET /apps/{id} 同构），复用创建响应省一次请求；弹窗关闭即清，避免串到其它应用 */
+const pendingDetail = ref<Api.SystemManage.AppDetail | null>(null);
 
 function toDetail(id: string) {
   selectedAppId.value = id;
   detailModalVisible.value = true;
 }
 
-function onAppCreated(id: string) {
-  selectedAppId.value = id;
+function onAppCreated(detail: Api.SystemManage.AppDetail) {
+  selectedAppId.value = detail.id;
+  pendingDetail.value = detail;
   detailModalVisible.value = true;
   getData();
 }
+
+/** 弹窗关闭即清种子——下次「详情」入口打开（无种子）走 GET，避免残留种子串到其它应用 */
+watch(detailModalVisible, val => {
+  if (!val) pendingDetail.value = null;
+});
 
 function onDetailSaved() {
   getData();
@@ -217,7 +225,7 @@ function handleReset() {
       />
     </NCard>
     <AppCreateModal v-model:visible="createVisible" @created="onAppCreated" />
-    <AppDetailModal v-model:visible="detailModalVisible" :app-id="selectedAppId" @saved="onDetailSaved" />
+    <AppDetailModal v-model:visible="detailModalVisible" :app-id="selectedAppId" :initial-detail="pendingDetail" @saved="onDetailSaved" />
   </div>
 </template>
 
