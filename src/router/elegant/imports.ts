@@ -25,4 +25,9 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   manage_menu: () => import("@/views/manage/menu/index.vue"),
   manage_role: () => import("@/views/manage/role/index.vue"),
   manage_user: () => import("@/views/manage/user/index.vue"),
+  payment_channel_log: () => import("@/views/payment/channel/log/index.vue"),
+  payment_operation: () => import("@/views/payment/operation/index.vue"),
+  payment_order: () => import("@/views/payment/order/index.vue"),
+  payment_refund: () => import("@/views/payment/refund/index.vue"),
+  payment_stats: () => import("@/views/payment/stats/index.vue"),
 };

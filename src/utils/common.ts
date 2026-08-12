@@ -21,6 +21,25 @@ export function formatDateTime(value?: string | null, fmt: string = 'YYYY-MM-DD 
 }
 
 /**
+ * Format a money amount (integer cents) for display as `¥1,234.56`.
+ *
+ * payment 域金额单位为**整数分**（`Long`，admin BFF 原值透传），故统一 ÷100 展示：
+ * 千分位 + 2 位小数 + `¥` 前缀。列表 / 详情 / 仪表盘共用，保证金额展示一致。
+ *
+ * `null` / 空串 / 非数 → 返回 `'-'`（沿用占位约定）。
+ *
+ * （spec「假设整数分、接真核对」——payment 服务侧 #9–#18 联调时核对单位。）
+ *
+ * @param cents 整数分（number 或字符串），可空
+ */
+export function formatMoney(cents?: number | string | null): string {
+  if (cents === null || cents === undefined || cents === '') return '-';
+  const n = Number(cents);
+  if (Number.isNaN(n)) return '-';
+  return `¥${(n / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
  * Transform record to option
  *
  * @example

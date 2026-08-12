@@ -46,6 +46,15 @@
 | **配置 (SsoClient Configuration)** | SsoClient 可变的 URI/权限/授权类型集合，整份替换；与凭证、状态三者互相独立。`redirectUris` 与 `postLogoutRedirectUris` 均必填非空 |
 | **启停用 (SsoClient Lifecycle)** | SsoClient 的启用/禁用切换，与所属应用的启停用相互独立 |
 | **postLogoutRedirectUris** | OIDC RP-Initiated Logout 的登出回跳白名单，与 `redirectUris` 平级、必填非空 |
+| **支付管理上下文 (payment admin BFF)** | admin 内新增的 `payment` 子包（≠ 财务上下文）；admin 作 BFF 调 payment、对前端暴露 `/api/admin/payment/**`。运营写操作 + 运营看板，不持业务逻辑/不记业务审计 |
+| **支付订单 (PaymentOrder)** | 业务系统发起的一笔支付，以 `paymentOrderNo` 标识。admin 只读 + 通知重发，**不**创建/取消/预下单（业务系统职责） |
+| **退款订单 (RefundOrder)** | 针对某支付订单的退款，以 `refundOrderNo` 标识。admin 可**审核**（approve/reject），**不**创建 |
+| **通道交互日志 (PaymentLog)** | payment 与银行/通道网关的**机机**交互留痕（logType / bankInterface / returnCode / success）。_Avoid_: 操作记录 |
+| **订单操作记录 (OperationLog)** | 行为者（人/系统）**对订单**的操作留痕；操作审计的**权威源**，admin 不本地记账。_Avoid_: 通道日志 |
+| **退款审核 (audit)** | 对退款 approve/reject 的**决议**（写操作，落 `auditType=MANUAL`/`auditorId`）。_Avoid_: 审计日志（= OperationLog）、审计字段（已废 REQ-12）——三者不同 |
+| **通知重发 (notification resend)** | 补发支付/退款结果通知给业务系统，**不改订单状态**（仅补投递） |
+| **主动查行 (bank query)** | 触发 payment 向银行查真相并同步本地状态；条件性暴露（payment 提供端点则做，admin#46 / T9） |
+| **订单生命周期 (lifecycle)** | 按时间合并某单的 PaymentLog + OperationLog 的端到端追溯视图；详情抽屉内一个 tab，不种菜单 |
 
 ---
 
@@ -105,6 +114,42 @@
 ## 本仓库决策（Decisions）
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
+
+### 2026-08-12 支付管理前端 grilling（admin-web #41，消费 admin-bff #38）
+
+消费 admin-bff 支付管理 BFF（[admin#38](https://github.com/ZhangColin/aieducenter-admin/issues/38) 契约锁定），实现「支付管理」一级目录 + 5 叶子页 + 仪表盘。后端 V13 菜单已种、经 `/menus/my` 下发；详情不种菜单。后端端点面 `/api/admin/payment/**`（4 列表 / 3 详情·生命周期 / 3 写 / 8 统计）。
+
+- **节奏 = 全量一次建，不 tracer-bullet、不延后**（用户两次拍板 Q1/Q7，覆盖 tracer-bullet 范式）：后端与前端锁步、做到即就绪，按锁定契约全量建 5 页 + 仪表盘 + 全写操作；tier-2 统计同样全量建、无占位。**唯一保留**：payment 服务侧 wire 字段（金额单位、审核 reason 字段名）接真时核对——避免 5 页同改。
+- **service / types 独立**（Q8）：新建 `src/service/api/payment.ts`（`index.ts` barrel 再导出）+ `src/typings/api/payment.d.ts` 的 `Api.Payment` 命名空间。payment 是独立限界上下文（后端 `com.aieducenter.admin.payment` 子包）、体量最大（18 端点），不塞进 `system-manage.ts` / `Api.SystemManage`。
+- **`src/views/payment/` 落位**：`stats/order/refund/operation` 两段目录（→ `payment_*` 键）。**`payment_channel_log` 落 `src/views/payment/channel/log/`（三级）**——route_name 双下划线 = elegant-router 层级分隔符（`GetChildRouteKey` 递归拆），三级目录产出键 `payment_channel_log`；动态模式只取其 `views` 映射键 + `RouteKey` 类型项（`fetchIsRouteExist` 403-vs-404 + i18n），静态路由树不用、无害。建页后跑 `pnpm gen-route`。
+- **详情 = NDrawer（非 Modal）**（Q5，覆盖 issue「720px Modal」默认）：右抽屉 `width=720`，内部复用 apps 的 `.desc-table` grid 放只读字段 + `NTabs`（基本信息 / 生命周期，默认基本信息、按需切）。生命周期 = `NTimeline` 合并 PaymentLog + OperationLog（按 createdAt 排序、机机 vs 行为者分色/分图标、success/fail 区分）。支付抽屉头部「通知重发」、退款抽屉头部「审核」。payment **无创建流**（支付/退款均非 admin 创建，spec out-of-scope）。
+- **生命周期端点**：`/orders/{no}/lifecycle` 一个，支付/退款抽屉各传自己的 no 复用同一组件。
+- **退款审核**（Q12）：独立「审核」弹窗（approve/reject radio + reason，reject 必填）→ `POST /refunds/{no}/audit`；不散两按钮。
+- **通知重发**：`$dialog.warning` 确认 → `POST .../notifications/resend`，toast 成功；不改订单状态（仅补投递，术语已钉）。
+- **列表 / 筛选**：镜像 manage/app 范式（`useNaivePaginatedTable` + `defaultTransform` + 0-based 请求/1-based 响应分页 + `TableHeaderOperation`）。筛选条 10+ 字段走 **NCollapse 折叠**（Q11，钉 keyword+status、其余「更多」），金额区间双 `NInputNumber`、时间 `NDatePicker` range、status 多选。
+- **枚举来源 = 硬编码**（Q10）：~9 组领域枚举（paymentStatus / payMode / accessType / paymentChannel / refundStatus / auditType / logType / operationType / result）进常量，手写 `Option<number, I18nKey>[]`（整数枚举范式，不走 `transformRecordToOption`）。**`businessSystemName` 例外 = 数据驱动**，筛选用 `NInput`（日后或加字典）。
+- **两日志页**（通道交互日志 PaymentLog / 订单操作记录 OperationLog）= 纯筛选只读列表，无详情抽屉、无写。
+- **仪表盘 = 单页多区块**（Q2 同期做）：8 widget（tier-1 ×4 + tier-2 ×4）全 ECharts（照 `src/views/home/modules/*-chart.vue` + `src/hooks/common/echarts.ts` 的 `useEcharts`）；**widget 经 `usePaymentStats` store 消费、不直连端点**（Q9，见 [ADR-0002](docs/adr/0002-payment-stats-store-seam.md)，留跨服务聚合余地）。chart 选型按数据形态：overview=折线趋势、status-distribution=饼、gateway-health=表+成功率条、operations-audit=表、by-business-system/by-channel/operations-activity=条形、anomalies=列表。
+- **金额展示**：`formatMoney`（`¥1,234.56`，千分位+2 位小数），列表/详情/仪表盘统一；假设整数分、接真核对。
+- **i18n**：`route.payment` + 5 叶子键 + `page.payment.*` 三处同步（gen-route → `zh-cn.ts`/`en-us.ts` → `app.d.ts` `Schema.page.payment` 子树）。
+- **延后项**：① **写按钮权限门控本次不接**（Q14，用户将统一处理一次；audit/resend 按钮先无门控渲染）；② **bank-query 按钮不渲染**（Q4，admin#46 条件性，做到时找 admin 确认）；③ payment wire 字段核对（金额单位、审核 reason 名）接真时做。
+- **术语**：payment 子域术语已落 glossary（PaymentOrder/RefundOrder/PaymentLog/OperationLog/退款审核/通知重发/主动查行/生命周期）。
+
+### 2026-08-12 T1 支付订单列表页 ✅（#43 / spec #42，tracer bullet + 地基）
+
+落 payment 整套地基 + 支付订单列表页（复用 SystemManage 整套 CRUD 范式：`useNaivePaginatedTable` + `defaultTransform` + 0-based 分页）。
+
+- **实现时核对修正的两处预设**（grilling 时未见真契约，本片接 admin#37/#38 契约后厘清）：
+  - **枚举是字符串（Java enum 名）非整数**：payment 域枚举经 admin BFF 原值透传（`'PENDING'`/`'WECHAT'`/`'H5'`/`'ICBC'` …），与 SystemManage 的整数枚举不同。故 `src/constants/payment.ts` 用 `Record<枚举名联合, I18nKey>` + `transformRecordToOption`（string 键无 `Object.entries` 压 number 问题）。9 组闭合枚举（paymentStatus/payMode/accessType/paymentChannel/refundStatus/auditType/logType/operationType/operationTargetType）；`OperationLog.result` 是自由 token、非闭合，不建 options（T4 走文本输入）。
+  - **金额单位 = 整数分（payment `Long amount`，BFF 透传不换算）**：`formatMoney(cents)` ÷100 → `¥1,234.56`（千分位 + 2 位小数），列表/详情/仪表盘统一；金额筛选 UI 用元（NInputNumber precision=2）、提交 `Math.round(yuan*100)` 转分。**唯一保留核对项**（spec 已言）：payment 服务侧 wire 字段接真时复核金额单位 / 审核 reason 名。
+- **statuses 多选参数绑定**：BFF query record `statuses: List<String>`，axios qs 默认 indices 格式 `statuses[0]=..&statuses[1]=..` 经 curl 实测 Spring 能正确绑定（全量筛选集 HTTP 500 非 400，500 纯属 payment 不可达）。
+- **`payment_channel` 中间路由键**：三级目录 `src/views/payment/channel/log/` 经 gen-route 产出 `payment_channel_log` 叶子键 + **自动中间键 `payment_channel`**（elegant-router 层级分隔符）。`route: Record<I18nRouteKey,string>` 要求所有键翻译——zh/en 均补 `payment_channel`（动态菜单不显示它，仅满足类型 + `fetchIsRouteExist`）。
+- **`TableHeaderOperation` 加 `hideAdd` prop**（镜像既有 `hideDelete`）：payment 订单列表只读（订单非 admin 创建），`:hide-add + :hide-delete` 只留刷新 + 列设置。最小框架扩展、升级债可控。
+- **NCollapse 筛选**：钉「支付订单号 + 状态(多选)」常驻，其余 8 字段（业务订单号/业务系统/支付方式/接入类型/支付通道/金额区间/创建时间区间/支付时间区间）收入默认折叠的「更多筛选」。时间 NDatePicker datetimerange → ISO 本地串 `YYYY-MM-DDTHH:mm:ss`（后端 LocalDateTime）。
+- **详情入口钩子**：点行「详情」开右抽屉（`width=720` 占位本体），抽屉本体（只读全字段 + 生命周期 NTimeline + 通知重发）归 T2 / #44。
+- **文件**：`src/typings/api/payment.d.ts`（`Api.Payment` 命名空间 + 9 枚举字面量联合 + PaymentOrderSummary/SearchParams/Filter）、`src/service/api/payment.ts`（订单列表端点 + barrel 导出，模块头记全端点面）、`src/constants/payment.ts`（9 枚举）、`src/utils/common.ts`（+`formatMoney`）、`src/views/payment/{order(全量),stats,refund,channel/log,operation}(1 全 + 4 stub)`、`src/components/advanced/table-header-operation.vue`（+`hideAdd`）、i18n 三处（zh/en/app.d.ts `Schema.page.payment`）+ route 6 键。
+- **E2E（headless chromium + page.route mock 隔离验前端，20/20）**：登录→sidebar 露「支付管理」(V13 `/menus/my`)→`/payment/order` 渲染→NCollapse 折叠/展开→金额 `¥1,234.56`/`¥1.00`/`¥99,999.99`→状态/payMode 翻译→`*No` 按 string→初始请求 `page=0&size=10`（0-based）→搜索带 `paymentOrderNo`→翻第二页 `page=1`（0-based 页码，非 item offset）→状态多选 5 枚举→详情抽屉钩子开。**真实数据往返被后端端口错位阻塞**：admin BFF `payment.base-url` 默认 `http://localhost:8082`（down），payment 实跑 `18081`——属后端配置项（admin#38/T2 PaymentClient+config），非前端缺陷；前端 + BFF 参数绑定已全验证。typecheck + lint 干净。
+- **延后**：T2 退款订单 + 详情抽屉本体 + 退款审核 / T3 通道日志 / T4 操作记录 / T5 通知重发 / T6+T7 统计仪表盘；写按钮权限门控（spec Q14 统一处理）。
 
 ### 2026-08-11 批量删除：manage 页保留、应用页隐藏（grilling 定稿）
 

@@ -232,7 +232,14 @@ const local: App.I18n.Schema = {
     manage_role: '角色管理',
     manage_menu: '菜单管理',
     app: '应用管理',
-    app_list: '应用'
+    app_list: '应用',
+    payment: '支付管理',
+    payment_stats: '统计概览',
+    payment_order: '支付订单',
+    payment_refund: '退款订单',
+    payment_channel: '通道交互',
+    payment_channel_log: '通道交互日志',
+    payment_operation: '订单操作记录'
   },
   page: {
     login: {
@@ -528,6 +535,93 @@ const local: App.I18n.Schema = {
           permission: '权限'
         },
         noPermissionToAssign: '暂无可分配权限'
+      }
+    },
+    payment: {
+      common: {
+        comingSoon: '即将上线'
+      },
+      order: {
+        title: '支付订单',
+        paymentOrderNo: '支付订单号',
+        businessOrderNo: '业务订单号',
+        businessSystemName: '业务系统',
+        status: '状态',
+        amount: '金额',
+        amountRange: '金额区间',
+        amountMin: '最低（元）',
+        amountMax: '最高（元）',
+        payMode: '支付方式',
+        accessType: '接入类型',
+        paymentChannel: '支付通道',
+        paidAt: '支付时间',
+        createdAt: '创建时间',
+        moreFilters: '更多筛选',
+        detail: '详情',
+        form: {
+          paymentOrderNo: '请输入支付订单号',
+          businessOrderNo: '请输入业务订单号',
+          businessSystemName: '请输入业务系统名',
+          status: '请选择状态',
+          payMode: '请选择支付方式',
+          accessType: '请选择接入类型',
+          paymentChannel: '请选择支付通道',
+          createdAt: '请选择创建时间范围',
+          paidAt: '请选择支付时间范围'
+        }
+      },
+      enum: {
+        paymentStatus: {
+          pending: '待支付',
+          paid: '已支付',
+          failed: '支付失败',
+          cancelled: '已取消',
+          expired: '已过期'
+        },
+        payMode: {
+          wechat: '微信',
+          alipay: '支付宝',
+          unionpay: '云闪付'
+        },
+        accessType: {
+          h5: 'H5',
+          app: 'APP',
+          wechatOa: '微信公众号',
+          alipayLife: '支付宝生活号',
+          miniProgram: '小程序'
+        },
+        paymentChannel: {
+          icbc: '工商银行'
+        },
+        refundStatus: {
+          pending: '待审核',
+          rejected: '已拒绝',
+          approved: '已批准',
+          refunding: '退款中',
+          success: '退款成功',
+          failed: '退款失败'
+        },
+        auditType: {
+          auto: '免审',
+          manual: '人工审核'
+        },
+        logType: {
+          paymentRequest: '支付请求',
+          paymentQuery: '支付查询',
+          paymentCancel: '支付取消',
+          refundRequest: '退款请求',
+          refundQuery: '退款查询',
+          paymentCallback: '支付回调'
+        },
+        operationType: {
+          auditApprove: '审核通过',
+          auditReject: '审核拒绝',
+          notifyResend: '通知重发'
+        },
+        operationTargetType: {
+          payment: '支付订单',
+          refund: '退款订单'
+        }
       }
     }
   },

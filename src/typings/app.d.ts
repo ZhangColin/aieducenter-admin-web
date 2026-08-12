@@ -776,6 +776,93 @@ declare namespace App {
             noPermissionToAssign: string;
           };
         };
+        payment: {
+          common: {
+            comingSoon: string;
+          };
+          order: {
+            title: string;
+            paymentOrderNo: string;
+            businessOrderNo: string;
+            businessSystemName: string;
+            status: string;
+            amount: string;
+            amountRange: string;
+            amountMin: string;
+            amountMax: string;
+            payMode: string;
+            accessType: string;
+            paymentChannel: string;
+            paidAt: string;
+            createdAt: string;
+            moreFilters: string;
+            detail: string;
+            form: {
+              paymentOrderNo: string;
+              businessOrderNo: string;
+              businessSystemName: string;
+              status: string;
+              payMode: string;
+              accessType: string;
+              paymentChannel: string;
+              createdAt: string;
+              paidAt: string;
+            };
+          };
+          enum: {
+            paymentStatus: {
+              pending: string;
+              paid: string;
+              failed: string;
+              cancelled: string;
+              expired: string;
+            };
+            payMode: {
+              wechat: string;
+              alipay: string;
+              unionpay: string;
+            };
+            accessType: {
+              h5: string;
+              app: string;
+              wechatOa: string;
+              alipayLife: string;
+              miniProgram: string;
+            };
+            paymentChannel: {
+              icbc: string;
+            };
+            refundStatus: {
+              pending: string;
+              rejected: string;
+              approved: string;
+              refunding: string;
+              success: string;
+              failed: string;
+            };
+            auditType: {
+              auto: string;
+              manual: string;
+            };
+            logType: {
+              paymentRequest: string;
+              paymentQuery: string;
+              paymentCancel: string;
+              refundRequest: string;
+              refundQuery: string;
+              paymentCallback: string;
+            };
+            operationType: {
+              auditApprove: string;
+              auditReject: string;
+              notifyResend: string;
+            };
+            operationTargetType: {
+              payment: string;
+              refund: string;
+            };
+          };
+        };
       };
       form: {
         required: string;

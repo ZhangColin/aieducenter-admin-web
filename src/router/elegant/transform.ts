@@ -174,7 +174,14 @@ const routeMap: RouteMap = {
   "manage": "/manage",
   "manage_menu": "/manage/menu",
   "manage_role": "/manage/role",
-  "manage_user": "/manage/user"
+  "manage_user": "/manage/user",
+  "payment": "/payment",
+  "payment_channel": "/payment/channel",
+  "payment_channel_log": "/payment/channel/log",
+  "payment_operation": "/payment/operation",
+  "payment_order": "/payment/order",
+  "payment_refund": "/payment/refund",
+  "payment_stats": "/payment/stats"
 };
 
 /**

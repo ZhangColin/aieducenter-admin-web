@@ -9,6 +9,8 @@ interface Props {
   itemAlign?: NaiveUI.Align;
   /** 禁用「新增」按钮（如无写权限） */
   disabledAdd?: boolean;
+  /** 隐藏「新增」按钮（如该资源无创建语义，如只读列表） */
+  hideAdd?: boolean;
   disabledDelete?: boolean;
   /** 隐藏「批量删除」按钮（如该资源无删除语义） */
   hideDelete?: boolean;
@@ -46,7 +48,7 @@ function refresh() {
   <NSpace :align="itemAlign" wrap justify="end" class="lt-sm:w-200px">
     <slot name="prefix"></slot>
     <slot name="default">
-      <NButton size="small" ghost type="primary" :disabled="disabledAdd" @click="add">
+      <NButton v-if="!hideAdd" size="small" ghost type="primary" :disabled="disabledAdd" @click="add">
         <template #icon>
           <icon-ic-round-plus class="text-icon" />
         </template>

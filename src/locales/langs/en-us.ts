@@ -236,7 +236,14 @@ const local: App.I18n.Schema = {
     manage_role: 'Role Manage',
     manage_menu: 'Menu Manage',
     app: 'App Management',
-    app_list: 'Apps'
+    app_list: 'Apps',
+    payment: 'Payment',
+    payment_stats: 'Stats Overview',
+    payment_order: 'Payment Orders',
+    payment_refund: 'Refund Orders',
+    payment_channel: 'Channel',
+    payment_channel_log: 'Channel Logs',
+    payment_operation: 'Operation Logs'
   },
   page: {
     login: {
@@ -532,6 +539,93 @@ const local: App.I18n.Schema = {
           permission: 'Permission'
         },
         noPermissionToAssign: 'No permissions to assign'
+      }
+    },
+    payment: {
+      common: {
+        comingSoon: 'Coming soon'
+      },
+      order: {
+        title: 'Payment Orders',
+        paymentOrderNo: 'Payment Order No.',
+        businessOrderNo: 'Business Order No.',
+        businessSystemName: 'Business System',
+        status: 'Status',
+        amount: 'Amount',
+        amountRange: 'Amount Range',
+        amountMin: 'Min (CNY)',
+        amountMax: 'Max (CNY)',
+        payMode: 'Pay Mode',
+        accessType: 'Access Type',
+        paymentChannel: 'Payment Channel',
+        paidAt: 'Paid At',
+        createdAt: 'Created At',
+        moreFilters: 'More Filters',
+        detail: 'Detail',
+        form: {
+          paymentOrderNo: 'Enter payment order no.',
+          businessOrderNo: 'Enter business order no.',
+          businessSystemName: 'Enter business system name',
+          status: 'Select status',
+          payMode: 'Select pay mode',
+          accessType: 'Select access type',
+          paymentChannel: 'Select payment channel',
+          createdAt: 'Select created-at range',
+          paidAt: 'Select paid-at range'
+        }
+      },
+      enum: {
+        paymentStatus: {
+          pending: 'Pending',
+          paid: 'Paid',
+          failed: 'Failed',
+          cancelled: 'Cancelled',
+          expired: 'Expired'
+        },
+        payMode: {
+          wechat: 'WeChat',
+          alipay: 'Alipay',
+          unionpay: 'UnionPay'
+        },
+        accessType: {
+          h5: 'H5',
+          app: 'App',
+          wechatOa: 'WeChat OA',
+          alipayLife: 'Alipay Life',
+          miniProgram: 'Mini Program'
+        },
+        paymentChannel: {
+          icbc: 'ICBC'
+        },
+        refundStatus: {
+          pending: 'Pending',
+          rejected: 'Rejected',
+          approved: 'Approved',
+          refunding: 'Refunding',
+          success: 'Success',
+          failed: 'Failed'
+        },
+        auditType: {
+          auto: 'Auto',
+          manual: 'Manual'
+        },
+        logType: {
+          paymentRequest: 'Payment Request',
+          paymentQuery: 'Payment Query',
+          paymentCancel: 'Payment Cancel',
+          refundRequest: 'Refund Request',
+          refundQuery: 'Refund Query',
+          paymentCallback: 'Payment Callback'
+        },
+        operationType: {
+          auditApprove: 'Audit Approve',
+          auditReject: 'Audit Reject',
+          notifyResend: 'Notify Resend'
+        },
+        operationTargetType: {
+          payment: 'Payment',
+          refund: 'Refund'
+        }
       }
     }
   },

@@ -132,5 +132,71 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'payment',
+    path: '/payment',
+    component: 'layout.base',
+    meta: {
+      title: 'payment',
+      i18nKey: 'route.payment'
+    },
+    children: [
+      {
+        name: 'payment_channel',
+        path: '/payment/channel',
+        meta: {
+          title: 'payment_channel',
+          i18nKey: 'route.payment_channel'
+        },
+        children: [
+          {
+            name: 'payment_channel_log',
+            path: '/payment/channel/log',
+            component: 'view.payment_channel_log',
+            meta: {
+              title: 'payment_channel_log',
+              i18nKey: 'route.payment_channel_log'
+            }
+          }
+        ]
+      },
+      {
+        name: 'payment_operation',
+        path: '/payment/operation',
+        component: 'view.payment_operation',
+        meta: {
+          title: 'payment_operation',
+          i18nKey: 'route.payment_operation'
+        }
+      },
+      {
+        name: 'payment_order',
+        path: '/payment/order',
+        component: 'view.payment_order',
+        meta: {
+          title: 'payment_order',
+          i18nKey: 'route.payment_order'
+        }
+      },
+      {
+        name: 'payment_refund',
+        path: '/payment/refund',
+        component: 'view.payment_refund',
+        meta: {
+          title: 'payment_refund',
+          i18nKey: 'route.payment_refund'
+        }
+      },
+      {
+        name: 'payment_stats',
+        path: '/payment/stats',
+        component: 'view.payment_stats',
+        meta: {
+          title: 'payment_stats',
+          i18nKey: 'route.payment_stats'
+        }
+      }
+    ]
   }
 ];
