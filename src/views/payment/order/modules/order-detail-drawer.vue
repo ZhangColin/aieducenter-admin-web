@@ -21,11 +21,13 @@ import {
 } from '@/service/api';
 import {
   accessTypeRecord,
+  displayEnumName,
   logTypeRecord,
   operationTypeRecord,
   payModeRecord,
   paymentChannelRecord,
-  paymentStatusRecord
+  paymentStatusRecord,
+  paymentStatusTagColor
 } from '@/constants/payment';
 import { $t } from '@/locales';
 import { formatDateTime, formatMoney } from '@/utils/common';
@@ -41,22 +43,6 @@ const visible = defineModel<boolean>('visible', { default: false });
 // ---- 基本信息 ----
 const detail = ref<Api.Payment.PaymentOrderDetail | null>(null);
 const detailLoading = ref(false);
-
-/** 支付订单状态标签色（唯一着色列，与列表页一致） */
-const statusTagMap: Record<Api.Payment.PaymentStatus, NaiveUI.ThemeColor> = {
-  PENDING: 'warning',
-  PAID: 'success',
-  FAILED: 'error',
-  CANCELLED: 'default',
-  EXPIRED: 'default'
-};
-
-/** 文本型枚举回显：null → '-'，已知值翻译、未知值回退原值（后端新增枚举时不报错） */
-function enumLabel<T extends string>(record: Record<T, App.I18n.I18nKey>, value: T | null | undefined): string {
-  if (!value) return '-';
-  const key = record[value];
-  return key ? $t(key) : value;
-}
 
 async function loadDetail() {
   if (!props.paymentOrderNo) return;
@@ -96,8 +82,8 @@ function timelineType(ev: Api.Payment.LifecycleEvent): 'success' | 'error' | 'in
 
 /** 生命周期事件标题：PAYMENT_LOG→logType，OPERATION_LOG→operation（均未知回退 source 文案） */
 function eventTitle(ev: Api.Payment.LifecycleEvent): string {
-  if (ev.source === 'PAYMENT_LOG') return enumLabel(logTypeRecord, ev.logType);
-  return enumLabel(operationTypeRecord, ev.operation);
+  if (ev.source === 'PAYMENT_LOG') return displayEnumName(null, ev.logType, logTypeRecord);
+  return displayEnumName(ev.operationName, ev.operation, operationTypeRecord);
 }
 
 /** 操作结果（自由稳定 token）启发式着色：FAIL/ERROR/REJECT→error，SUCCESS/APPROVE→success，余 default */
@@ -192,8 +178,8 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.order.status') }}</div>
               <div class="desc-value">
-                <NTag size="small" :type="statusTagMap[detail.status] ?? 'default'">
-                  {{ enumLabel(paymentStatusRecord, detail.status) }}
+                <NTag size="small" :type="paymentStatusTagColor[detail.status] ?? 'default'">
+                  {{ displayEnumName(detail.statusName, detail.status, paymentStatusRecord) }}
                 </NTag>
               </div>
             </div>
@@ -203,16 +189,16 @@ watch(visible, val => {
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.order.payMode') }}</div>
-              <div class="desc-value"><span class="text-14px">{{ enumLabel(payModeRecord, detail.payMode) }}</span></div>
+              <div class="desc-value"><span class="text-14px">{{ displayEnumName(detail.payModeName, detail.payMode, payModeRecord) }}</span></div>
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.order.accessType') }}</div>
-              <div class="desc-value"><span class="text-14px">{{ enumLabel(accessTypeRecord, detail.accessType) }}</span></div>
+              <div class="desc-value"><span class="text-14px">{{ displayEnumName(detail.accessTypeName, detail.accessType, accessTypeRecord) }}</span></div>
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.order.paymentChannel') }}</div>
               <div class="desc-value">
-                <span class="text-14px">{{ enumLabel(paymentChannelRecord, detail.paymentChannel) }}</span>
+                <span class="text-14px">{{ displayEnumName(detail.paymentChannelName, detail.paymentChannel, paymentChannelRecord) }}</span>
               </div>
             </div>
             <div class="desc-row">

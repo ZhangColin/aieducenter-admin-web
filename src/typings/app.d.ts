@@ -780,6 +780,45 @@ declare namespace App {
           common: {
             comingSoon: string;
           };
+          stats: {
+            refresh: string;
+            states: {
+              loadFailed: string;
+              noData: string;
+            };
+            overview: {
+              title: string;
+              paymentCount: string;
+              paymentAmount: string;
+              refundCount: string;
+              refundAmount: string;
+              successRate: string;
+              netAmount: string;
+            };
+            statusDistribution: {
+              title: string;
+              paymentStatus: string;
+              refundBacklog: string;
+              backlogCount: string;
+            };
+            gatewayHealth: {
+              title: string;
+              bankInterface: string;
+              callCount: string;
+              successCount: string;
+              successRate: string;
+              avgExecutionTime: string;
+              returnCodes: string;
+            };
+            operationsAudit: {
+              title: string;
+              auditCount: string;
+              approvedCount: string;
+              approvalRate: string;
+              avgDuration: string;
+              auditor: string;
+            };
+          };
           order: {
             title: string;
             paymentOrderNo: string;

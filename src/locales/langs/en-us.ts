@@ -545,6 +545,45 @@ const local: App.I18n.Schema = {
       common: {
         comingSoon: 'Coming soon'
       },
+      stats: {
+        refresh: 'Refresh',
+        states: {
+          loadFailed: 'Load failed',
+          noData: 'No data'
+        },
+        overview: {
+          title: 'Payment Overview',
+          paymentCount: 'Payment Count',
+          paymentAmount: 'Payment Amount',
+          refundCount: 'Refund Count',
+          refundAmount: 'Refund Amount',
+          successRate: 'Payment Success Rate',
+          netAmount: 'Net Amount'
+        },
+        statusDistribution: {
+          title: 'Order Status Distribution',
+          paymentStatus: 'Payment Status',
+          refundBacklog: 'Refund Pending Audit',
+          backlogCount: 'orders'
+        },
+        gatewayHealth: {
+          title: 'Gateway Health',
+          bankInterface: 'Bank Interface',
+          callCount: 'Call Count',
+          successCount: 'Success Count',
+          successRate: 'Success Rate',
+          avgExecutionTime: 'Avg. Latency',
+          returnCodes: 'Return Codes'
+        },
+        operationsAudit: {
+          title: 'Audit Stats',
+          auditCount: 'Audit Count',
+          approvedCount: 'Approved',
+          approvalRate: 'Approval Rate',
+          avgDuration: 'Avg. Audit Duration',
+          auditor: 'Auditor'
+        }
+      },
       order: {
         title: 'Payment Orders',
         paymentOrderNo: 'Payment Order No.',

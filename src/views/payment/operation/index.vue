@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue';
 import { NTag } from 'naive-ui';
-import { operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
+import { displayEnumName, operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
 import { fetchGetOperationLogList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -27,30 +27,30 @@ const searchParams = ref<Api.Payment.OperationLogSearchParams>({
   size: 10
 });
 
-/** 目标类型标签色（支付/退款区分） */
+/** 目标类型标签色（code 键：1=支付 / 2=退款） */
 const targetTypeTagMap: Partial<Record<Api.Payment.OperationTargetType, NaiveUI.ThemeColor>> = {
-  PAYMENT: 'info',
-  REFUND: 'warning'
+  '1': 'info',
+  '2': 'warning'
 };
 
-/** 操作类型标签色（审核通过/拒绝、通知重发） */
+/** 操作类型标签色（code 键：1=审核通过 / 2=审核拒绝 / 3=通知重发） */
 const operationTagMap: Partial<Record<Api.Payment.OperationType, NaiveUI.ThemeColor>> = {
-  AUDIT_APPROVE: 'success',
-  AUDIT_REJECT: 'error',
-  NOTIFY_RESEND: 'info'
+  '1': 'success',
+  '2': 'error',
+  '3': 'info'
 };
 
-/** 枚举 tag 列：null → '-'，已知值翻译、未知 token 回退原值（非闭合集合）。复用于目标类型 / 操作类型两列。 */
+/** 枚举 tag 列：null → '-'；后端 *Name 优先、record 兜底（displayEnumName）。复用于目标类型 / 操作类型两列。 */
 function renderEnumTag<T extends string>(
+  name: string | null | undefined,
   value: T | null,
   record: Record<T, App.I18n.I18nKey>,
   tagMap: Partial<Record<T, NaiveUI.ThemeColor>>
 ) {
   if (!value) return '-';
-  const key = record[value];
   return (
     <NTag type={tagMap[value] ?? 'default'} size="small">
-      {key ? $t(key) : value}
+      {displayEnumName(name, value, record)}
     </NTag>
   );
 }
@@ -93,7 +93,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.operation.targetType'),
         align: 'center',
         width: 110,
-        render: row => renderEnumTag(row.targetType, operationTargetTypeRecord, targetTypeTagMap)
+        render: row => renderEnumTag(row.targetTypeName, row.targetType, operationTargetTypeRecord, targetTypeTagMap)
       },
       {
         key: 'targetNo',
@@ -107,7 +107,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.operation.operation'),
         align: 'center',
         width: 120,
-        render: row => renderEnumTag(row.operation, operationTypeRecord, operationTagMap)
+        render: row => renderEnumTag(row.operationName, row.operation, operationTypeRecord, operationTagMap)
       },
       {
         key: 'result',

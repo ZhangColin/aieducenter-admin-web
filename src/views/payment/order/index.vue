@@ -9,7 +9,14 @@
  */
 import { ref } from 'vue';
 import { NButton, NTag } from 'naive-ui';
-import { paymentStatusRecord, payModeRecord, accessTypeRecord, paymentChannelRecord } from '@/constants/payment';
+import {
+  displayEnumName,
+  paymentStatusRecord,
+  paymentStatusTagColor,
+  payModeRecord,
+  accessTypeRecord,
+  paymentChannelRecord
+} from '@/constants/payment';
 import { fetchGetPaymentOrderList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -27,22 +34,6 @@ const searchParams = ref<Api.Payment.PaymentOrderSearchParams>({
   page: 0,
   size: 10
 });
-
-/** 支付订单状态标签色（运营关注状态，唯一着色列） */
-const statusTagMap: Record<Api.Payment.PaymentStatus, NaiveUI.ThemeColor> = {
-  PENDING: 'warning',
-  PAID: 'success',
-  FAILED: 'error',
-  CANCELLED: 'default',
-  EXPIRED: 'default'
-};
-
-/** 文本型枚举列渲染：null → '-'，已知值翻译、未知值回退原值（后端新增枚举时不报错） */
-function renderEnum<T extends string>(record: Record<T, App.I18n.I18nKey>, value: T | null | undefined) {
-  if (!value) return '-';
-  const key = record[value];
-  return key ? $t(key) : value;
-}
 
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
   useNaivePaginatedTable({
@@ -77,14 +68,11 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.order.status'),
         align: 'center',
         width: 100,
-        render: row => {
-          const key = paymentStatusRecord[row.status];
-          return (
-            <NTag type={statusTagMap[row.status] ?? 'default'} size="small">
-              {key ? $t(key) : row.status}
-            </NTag>
-          );
-        }
+        render: row => (
+          <NTag type={paymentStatusTagColor[row.status] ?? 'default'} size="small">
+            {displayEnumName(row.statusName, row.status, paymentStatusRecord)}
+          </NTag>
+        )
       },
       {
         key: 'amount',
@@ -98,21 +86,21 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.order.payMode'),
         align: 'center',
         width: 100,
-        render: row => renderEnum(payModeRecord, row.payMode)
+        render: row => displayEnumName(row.payModeName, row.payMode, payModeRecord)
       },
       {
         key: 'accessType',
         title: $t('page.payment.order.accessType'),
         align: 'center',
         minWidth: 130,
-        render: row => renderEnum(accessTypeRecord, row.accessType)
+        render: row => displayEnumName(row.accessTypeName, row.accessType, accessTypeRecord)
       },
       {
         key: 'paymentChannel',
         title: $t('page.payment.order.paymentChannel'),
         align: 'center',
         width: 110,
-        render: row => renderEnum(paymentChannelRecord, row.paymentChannel)
+        render: row => displayEnumName(row.paymentChannelName, row.paymentChannel, paymentChannelRecord)
       },
       {
         key: 'paidAt',

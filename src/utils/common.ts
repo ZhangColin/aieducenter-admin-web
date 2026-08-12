@@ -40,6 +40,40 @@ export function formatMoney(cents?: number | string | null): string {
 }
 
 /**
+ * Format a 0–1 decimal rate as a percentage string (`95.60%`).
+ *
+ * payment 统计的比率（successRate / approvalRate）线上为 **小数 0–1 区间**（BigDecimal → number，
+ * 见 Api.Payment 各 stats 类型注释），展示统一 ×100 + 2 位小数 + `%`。
+ *
+ * `null` / 非数 → `'-'`（沿用占位约定）。
+ *
+ * @param rate 0–1 区间小数（number 或字符串），可空
+ */
+export function formatRate(rate?: number | string | null): string {
+  if (rate === null || rate === undefined || rate === '') return '-';
+  const n = Number(rate);
+  if (Number.isNaN(n)) return '-';
+  return `${(n * 100).toFixed(2)}%`;
+}
+
+/**
+ * Format a Long-as-string count for display (`72` / `1,234`).
+ *
+ * payment 统计的笔数字段为 Long → JSON **字符串**（见 Api.Payment 各 stats 类型注释），
+ * 展示经 `Number()` 兜底 + 千分位。
+ *
+ * `null` / 非数 → `'-'`。
+ *
+ * @param count Long 序列化的字符串（或 number），可空
+ */
+export function formatCount(count?: number | string | null): string {
+  if (count === null || count === undefined || count === '') return '-';
+  const n = Number(count);
+  if (Number.isNaN(n)) return '-';
+  return n.toLocaleString('zh-CN');
+}
+
+/**
  * Transform record to option
  *
  * @example

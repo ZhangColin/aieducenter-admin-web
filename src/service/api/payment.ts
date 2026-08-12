@@ -88,3 +88,41 @@ export function fetchResendPaymentNotification(paymentOrderNo: string) {
     method: 'post'
   });
 }
+
+// ============ 统计（仪表盘 tier-1，GET /stats/**）============
+//
+// 4 个 tier-1 端点，经 usePaymentStats store 消费（ADR-0002 seam——widget 不直连端点）。
+// ⚠️ overview / gateway-health / operations-audit 带 payment 必填的 from/to 时间窗，admin BFF 现阶段
+// 未转发 → 400（docs/backend-requirements/REQ-17）；status-distribution 无时间窗、正常。
+
+/** 支付总览（GET /stats/payments/overview）——笔数·金额·成功率·净额 + 趋势 */
+export function fetchGetPaymentOverview() {
+  return request<Api.Payment.PaymentOverview>({
+    url: '/payment/stats/payments/overview',
+    method: 'get'
+  });
+}
+
+/** 订单状态分布（GET /stats/orders/status-distribution）——支付/退款各状态在途 + 退款待审核积压 */
+export function fetchGetOrderStatusDistribution() {
+  return request<Api.Payment.OrderStatusDistribution>({
+    url: '/payment/stats/orders/status-distribution',
+    method: 'get'
+  });
+}
+
+/** 通道健康（GET /stats/gateway/health）——各银行接口调用次数·成功率·平均耗时·返回码分布 */
+export function fetchGetGatewayHealth() {
+  return request<Api.Payment.GatewayHealth>({
+    url: '/payment/stats/gateway/health',
+    method: 'get'
+  });
+}
+
+/** 审核统计（GET /stats/operations/audit）——审核笔数·通过率·平均时长 + 按审核人聚合 */
+export function fetchGetOperationsAudit() {
+  return request<Api.Payment.OperationsAudit>({
+    url: '/payment/stats/operations/audit',
+    method: 'get'
+  });
+}

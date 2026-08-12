@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue';
 import { NButton, NDrawer, NDrawerContent, NEmpty, NTag } from 'naive-ui';
-import { auditTypeRecord, refundStatusRecord } from '@/constants/payment';
+import { auditTypeRecord, displayEnumName, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
 import { fetchGetRefundOrderList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -26,23 +26,6 @@ const searchParams = ref<Api.Payment.RefundOrderSearchParams>({
   page: 0,
   size: 10
 });
-
-/** 退款订单状态标签色（运营关注状态，唯一着色列） */
-const statusTagMap: Record<Api.Payment.RefundStatus, NaiveUI.ThemeColor> = {
-  PENDING: 'warning',
-  REJECTED: 'error',
-  APPROVED: 'default',
-  REFUNDING: 'info',
-  SUCCESS: 'success',
-  FAILED: 'error'
-};
-
-/** 文本型枚举列渲染：null → '-'，已知值翻译、未知值回退原值（后端新增枚举时不报错） */
-function renderEnum<T extends string>(record: Record<T, App.I18n.I18nKey>, value: T | null | undefined) {
-  if (!value) return '-';
-  const key = record[value];
-  return key ? $t(key) : value;
-}
 
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
   useNaivePaginatedTable({
@@ -83,14 +66,11 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.refund.status'),
         align: 'center',
         width: 100,
-        render: row => {
-          const key = refundStatusRecord[row.status];
-          return (
-            <NTag type={statusTagMap[row.status] ?? 'default'} size="small">
-              {key ? $t(key) : row.status}
-            </NTag>
-          );
-        }
+        render: row => (
+          <NTag type={refundStatusTagColor[row.status] ?? 'default'} size="small">
+            {displayEnumName(row.statusName, row.status, refundStatusRecord)}
+          </NTag>
+        )
       },
       {
         key: 'refundAmount',
@@ -104,7 +84,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.refund.auditType'),
         align: 'center',
         width: 110,
-        render: row => renderEnum(auditTypeRecord, row.auditType)
+        render: row => displayEnumName(row.auditTypeName, row.auditType, auditTypeRecord)
       },
       {
         key: 'auditor',

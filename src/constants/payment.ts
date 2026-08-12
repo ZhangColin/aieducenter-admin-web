@@ -1,80 +1,101 @@
 /**
  * 支付管理领域枚举常量（payment 能力域，经 admin BFF 原值透传）。
  *
- * 与 SystemManage 的整数枚举不同：payment 枚举为 **Java enum 名字符串**（`'PENDING'` / `'WECHAT'` …），
- * admin BFF 不转整数 code。故：
- * - record 键类型用 payment 的**枚举名字面量联合**（string），非 number；
- * - options 直接用 `transformRecordToOption`（string 键无 `Object.entries` 把 number 压 string 的问题），
- *   产物 `Option<string, I18nKey>[]`，value 即枚举名、label 为 i18n key。
- * - NSelect 渲染处用 computed 翻译（语言切换可响应）；表格列渲染 `$t(record[value])` + 内联 tagMap 配色。
+ * payment 枚举线上序列化分两类（契约源：payment domain enums + 实测 curl）：
+ * - **BaseEnum（Integer code）**：PaymentStatus / PayMode / AccessType / PaymentChannel /
+ *   RefundStatus / AuditType / OperationType / OperationLogTargetType——经全局 Jackson 序列化为
+ *   **Integer code 的字符串**（如 `status: "5"`）。故 record 键 = **code 字符串字面量**。
+ *   `transformRecordToOption` 产物 `Option<code, I18nKey>`，**仅用于筛选下拉选项的 value/label**
+ *   （展示走后端 `*Name`，见下）。
+ * - **纯 String token（非 enum）**：LogType（PaymentLog.logType）——线上即 token（`"PAYMENT_REQUEST"`），
+ *   record 键 = token 字面量，option value = token。
  *
- * 9 组闭合枚举（refund/log 详情页 T2–T5 复用，本文件一次落地）：
- * paymentStatus / payMode / accessType / paymentChannel / refundStatus / auditType /
- * logType / operationType / operationTargetType。
+ * ⚠️ 展示范式（平台统一）：枚举列/详情展示走后端序列化的 `*Name`（statusName / payModeName …），
+ * 前端只显示、不做 code→文案映射。**本文件 record 不参与展示**，仅服务筛选下拉选项 label + 标签配色。
+ * （admin BFF 透传 `*Name` 尚未落地，见 docs/backend-requirements/REQ-16；落地前展示回退 code。）
  *
- * 注：`OperationLog.result`（操作结果）是自由稳定 token、非闭合集合，不在此建 options——其筛选走文本输入（T4）。
+ * 注：`OperationLog.result` 是自由稳定 token、非闭合集合，不在此建 options——其筛选走文本输入。
  */
 import { transformRecordToOption } from '@/utils/common';
+import { $t } from '@/locales';
 
 // ============ 支付订单 ============
 
-/** 支付订单状态（payment PaymentStatus） */
+/** 支付订单状态 code→i18n（payment PaymentStatus：1=待支付 2=已支付 3=支付失败 4=已取消 5=已过期） */
 export const paymentStatusRecord: Record<Api.Payment.PaymentStatus, App.I18n.I18nKey> = {
-  PENDING: 'page.payment.enum.paymentStatus.pending',
-  PAID: 'page.payment.enum.paymentStatus.paid',
-  FAILED: 'page.payment.enum.paymentStatus.failed',
-  CANCELLED: 'page.payment.enum.paymentStatus.cancelled',
-  EXPIRED: 'page.payment.enum.paymentStatus.expired'
+  '1': 'page.payment.enum.paymentStatus.pending',
+  '2': 'page.payment.enum.paymentStatus.paid',
+  '3': 'page.payment.enum.paymentStatus.failed',
+  '4': 'page.payment.enum.paymentStatus.cancelled',
+  '5': 'page.payment.enum.paymentStatus.expired'
 };
 export const paymentStatusOptions = transformRecordToOption(paymentStatusRecord);
 
-/** 支付方式（payment PayMode） */
+/** 支付订单状态标签配色（code→ThemeColor；运营关注状态着色） */
+export const paymentStatusTagColor: Record<Api.Payment.PaymentStatus, NaiveUI.ThemeColor> = {
+  '1': 'warning', // 待支付
+  '2': 'success', // 已支付
+  '3': 'error', // 支付失败
+  '4': 'default', // 已取消
+  '5': 'default' // 已过期
+};
+
+/** 支付方式 code→i18n（payment PayMode：9=微信 10=支付宝 13=云闪付） */
 export const payModeRecord: Record<Api.Payment.PayMode, App.I18n.I18nKey> = {
-  WECHAT: 'page.payment.enum.payMode.wechat',
-  ALIPAY: 'page.payment.enum.payMode.alipay',
-  UNIONPAY: 'page.payment.enum.payMode.unionpay'
+  '9': 'page.payment.enum.payMode.wechat',
+  '10': 'page.payment.enum.payMode.alipay',
+  '13': 'page.payment.enum.payMode.unionpay'
 };
 export const payModeOptions = transformRecordToOption(payModeRecord);
 
-/** 接入类型（payment AccessType） */
+/** 接入类型 code→i18n（payment AccessType：5=APP 7=微信公众号 8=支付宝生活号 9=小程序） */
 export const accessTypeRecord: Record<Api.Payment.AccessType, App.I18n.I18nKey> = {
-  H5: 'page.payment.enum.accessType.h5',
-  APP: 'page.payment.enum.accessType.app',
-  WECHAT_OA: 'page.payment.enum.accessType.wechatOa',
-  ALIPAY_LIFE: 'page.payment.enum.accessType.alipayLife',
-  MINI_PROGRAM: 'page.payment.enum.accessType.miniProgram'
+  '5': 'page.payment.enum.accessType.app',
+  '7': 'page.payment.enum.accessType.wechatOa',
+  '8': 'page.payment.enum.accessType.alipayLife',
+  '9': 'page.payment.enum.accessType.miniProgram'
 };
 export const accessTypeOptions = transformRecordToOption(accessTypeRecord);
 
-/** 支付通道（payment PaymentChannel） */
+/** 支付通道 code→i18n（payment PaymentChannel：1=工商银行） */
 export const paymentChannelRecord: Record<Api.Payment.PaymentChannel, App.I18n.I18nKey> = {
-  ICBC: 'page.payment.enum.paymentChannel.icbc'
+  '1': 'page.payment.enum.paymentChannel.icbc'
 };
 export const paymentChannelOptions = transformRecordToOption(paymentChannelRecord);
 
 // ============ 退款订单 ============
 
-/** 退款订单状态（payment RefundStatus） */
+/** 退款订单状态 code→i18n（payment RefundStatus：1=待审核 2=已拒绝 3=已批准 4=退款中 5=退款成功 6=退款失败） */
 export const refundStatusRecord: Record<Api.Payment.RefundStatus, App.I18n.I18nKey> = {
-  PENDING: 'page.payment.enum.refundStatus.pending',
-  REJECTED: 'page.payment.enum.refundStatus.rejected',
-  APPROVED: 'page.payment.enum.refundStatus.approved',
-  REFUNDING: 'page.payment.enum.refundStatus.refunding',
-  SUCCESS: 'page.payment.enum.refundStatus.success',
-  FAILED: 'page.payment.enum.refundStatus.failed'
+  '1': 'page.payment.enum.refundStatus.pending',
+  '2': 'page.payment.enum.refundStatus.rejected',
+  '3': 'page.payment.enum.refundStatus.approved',
+  '4': 'page.payment.enum.refundStatus.refunding',
+  '5': 'page.payment.enum.refundStatus.success',
+  '6': 'page.payment.enum.refundStatus.failed'
 };
 export const refundStatusOptions = transformRecordToOption(refundStatusRecord);
 
-/** 退款审核类型（payment AuditType）：MANUAL=人工审核 / AUTO=免审 */
+/** 退款订单状态标签配色（code→ThemeColor） */
+export const refundStatusTagColor: Record<Api.Payment.RefundStatus, NaiveUI.ThemeColor> = {
+  '1': 'warning', // 待审核
+  '2': 'error', // 已拒绝
+  '3': 'default', // 已批准
+  '4': 'info', // 退款中
+  '5': 'success', // 退款成功
+  '6': 'error' // 退款失败
+};
+
+/** 退款审核类型 code→i18n（payment AuditType：1=免审 2=人工审核） */
 export const auditTypeRecord: Record<Api.Payment.AuditType, App.I18n.I18nKey> = {
-  MANUAL: 'page.payment.enum.auditType.manual',
-  AUTO: 'page.payment.enum.auditType.auto'
+  '1': 'page.payment.enum.auditType.auto',
+  '2': 'page.payment.enum.auditType.manual'
 };
 export const auditTypeOptions = transformRecordToOption(auditTypeRecord);
 
 // ============ 日志 ============
 
-/** 通道交互日志类型（payment PaymentLog.logType；String，取值稳定） */
+/** 通道交互日志类型 token→i18n（payment PaymentLog.logType；纯 String token，非闭合） */
 export const logTypeRecord: Record<Api.Payment.LogType, App.I18n.I18nKey> = {
   PAYMENT_REQUEST: 'page.payment.enum.logType.paymentRequest',
   PAYMENT_QUERY: 'page.payment.enum.logType.paymentQuery',
@@ -85,17 +106,40 @@ export const logTypeRecord: Record<Api.Payment.LogType, App.I18n.I18nKey> = {
 };
 export const logTypeOptions = transformRecordToOption(logTypeRecord);
 
-/** 订单操作类型（payment OperationType） */
+/** 订单操作类型 code→i18n（payment OperationType：1=审核通过 2=审核拒绝 3=通知重发） */
 export const operationTypeRecord: Record<Api.Payment.OperationType, App.I18n.I18nKey> = {
-  AUDIT_APPROVE: 'page.payment.enum.operationType.auditApprove',
-  AUDIT_REJECT: 'page.payment.enum.operationType.auditReject',
-  NOTIFY_RESEND: 'page.payment.enum.operationType.notifyResend'
+  '1': 'page.payment.enum.operationType.auditApprove',
+  '2': 'page.payment.enum.operationType.auditReject',
+  '3': 'page.payment.enum.operationType.notifyResend'
 };
 export const operationTypeOptions = transformRecordToOption(operationTypeRecord);
 
-/** 订单操作记录目标类型（payment OperationLogTargetType） */
+/** 订单操作记录目标类型 code→i18n（payment OperationLogTargetType：1=支付订单 2=退款订单） */
 export const operationTargetTypeRecord: Record<Api.Payment.OperationTargetType, App.I18n.I18nKey> = {
-  PAYMENT: 'page.payment.enum.operationTargetType.payment',
-  REFUND: 'page.payment.enum.operationTargetType.refund'
+  '1': 'page.payment.enum.operationTargetType.payment',
+  '2': 'page.payment.enum.operationTargetType.refund'
 };
 export const operationTargetTypeOptions = transformRecordToOption(operationTargetTypeRecord);
+
+/**
+ * 枚举展示（平台统一范式）：后端 `*Name` 优先 → 既有 i18n record 兜底 → code → '-'。
+ *
+ * 列表/详情/仪表盘所有枚举列共用。
+ * - **statusName 优先**：后端序列化的中文 label 是统一来源（同 SystemManage 范式）。
+ * - **i18n record 兜底**：admin BFF 透传 `*Name` 前（REQ-16）以本文件 record 翻译——与筛选下拉选项
+ *   同源，保证过渡期也显示中文；BFF 落地 `*Name` 后自动切到后端值，零前端改动。
+ * - 纯 token 枚举（LogType）无 `*Name`，直接走 record（token 键）。
+ *
+ * @param name 后端序列化的中文名（statusName / payModeName …），可空
+ * @param code 枚举 code / token（线上值），可空
+ * @param record code/token → i18n key 的映射（同文件 record），可选
+ */
+export function displayEnumName<K extends string>(
+  name: string | null | undefined,
+  code: K | null | undefined,
+  record?: Record<K, App.I18n.I18nKey>
+): string {
+  if (name) return name;
+  if (code && record && record[code]) return $t(record[code]);
+  return code || '-';
+}

@@ -541,6 +541,45 @@ const local: App.I18n.Schema = {
       common: {
         comingSoon: '即将上线'
       },
+      stats: {
+        refresh: '刷新',
+        states: {
+          loadFailed: '加载失败',
+          noData: '暂无数据'
+        },
+        overview: {
+          title: '支付总览',
+          paymentCount: '支付笔数',
+          paymentAmount: '支付金额',
+          refundCount: '退款笔数',
+          refundAmount: '退款金额',
+          successRate: '支付成功率',
+          netAmount: '净额'
+        },
+        statusDistribution: {
+          title: '订单状态分布',
+          paymentStatus: '支付状态',
+          refundBacklog: '退款待审核积压',
+          backlogCount: '笔'
+        },
+        gatewayHealth: {
+          title: '通道健康',
+          bankInterface: '银行接口',
+          callCount: '调用次数',
+          successCount: '成功次数',
+          successRate: '成功率',
+          avgExecutionTime: '平均耗时',
+          returnCodes: '返回码分布'
+        },
+        operationsAudit: {
+          title: '审核统计',
+          auditCount: '审核笔数',
+          approvedCount: '通过笔数',
+          approvalRate: '通过率',
+          avgDuration: '平均审核时长',
+          auditor: '审核人'
+        }
+      },
       order: {
         title: '支付订单',
         paymentOrderNo: '支付订单号',
