@@ -607,6 +607,45 @@ const local: App.I18n.Schema = {
           createdAt: '请选择创建时间范围'
         }
       },
+      channelLog: {
+        title: '通道交互日志',
+        paymentOrderNo: '支付订单号',
+        refundOrderNo: '退款订单号',
+        logType: '日志类型',
+        httpStatus: 'HTTP 状态',
+        errorMessage: '错误信息',
+        success: '结果',
+        createdAt: '创建时间',
+        moreFilters: '更多筛选',
+        form: {
+          paymentOrderNo: '请输入支付订单号',
+          refundOrderNo: '请输入退款订单号',
+          logType: '请选择日志类型',
+          bankInterface: '请输入银行接口',
+          success: '请选择结果',
+          returnCode: '请输入返回码',
+          createdAt: '请选择创建时间范围'
+        }
+      },
+      operation: {
+        title: '订单操作记录',
+        targetType: '目标类型',
+        targetNo: '目标单号',
+        operation: '操作类型',
+        operatorSystem: '来源系统',
+        result: '结果',
+        createdAt: '创建时间',
+        moreFilters: '更多筛选',
+        form: {
+          targetType: '请选择目标类型',
+          targetNo: '请输入目标单号',
+          operation: '请选择操作类型',
+          operatorId: '请输入操作人 ID',
+          operatorSystem: '请输入来源系统',
+          result: '请输入结果',
+          createdAt: '请选择创建时间范围'
+        }
+      },
       enum: {
         paymentStatus: {
           pending: '待支付',

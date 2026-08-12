@@ -202,6 +202,127 @@ declare namespace Api {
     /** 退款订单筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
     type RefundOrderFilter = Omit<RefundOrderSearchParams, 'page' | 'size'>;
 
+    // ---- 通道交互日志（列表 / 筛选，GET /payment-logs）----
+
+    /**
+     * 后端 PaymentLogSummaryResponse（GET /payment-logs 列表项）。
+     * payment 全字段为基础类型（无枚举语义），admin 原值透传、不做翻译。
+     *
+     * - `id` / `executionTime` 为 Long → 经全局 Jackson `Long→string` 序列化为 JSON **字符串**，按 string 处理防精度丢失；
+     * - `httpStatus` 为 Integer → number；`success` 为 Boolean（均可空）；
+     * - `logType` 取值稳定但非闭合，按 {@link LogType} 映射、未知值原值回退（见列表 renderEnum 范式）。
+     */
+    interface PaymentLogSummary {
+      /** Long→string */
+      id: string;
+      paymentOrderNo: string | null;
+      refundOrderNo: string | null;
+      /** 日志类型（稳定 token，非闭合；前端按已知值映射 i18n、未知值原值展示） */
+      logType: LogType | null;
+      bankCode: string | null;
+      bankInterface: string | null;
+      /** Integer→number */
+      httpStatus: number | null;
+      returnCode: string | null;
+      returnMsg: string | null;
+      /** 执行耗时（毫秒），Long→string */
+      executionTime: string | null;
+      success: boolean | null;
+      errorMessage: string | null;
+      /** 创建时间，ISO 字符串 */
+      createdAt: string;
+    }
+
+    /**
+     * GET /payment-logs 搜索参数（后端 PaymentLogQuery + Spring Pageable）。
+     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     *
+     * - `logTypes` 多选（Spring 绑定 record List<String>，axios qs 默认 indices 格式可绑）；
+     * - `success` 为 Boolean 单选；时间区间 `createdAtFrom/To`（ISO 串）均可空，空值由调用方剔除。
+     */
+    interface PaymentLogSearchParams {
+      paymentOrderNo?: string | null;
+      refundOrderNo?: string | null;
+      /** 日志类型多选；null/空 = 不过滤 */
+      logTypes?: LogType[] | null;
+      bankInterface?: string | null;
+      /** 是否成功；null = 不过滤 */
+      success?: boolean | null;
+      returnCode?: string | null;
+      /** 创建时间起（ISO，含） */
+      createdAtFrom?: string | null;
+      /** 创建时间止（ISO，含） */
+      createdAtTo?: string | null;
+      /** 0-based */
+      page: number;
+      size: number;
+    }
+
+    /** 通道交互日志筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
+    type PaymentLogFilter = Omit<PaymentLogSearchParams, 'page' | 'size'>;
+
+    // ---- 订单操作记录（列表 / 筛选，GET /operation-logs）----
+
+    /**
+     * 后端 OperationLogSummaryResponse（GET /operation-logs 列表项）。
+     * 记录行为者对订单的操作（审核通过/拒绝、通知重发等），admin 原值透传、不做翻译。
+     *
+     * - `id` / `operatorId` 为 Long → JSON **字符串**，按 string 处理防精度丢失；
+     * - `result` 为自由稳定 token（非闭合集合：SUCCESS / DELIVERY_FAILED / SKIPPED …），原值展示；
+     * - `targetType` / `operation` 取值稳定，按已知枚举映射 i18n、未知值原值回退。
+     */
+    interface OperationLogSummary {
+      /** Long→string */
+      id: string;
+      /** 目标类型枚举名 */
+      targetType: OperationTargetType | null;
+      /** 目标单号（支付订单号 / 退款订单号） */
+      targetNo: string | null;
+      /** 操作类型枚举名 */
+      operation: OperationType | null;
+      /** 操作者 ID，Long→string */
+      operatorId: string | null;
+      operatorName: string | null;
+      /** 来源系统（调用方 appName） */
+      operatorSystem: string | null;
+      /** 操作结果（自由稳定 token、非闭合枚举），原值展示 */
+      result: string | null;
+      remark: string | null;
+      /** 创建时间，ISO 字符串 */
+      createdAt: string;
+    }
+
+    /**
+     * GET /operation-logs 搜索参数（后端 OperationLogQuery + Spring Pageable）。
+     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     *
+     * ⚠️ `operation` 为**单选**：payment 的 OperationLogQuery.operation 是单个 OperationType（EQUAL），
+     * issue 文案的「operation 多选」以 payment 实现契约为准收敛为单值——向单值下游转发多值会静默丢过滤条件。
+     *
+     * - `operatorId` 为 Long，前端按 **string** 处理防精度丢失，提交字符串由后端绑 Long；
+     * - `result` 为自由 token，走文本输入；时间区间 `createdAtFrom/To`（ISO 串）均可空，空值由调用方剔除。
+     */
+    interface OperationLogSearchParams {
+      targetType?: OperationTargetType | null;
+      targetNo?: string | null;
+      /** 操作类型——单选（payment 单值 EQUAL 契约） */
+      operation?: OperationType | null;
+      /** 操作者 ID（Long）—— string 防精度丢失，后端绑 Long */
+      operatorId?: string | null;
+      operatorSystem?: string | null;
+      result?: string | null;
+      /** 创建时间起（ISO，含） */
+      createdAtFrom?: string | null;
+      /** 创建时间止（ISO，含） */
+      createdAtTo?: string | null;
+      /** 0-based */
+      page: number;
+      size: number;
+    }
+
+    /** 订单操作记录筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
+    type OperationLogFilter = Omit<OperationLogSearchParams, 'page' | 'size'>;
+
     // ---- 订单生命周期（GET /orders/{no}/lifecycle）----
 
     /**

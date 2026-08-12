@@ -17,7 +17,8 @@ import { request } from '../request';
  * - T2 / #44：支付订单详情 `GET /payments/{no}`、订单生命周期 `GET /orders/{no}/lifecycle`、
  *   通知重发 `POST /payments/{no}/notifications/resend`。
  * - T3 / #45：退款订单列表 `GET /refunds`。
- * 其余端点随退款详情/写操作/日志/仪表盘各 ticket 增补。
+ * - T5 / #46：通道交互日志列表 `GET /payment-logs`、订单操作记录列表 `GET /operation-logs`。
+ * 其余端点随退款详情/写操作/仪表盘各 ticket 增补。
  */
 
 /** 支付订单分页列表（GET /payments） */
@@ -41,6 +42,24 @@ export function fetchGetPaymentOrderDetail(paymentOrderNo: string) {
 export function fetchGetRefundOrderList(params: Api.Payment.RefundOrderSearchParams) {
   return request<Api.Common.PageResponse<Api.Payment.RefundOrderSummary>>({
     url: '/payment/refunds',
+    method: 'get',
+    params
+  });
+}
+
+/** 通道交互日志分页列表（GET /payment-logs）。纯只读——与银行/通道网关的机机交互留痕。 */
+export function fetchGetPaymentLogList(params: Api.Payment.PaymentLogSearchParams) {
+  return request<Api.Common.PageResponse<Api.Payment.PaymentLogSummary>>({
+    url: '/payment/payment-logs',
+    method: 'get',
+    params
+  });
+}
+
+/** 订单操作记录分页列表（GET /operation-logs）。纯只读——行为者对订单的操作留痕（合规追溯）。 */
+export function fetchGetOperationLogList(params: Api.Payment.OperationLogSearchParams) {
+  return request<Api.Common.PageResponse<Api.Payment.OperationLogSummary>>({
+    url: '/payment/operation-logs',
     method: 'get',
     params
   });

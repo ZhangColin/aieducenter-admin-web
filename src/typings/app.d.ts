@@ -846,6 +846,45 @@ declare namespace App {
               createdAt: string;
             };
           };
+          channelLog: {
+            title: string;
+            paymentOrderNo: string;
+            refundOrderNo: string;
+            logType: string;
+            httpStatus: string;
+            errorMessage: string;
+            success: string;
+            createdAt: string;
+            moreFilters: string;
+            form: {
+              paymentOrderNo: string;
+              refundOrderNo: string;
+              logType: string;
+              bankInterface: string;
+              success: string;
+              returnCode: string;
+              createdAt: string;
+            };
+          };
+          operation: {
+            title: string;
+            targetType: string;
+            targetNo: string;
+            operation: string;
+            operatorSystem: string;
+            result: string;
+            createdAt: string;
+            moreFilters: string;
+            form: {
+              targetType: string;
+              targetNo: string;
+              operation: string;
+              operatorId: string;
+              operatorSystem: string;
+              result: string;
+              createdAt: string;
+            };
+          };
           enum: {
             paymentStatus: {
               pending: string;

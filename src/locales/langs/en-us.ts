@@ -611,6 +611,45 @@ const local: App.I18n.Schema = {
           createdAt: 'Select created-at range'
         }
       },
+      channelLog: {
+        title: 'Channel Interaction Logs',
+        paymentOrderNo: 'Payment Order No.',
+        refundOrderNo: 'Refund Order No.',
+        logType: 'Log Type',
+        httpStatus: 'HTTP Status',
+        errorMessage: 'Error Message',
+        success: 'Result',
+        createdAt: 'Created At',
+        moreFilters: 'More Filters',
+        form: {
+          paymentOrderNo: 'Enter payment order no.',
+          refundOrderNo: 'Enter refund order no.',
+          logType: 'Select log type',
+          bankInterface: 'Enter bank interface',
+          success: 'Select result',
+          returnCode: 'Enter return code',
+          createdAt: 'Select created-at range'
+        }
+      },
+      operation: {
+        title: 'Order Operation Logs',
+        targetType: 'Target Type',
+        targetNo: 'Target No.',
+        operation: 'Operation',
+        operatorSystem: 'Source System',
+        result: 'Result',
+        createdAt: 'Created At',
+        moreFilters: 'More Filters',
+        form: {
+          targetType: 'Select target type',
+          targetNo: 'Enter target no.',
+          operation: 'Select operation',
+          operatorId: 'Enter operator ID',
+          operatorSystem: 'Enter source system',
+          result: 'Enter result',
+          createdAt: 'Select created-at range'
+        }
+      },
       enum: {
         paymentStatus: {
           pending: 'Pending',
