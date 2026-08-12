@@ -8,13 +8,14 @@
  * 复用 T1 整套范式：useNaivePaginatedTable + defaultTransform + 0-based 请求 / 1-based 响应分页。
  */
 import { ref } from 'vue';
-import { NButton, NDrawer, NDrawerContent, NEmpty, NTag } from 'naive-ui';
+import { NButton, NTag } from 'naive-ui';
 import { auditTypeRecord, displayEnumName, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
 import { fetchGetRefundOrderList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import { formatDateTime, formatMoney } from '@/utils/common';
+import RefundDetailDrawer from './modules/refund-detail-drawer.vue';
 import RefundSearch from './modules/refund-search.vue';
 
 defineOptions({ name: 'PaymentRefund' });
@@ -135,8 +136,8 @@ function handleSearch(filter: Api.Payment.RefundOrderFilter) {
 }
 
 /**
- * 详情入口钩子（点「详情」开右抽屉）。
- * 抽屉本体（只读全字段 + 生命周期 NTimeline + 退款审核 + 通知重发）归 T4 / #48；此处仅留按钮 + 钩子。
+ * 详情入口钩子（点「详情」开右抽屉）。抽屉本体见 RefundDetailDrawer（T4 / #48）：
+ * 只读全字段 + 生命周期（复用 T2 组件）+ 退款审核 + 通知重发。审核成功后抽屉 emit `audited` → 重拉列表。
  */
 const detailDrawerVisible = ref(false);
 const selectedRefundNo = ref('');
@@ -174,12 +175,12 @@ function openDetail(refundOrderNo: string) {
       />
     </NCard>
 
-    <!-- 详情抽屉占位（T4 / #48 实现本体：只读全字段 + 生命周期 tab + 退款审核 + 通知重发） -->
-    <NDrawer v-model:show="detailDrawerVisible" :width="720">
-      <NDrawerContent :title="`${$t('page.payment.refund.detail')} · ${selectedRefundNo}`" closable>
-        <NEmpty :description="$t('page.payment.common.comingSoon')" />
-      </NDrawerContent>
-    </NDrawer>
+    <!-- 详情抽屉（T4 / #48）：只读全字段 + 生命周期 + 退款审核 + 通知重发。审核成功后重拉列表。 -->
+    <RefundDetailDrawer
+      v-model:visible="detailDrawerVisible"
+      :refund-order-no="selectedRefundNo"
+      @audited="getData"
+    />
   </div>
 </template>
 

@@ -14,16 +14,10 @@
  * 复用既有只读字段 grid（.desc-table，同 app-detail-modal 范式）+ 后端契约见 Api.Payment。
  */
 import { ref, watch } from 'vue';
-import {
-  fetchGetOrderLifecycle,
-  fetchGetPaymentOrderDetail,
-  fetchResendPaymentNotification
-} from '@/service/api';
+import { fetchGetPaymentOrderDetail, fetchResendPaymentNotification } from '@/service/api';
 import {
   accessTypeRecord,
   displayEnumName,
-  logTypeRecord,
-  operationTypeRecord,
   payModeRecord,
   paymentChannelRecord,
   paymentStatusRecord,
@@ -31,6 +25,7 @@ import {
 } from '@/constants/payment';
 import { $t } from '@/locales';
 import { formatDateTime, formatMoney } from '@/utils/common';
+import OrderLifecycle from '@/views/payment/modules/order-lifecycle.vue';
 
 defineOptions({ name: 'PaymentOrderDetailDrawer' });
 
@@ -54,61 +49,11 @@ async function loadDetail() {
   detailLoading.value = false;
 }
 
-// ---- 生命周期 ----
-const lifecycle = ref<Api.Payment.OrderLifecycle | null>(null);
-const lifecycleLoading = ref(false);
-const lifecycleLoaded = ref(false);
+// ---- 生命周期（复用 OrderLifecycle 组件：按需首次加载 + 分色/分图标时间线）----
+const lifecycleRef = ref<InstanceType<typeof OrderLifecycle> | null>(null);
 
-async function loadLifecycle() {
-  if (!props.paymentOrderNo || lifecycleLoaded.value) return;
-  lifecycleLoading.value = true;
-  const { data, error } = await fetchGetOrderLifecycle(props.paymentOrderNo);
-  if (!error && data) {
-    lifecycle.value = data;
-  }
-  lifecycleLoaded.value = true;
-  lifecycleLoading.value = false;
-}
-
-/** NTimeline dot 类型：PAYMENT_LOG 按 success 决定 success/error，OPERATION_LOG 统一 info（行为者=蓝） */
-function timelineType(ev: Api.Payment.LifecycleEvent): 'success' | 'error' | 'info' | 'default' {
-  if (ev.source === 'PAYMENT_LOG') {
-    if (ev.success === true) return 'success';
-    if (ev.success === false) return 'error';
-    return 'default';
-  }
-  return 'info';
-}
-
-/** 生命周期事件标题：PAYMENT_LOG→logType，OPERATION_LOG→operation（均未知回退 source 文案） */
-function eventTitle(ev: Api.Payment.LifecycleEvent): string {
-  if (ev.source === 'PAYMENT_LOG') return displayEnumName(null, ev.logType, logTypeRecord);
-  return displayEnumName(ev.operationName, ev.operation, operationTypeRecord);
-}
-
-/** 操作结果（自由稳定 token）启发式着色：FAIL/ERROR/REJECT→error，SUCCESS/APPROVE→success，余 default */
-function resultTagType(result: string | null): NaiveUI.ThemeColor {
-  if (!result) return 'default';
-  const r = result.toUpperCase();
-  if (r.includes('FAIL') || r.includes('ERROR') || r.includes('REJECT')) return 'error';
-  if (r.includes('SUCCESS') || r.includes('APPROVE') || r.includes('OK') || r === 'DONE') return 'success';
-  return 'default';
-}
-
-/** executionTime 为 Long→string（cartisan-web 全局 Jackson），展示兜底 Number() */
-function formatExecMs(ms: string | null): string {
-  if (ms == null || ms === '') return '-';
-  const n = Number(ms);
-  return Number.isNaN(n) ? '-' : `${n} ms`;
-}
-
-// ---- tab 切换（生命周期按需首次加载）----
+// tab 状态：v-model 已写值；OrderLifecycle 自管懒加载——`:active` 即首次拉取触发器
 const activeTab = ref<'basic' | 'lifecycle'>('basic');
-
-function handleTabChange(name: 'basic' | 'lifecycle') {
-  activeTab.value = name;
-  if (name === 'lifecycle') loadLifecycle();
-}
 
 // ---- 通知重发 ----
 const resending = ref(false);
@@ -136,8 +81,7 @@ function handleResend() {
 watch(visible, val => {
   if (val) {
     detail.value = null;
-    lifecycle.value = null;
-    lifecycleLoaded.value = false;
+    lifecycleRef.value?.reset();
     activeTab.value = 'basic';
     loadDetail();
   }
@@ -154,7 +98,7 @@ watch(visible, val => {
         </NButton>
       </div>
 
-      <NTabs v-model:value="activeTab" type="line" animated @update:value="handleTabChange">
+      <NTabs v-model:value="activeTab" type="line" animated>
         <!-- 基本信息（全字段只读）-->
         <NTabPane name="basic" :tab="$t('page.payment.order.basicInfo')">
           <div v-if="detailLoading" class="flex-center min-h-300px">
@@ -217,53 +161,9 @@ watch(visible, val => {
           <NEmpty v-else :description="$t('common.noData')" />
         </NTabPane>
 
-        <!-- 生命周期（合并 PaymentLog + OperationLog 时间线）-->
+        <!-- 生命周期（合并 PaymentLog + OperationLog 时间线——复用 OrderLifecycle 组件）-->
         <NTabPane name="lifecycle" :tab="$t('page.payment.order.lifecycle')">
-          <div v-if="lifecycleLoading" class="flex-center min-h-300px">
-            <NSpin />
-          </div>
-          <div v-else-if="lifecycle && lifecycle.events.length" class="pt-8px">
-            <NTimeline size="large">
-              <NTimelineItem
-                v-for="(ev, i) in lifecycle.events"
-                :key="`${ev.createdAt}-${ev.source}-${i}`"
-                :type="timelineType(ev)"
-                :time="formatDateTime(ev.createdAt)"
-              >
-                <div class="flex flex-wrap items-center gap-8px">
-                  <!-- 分图标：机机通道=payment，行为者=person -->
-                  <icon-ic-round-payment v-if="ev.source === 'PAYMENT_LOG'" class="text-16px" />
-                  <icon-ic-round-person v-else class="text-16px" />
-                  <span class="font-500">{{ eventTitle(ev) }}</span>
-                  <!-- 分色 outcome tag -->
-                  <NTag v-if="ev.source === 'PAYMENT_LOG'" size="tiny" :type="ev.success === false ? 'error' : ev.success === true ? 'success' : 'default'">
-                    {{ ev.success === false ? $t('page.payment.lifecycle.fail') : ev.success === true ? $t('page.payment.lifecycle.success') : $t('page.payment.lifecycle.unknown') }}
-                  </NTag>
-                  <NTag v-else size="tiny" :type="resultTagType(ev.result)">
-                    {{ ev.result || '-' }}
-                  </NTag>
-                </div>
-                <!-- 机机通道事件 meta -->
-                <div v-if="ev.source === 'PAYMENT_LOG'" class="mt-4px flex flex-col gap-2px text-12px text-[var(--n-text-color-3)]">
-                  <span v-if="ev.bankInterface">{{ $t('page.payment.lifecycle.bankInterface') }}: {{ ev.bankInterface }}</span>
-                  <span v-if="ev.returnCode || ev.returnMsg">
-                    {{ $t('page.payment.lifecycle.returnCode') }}: {{ ev.returnCode || '-' }}
-                    <span v-if="ev.returnMsg"> · {{ ev.returnMsg }}</span>
-                  </span>
-                  <span>{{ $t('page.payment.lifecycle.executionTime') }}: {{ formatExecMs(ev.executionTime) }}</span>
-                </div>
-                <!-- 行为者操作事件 meta -->
-                <div v-else class="mt-4px flex flex-col gap-2px text-12px text-[var(--n-text-color-3)]">
-                  <span v-if="ev.operatorName">
-                    {{ $t('page.payment.lifecycle.operator') }}: {{ ev.operatorName
-                    }}<span v-if="ev.operatorSystem"> ({{ ev.operatorSystem }})</span>
-                  </span>
-                  <span v-if="ev.remark">{{ $t('page.payment.lifecycle.remark') }}: {{ ev.remark }}</span>
-                </div>
-              </NTimelineItem>
-            </NTimeline>
-          </div>
-          <NEmpty v-else :description="$t('page.payment.lifecycle.noEvents')" />
+          <OrderLifecycle ref="lifecycleRef" :order-no="paymentOrderNo" :active="activeTab === 'lifecycle'" />
         </NTabPane>
       </NTabs>
     </NDrawerContent>

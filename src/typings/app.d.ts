@@ -875,6 +875,24 @@ declare namespace App {
             createdAt: string;
             moreFilters: string;
             detail: string;
+            basicInfo: string;
+            lifecycle: string;
+            resendNotification: string;
+            resendConfirm: {
+              title: string;
+              content: string;
+            };
+            resendSuccess: string;
+            audit: string;
+            auditTitle: string;
+            auditDecision: string;
+            auditApprove: string;
+            auditReject: string;
+            auditReason: string;
+            auditReasonPlaceholder: string;
+            auditReasonRequired: string;
+            auditReasonMax: string;
+            auditSuccess: string;
             form: {
               refundOrderNo: string;
               paymentOrderNo: string;

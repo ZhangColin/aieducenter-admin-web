@@ -237,6 +237,57 @@ declare namespace Api {
     /** 退款订单筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
     type RefundOrderFilter = Omit<RefundOrderSearchParams, 'page' | 'size'>;
 
+    // ---- 退款订单详情（GET /refunds/{no}）----
+
+    /**
+     * 后端 RefundOrderDetailResponse（GET /refunds/{refundOrderNo}）。
+     *
+     * 与列表项 {@link RefundOrderSummary} 字段面当前一致，但详情是完整聚合投影、独立演进
+     * （payment 契约定型后详情可新增字段）——故单立类型、不与列表项共用。
+     *
+     * ⚠️ 与支付详情不同：refund 详情响应**不含** `*Name` 字段（无 statusName / auditTypeName）——
+     * payment 该聚合投影未带枚举中文名，故展示统一经 `displayEnumName(null, code, record)` 走 i18n record
+     * （BFF 透传 `*Name` 落地前即如此，REQ-16 后 refund 详情是否补 `*Name` 以 payment 为准）。
+     * `refundAmount` 为 BigDecimal → JSON number（整数分）；`auditorId` 为 Long → string。
+     */
+    interface RefundOrderDetail {
+      refundOrderNo: string;
+      paymentOrderNo: string;
+      businessOrderNo: string;
+      businessSystemName: string | null;
+      /** payment RefundStatus 枚举 code（字符串） */
+      status: RefundStatus;
+      /** 整数分（BigDecimal → number） */
+      refundAmount: number;
+      /** payment AuditType 枚举 code（1=免审 / 2=人工）；未审核可空 */
+      auditType: AuditType | null;
+      /** 审核人 ID，Long→string */
+      auditorId: string | null;
+      /** 审核人姓名，可空 */
+      auditorName: string | null;
+      /** 审核时间，可空（未审核）；ISO 字符串 */
+      auditedAt: string | null;
+      /** 创建时间，ISO 字符串 */
+      createdAt: string;
+    }
+
+    /**
+     * 退款审核请求体（POST /refunds/{refundOrderNo}/audit，后端 RefundAuditCommand）。
+     *
+     * 只承载运营人员的**决策意图**：`agreed=true` 通过 / `false` 拒绝，外加可选 `remark`（≤512）。
+     * **不含** auditorId / auditorName——审核人身份由 admin 服务端从 RequestContext 注入、前端不可伪造
+     * （见 payment-admin spec「操作者身份透传」、issue #42）。
+     *
+     * ⚠️ reject 时前端**强制**要求 remark（issue #48 验收：reject 必填 reason，空则禁提交）；
+     * approve 时 remark 选填。后端校验 `agreed` 非空、`remark` ≤512。
+     */
+    interface RefundAuditRequest {
+      /** 审核决策：true=通过（approve）、false=拒绝（reject） */
+      agreed: boolean;
+      /** 审核备注（选填，≤512；前端 reject 时必填） */
+      remark?: string;
+    }
+
     // ---- 通道交互日志（列表 / 筛选，GET /payment-logs）----
 
     /**

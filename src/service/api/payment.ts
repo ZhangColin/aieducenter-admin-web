@@ -17,8 +17,10 @@ import { request } from '../request';
  * - T2 / #44：支付订单详情 `GET /payments/{no}`、订单生命周期 `GET /orders/{no}/lifecycle`、
  *   通知重发 `POST /payments/{no}/notifications/resend`。
  * - T3 / #45：退款订单列表 `GET /refunds`。
+ * - T4 / #48：退款订单详情 `GET /refunds/{no}`、退款审核 `POST /refunds/{no}/audit`、
+ *   退款通知重发 `POST /refunds/{no}/notifications/resend`。
  * - T5 / #46：通道交互日志列表 `GET /payment-logs`、订单操作记录列表 `GET /operation-logs`。
- * 其余端点随退款详情/写操作/仪表盘各 ticket 增补。
+ * 其余端点随仪表盘各 ticket 增补。
  */
 
 /** 支付订单分页列表（GET /payments） */
@@ -44,6 +46,43 @@ export function fetchGetRefundOrderList(params: Api.Payment.RefundOrderSearchPar
     url: '/payment/refunds',
     method: 'get',
     params
+  });
+}
+
+/** 退款订单详情（GET /refunds/{refundOrderNo}） */
+export function fetchGetRefundOrderDetail(refundOrderNo: string) {
+  return request<Api.Payment.RefundOrderDetail>({
+    url: `/payment/refunds/${refundOrderNo}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 审核退款（POST /refunds/{refundOrderNo}/audit）。
+ *
+ * 前端只发**决策意图**（agreed + remark）；审核人身份（auditorId/auditorName）由 admin 服务端从
+ * RequestContext 注入、前端不可伪造。reject 时前端强制 remark 必填（issue #48）；后端校验 agreed 非空、
+ * remark ≤512。成功返回最新详情（状态已推进），调用方据此刷新。
+ * 权限码 `admin:payment:refund:audit`（本次写按钮不接门控，按 spec follow-up 统一处理——同 T2 通知重发）。
+ */
+export function fetchAuditRefund(refundOrderNo: string, data: Api.Payment.RefundAuditRequest) {
+  return request<Api.Payment.RefundOrderDetail>({
+    url: `/payment/refunds/${refundOrderNo}/audit`,
+    method: 'post',
+    data
+  });
+}
+
+/**
+ * 重发退款结果通知（POST /refunds/{refundOrderNo}/notifications/resend）。
+ * 补发漏投到业务系统、**不改订单状态**（payment ADR-0001）；操作者身份由服务端从 RequestContext 注入。
+ * 两个重发端点（payment / refund）共用权限码 `admin:payment:notification:resend`
+ * （本次写按钮不接门控，按 spec follow-up 统一处理——同 T2 通知重发）。
+ */
+export function fetchResendRefundNotification(refundOrderNo: string) {
+  return request<Api.Payment.RefundOrderDetail>({
+    url: `/payment/refunds/${refundOrderNo}/notifications/resend`,
+    method: 'post'
   });
 }
 
