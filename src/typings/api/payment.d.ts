@@ -112,5 +112,88 @@ declare namespace Api {
 
     /** 支付订单筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
     type PaymentOrderFilter = Omit<PaymentOrderSearchParams, 'page' | 'size'>;
+
+    // ---- 支付订单详情（GET /payments/{no}）----
+
+    /**
+     * 后端 PaymentOrderDetailResponse（GET /payments/{paymentOrderNo}）。
+     *
+     * 与列表项 {@link PaymentOrderSummary} 字段面当前一致，但详情是完整聚合投影、独立演进
+     * （payment 契约定型后详情可新增字段）——故单立类型、不与列表项共用。
+     * `amount` 为 BigDecimal → JSON number（整数分）；其余约定同 PaymentOrderSummary。
+     */
+    interface PaymentOrderDetail {
+      paymentOrderNo: string;
+      businessOrderNo: string;
+      businessSystemName: string | null;
+      status: PaymentStatus;
+      /** 整数分（BigDecimal → number） */
+      amount: number;
+      payMode: PayMode | null;
+      accessType: AccessType | null;
+      paymentChannel: PaymentChannel | null;
+      /** 支付时间，可空（未支付）；ISO 字符串 */
+      paidAt: string | null;
+      /** 创建时间，ISO 字符串 */
+      createdAt: string;
+    }
+
+    // ---- 订单生命周期（GET /orders/{no}/lifecycle）----
+
+    /**
+     * 生命周期事件来源（payment 已在 BFF 上游合并 PaymentLog + OperationLog 按 createdAt 排序返回）。
+     * - `PAYMENT_LOG`：机机通道事件（与银行/通道网关的交互留痕），网关字段组生效；
+     * - `OPERATION_LOG`：人/系统行为者操作事件（审核/通知重发等），操作字段组生效。
+     * 非生效组字段为 null（union 平表投影）。
+     */
+    type LifecycleSource = 'PAYMENT_LOG' | 'OPERATION_LOG';
+
+    /**
+     * 后端 OrderLifecycleResponse.LifecycleEvent——payment 合并后的单条时间线条目。
+     *
+     * 平表投影：source=PAYMENT_LOG 时网关字段组（logType…success）生效、操作字段组为 null；
+     * source=OPERATION_LOG 时反之。
+     *
+     * ⚠️ Long 字段（executionTime / operatorId）经 cartisan-web 全局 Jackson `Long→string`
+     * 序列化为 JSON **字符串**（见 JacksonConfiguration），故按 string 处理防精度丢失；
+     * 展示时 `Number()` 兜底。`success` 为 Boolean（可空）。
+     */
+    interface LifecycleEvent {
+      source: LifecycleSource;
+      /** 发生时间（合并排序键，payment 已排好序）；ISO 字符串 */
+      createdAt: string;
+
+      // ===== PaymentLog 字段（source=PAYMENT_LOG 时生效，否则 null）=====
+      logType: LogType | null;
+      paymentOrderNo: string | null;
+      refundOrderNo: string | null;
+      bankInterface: string | null;
+      returnCode: string | null;
+      returnMsg: string | null;
+      /** 执行耗时（毫秒），Long→string */
+      executionTime: string | null;
+      success: boolean | null;
+
+      // ===== OperationLog 字段（source=OPERATION_LOG 时生效，否则 null）=====
+      targetType: OperationTargetType | null;
+      targetNo: string | null;
+      operation: OperationType | null;
+      /** 操作人 ID，Long→string */
+      operatorId: string | null;
+      operatorName: string | null;
+      operatorSystem: string | null;
+      /** 操作结果（自由稳定 token、非闭合枚举），原值展示 */
+      result: string | null;
+      remark: string | null;
+    }
+
+    /**
+     * 后端 OrderLifecycleResponse——payment 已合并（按 createdAt 排序）的时间线。
+     * admin BFF 原值透传、不本地再合并（避免与 payment 双逻辑不一致）。
+     */
+    interface OrderLifecycle {
+      orderNo: string;
+      events: LifecycleEvent[];
+    }
   }
 }

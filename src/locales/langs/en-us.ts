@@ -562,6 +562,14 @@ const local: App.I18n.Schema = {
         createdAt: 'Created At',
         moreFilters: 'More Filters',
         detail: 'Detail',
+        basicInfo: 'Basic Info',
+        lifecycle: 'Lifecycle',
+        resendNotification: 'Resend Notification',
+        resendConfirm: {
+          title: 'Resend Notification',
+          content: 'This will resend the payment result notification to the business system (delivery only, order status unchanged). Continue?'
+        },
+        resendSuccess: 'Notification resend submitted',
         form: {
           paymentOrderNo: 'Enter payment order no.',
           businessOrderNo: 'Enter business order no.',
@@ -626,6 +634,18 @@ const local: App.I18n.Schema = {
           payment: 'Payment',
           refund: 'Refund'
         }
+      },
+      lifecycle: {
+        success: 'Success',
+        fail: 'Fail',
+        unknown: 'Unknown',
+        executionTime: 'Duration',
+        returnCode: 'Return Code',
+        returnMsg: 'Return Message',
+        bankInterface: 'Bank Interface',
+        operator: 'Operator',
+        remark: 'Remark',
+        noEvents: 'No lifecycle events'
       }
     }
   },

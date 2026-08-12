@@ -558,6 +558,14 @@ const local: App.I18n.Schema = {
         createdAt: '创建时间',
         moreFilters: '更多筛选',
         detail: '详情',
+        basicInfo: '基本信息',
+        lifecycle: '生命周期',
+        resendNotification: '通知重发',
+        resendConfirm: {
+          title: '通知重发确认',
+          content: '将向业务系统补发该订单的支付结果通知（仅补发投递，不改变订单状态）。是否继续？'
+        },
+        resendSuccess: '通知重发已提交',
         form: {
           paymentOrderNo: '请输入支付订单号',
           businessOrderNo: '请输入业务订单号',
@@ -622,6 +630,18 @@ const local: App.I18n.Schema = {
           payment: '支付订单',
           refund: '退款订单'
         }
+      },
+      lifecycle: {
+        success: '成功',
+        fail: '失败',
+        unknown: '未知',
+        executionTime: '耗时',
+        returnCode: '返回码',
+        returnMsg: '返回消息',
+        bankInterface: '银行接口',
+        operator: '操作人',
+        remark: '备注',
+        noEvents: '暂无生命周期事件'
       }
     }
   },

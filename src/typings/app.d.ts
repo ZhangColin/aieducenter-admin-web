@@ -797,6 +797,14 @@ declare namespace App {
             createdAt: string;
             moreFilters: string;
             detail: string;
+            basicInfo: string;
+            lifecycle: string;
+            resendNotification: string;
+            resendConfirm: {
+              title: string;
+              content: string;
+            };
+            resendSuccess: string;
             form: {
               paymentOrderNo: string;
               businessOrderNo: string;
@@ -861,6 +869,18 @@ declare namespace App {
               payment: string;
               refund: string;
             };
+          };
+          lifecycle: {
+            success: string;
+            fail: string;
+            unknown: string;
+            executionTime: string;
+            returnCode: string;
+            returnMsg: string;
+            bankInterface: string;
+            operator: string;
+            remark: string;
+            noEvents: string;
           };
         };
       };

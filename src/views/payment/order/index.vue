@@ -8,7 +8,7 @@
  * 复用 SystemManage 整套范式：useNaivePaginatedTable + defaultTransform + 0-based 请求 / 1-based 响应分页。
  */
 import { ref } from 'vue';
-import { NButton, NDrawerContent, NDrawer, NEmpty, NTag } from 'naive-ui';
+import { NButton, NTag } from 'naive-ui';
 import { paymentStatusRecord, payModeRecord, accessTypeRecord, paymentChannelRecord } from '@/constants/payment';
 import { fetchGetPaymentOrderList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
@@ -16,6 +16,7 @@ import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import { formatDateTime, formatMoney } from '@/utils/common';
 import OrderSearch from './modules/order-search.vue';
+import OrderDetailDrawer from './modules/order-detail-drawer.vue';
 
 defineOptions({ name: 'PaymentOrder' });
 
@@ -156,7 +157,7 @@ function handleSearch(filter: Api.Payment.PaymentOrderFilter) {
 
 /**
  * 详情入口钩子（点「详情」开右抽屉）。
- * 抽屉本体（只读全字段 + 生命周期 NTimeline + 通知重发）归 T2 / #44；此处仅留按钮 + 钩子。
+ * 抽屉本体（只读全字段 + 生命周期 NTimeline + 通知重发）= OrderDetailDrawer（T2 / #44）。
  */
 const detailDrawerVisible = ref(false);
 const selectedOrderNo = ref('');
@@ -194,12 +195,8 @@ function openDetail(paymentOrderNo: string) {
       />
     </NCard>
 
-    <!-- 详情抽屉（T2 / #44 实现本体：只读全字段 + 生命周期 tab + 通知重发） -->
-    <NDrawer v-model:show="detailDrawerVisible" :width="720">
-      <NDrawerContent :title="`${$t('page.payment.order.detail')} · ${selectedOrderNo}`" closable>
-        <NEmpty :description="$t('page.payment.common.comingSoon')" />
-      </NDrawerContent>
-    </NDrawer>
+    <!-- 详情抽屉（T2 / #44：只读全字段 + 生命周期 tab + 通知重发） -->
+    <OrderDetailDrawer v-model:visible="detailDrawerVisible" :payment-order-no="selectedOrderNo" />
   </div>
 </template>
 
