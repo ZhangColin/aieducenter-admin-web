@@ -44,7 +44,7 @@ export const usePaymentStatsStore = defineStore(SetupStoreId.PaymentStats, () =>
   const operationsAuditError = ref(false);
 
   /** 通用拉取：flat request 返回 { data, error }，记 data + error 标志（error 已由 onError toast） */
-  async function run<T>(
+  async function loadResource<T>(
     fetcher: () => Promise<{ data: T | null; error: unknown }>,
     data: Ref<T | null>,
     loading: Ref<boolean>,
@@ -59,19 +59,24 @@ export const usePaymentStatsStore = defineStore(SetupStoreId.PaymentStats, () =>
   }
 
   async function loadOverview() {
-    await run(fetchGetPaymentOverview, overview, overviewLoading, overviewError);
+    await loadResource(fetchGetPaymentOverview, overview, overviewLoading, overviewError);
   }
 
   async function loadStatusDistribution() {
-    await run(fetchGetOrderStatusDistribution, statusDistribution, statusDistributionLoading, statusDistributionError);
+    await loadResource(
+      fetchGetOrderStatusDistribution,
+      statusDistribution,
+      statusDistributionLoading,
+      statusDistributionError
+    );
   }
 
   async function loadGatewayHealth() {
-    await run(fetchGetGatewayHealth, gatewayHealth, gatewayHealthLoading, gatewayHealthError);
+    await loadResource(fetchGetGatewayHealth, gatewayHealth, gatewayHealthLoading, gatewayHealthError);
   }
 
   async function loadOperationsAudit() {
-    await run(fetchGetOperationsAudit, operationsAudit, operationsAuditLoading, operationsAuditError);
+    await loadResource(fetchGetOperationsAudit, operationsAudit, operationsAuditLoading, operationsAuditError);
   }
 
   /** 并发拉 4 个 tier-1 端点；allSettled——单个失败不阻断其余 */

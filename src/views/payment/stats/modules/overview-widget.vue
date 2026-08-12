@@ -9,6 +9,7 @@ import { useEcharts } from '@/hooks/common/echarts';
 import { $t } from '@/locales';
 import { formatCount, formatDateTime, formatMoney, formatRate } from '@/utils/common';
 import WidgetPlaceholder from './widget-placeholder.vue';
+import type { StatKpi } from './types';
 
 defineOptions({ name: 'PaymentOverviewWidget' });
 
@@ -57,9 +58,11 @@ watch(
   }
 );
 
-const stats: { key: string; label: App.I18n.I18nKey; value: () => string }[] = [
+const stats: StatKpi[] = [
   { key: 'paymentCount', label: 'page.payment.stats.overview.paymentCount', value: () => formatCount(store.overview?.paymentCount) },
   { key: 'paymentAmount', label: 'page.payment.stats.overview.paymentAmount', value: () => formatMoney(store.overview?.paymentAmount) },
+  { key: 'refundCount', label: 'page.payment.stats.overview.refundCount', value: () => formatCount(store.overview?.refundCount) },
+  { key: 'refundAmount', label: 'page.payment.stats.overview.refundAmount', value: () => formatMoney(store.overview?.refundAmount) },
   { key: 'successRate', label: 'page.payment.stats.overview.successRate', value: () => formatRate(store.overview?.successRate) },
   { key: 'netAmount', label: 'page.payment.stats.overview.netAmount', value: () => formatMoney(store.overview?.netAmount) }
 ];
@@ -78,7 +81,7 @@ const stats: { key: string; label: App.I18n.I18nKey; value: () => string }[] = [
 
     <!-- KPI -->
     <NGrid :x-gap="16" :y-gap="8" responsive="screen" item-responsive class="mb-8px">
-      <NGi v-for="s in stats" :key="s.key" span="12 s:6 m:6">
+      <NGi v-for="s in stats" :key="s.key" span="12 s:6 m:4">
         <NStatistic :label="$t(s.label)" :value="s.value()" />
       </NGi>
     </NGrid>

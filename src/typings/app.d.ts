@@ -798,6 +798,7 @@ declare namespace App {
             statusDistribution: {
               title: string;
               paymentStatus: string;
+              refundStatus: string;
               refundBacklog: string;
               backlogCount: string;
             };

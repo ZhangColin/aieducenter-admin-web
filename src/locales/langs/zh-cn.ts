@@ -559,6 +559,7 @@ const local: App.I18n.Schema = {
         statusDistribution: {
           title: '订单状态分布',
           paymentStatus: '支付状态',
+          refundStatus: '退款状态',
           refundBacklog: '退款待审核积压',
           backlogCount: '笔'
         },

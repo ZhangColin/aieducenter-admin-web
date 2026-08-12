@@ -67,7 +67,7 @@ const columns = [
       row.returnCodes?.length ? (
         <NSpace size={4} wrap>
           {row.returnCodes.map(rc => (
-            <NTag size="small">{`${rc.returnCode} × ${formatCount(rc.count)}`}</NTag>
+            <NTag key={rc.returnCode} size="small">{`${rc.returnCode} × ${formatCount(rc.count)}`}</NTag>
           ))}
         </NSpace>
       ) : (

@@ -7,6 +7,7 @@ import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { $t } from '@/locales';
 import { formatCount, formatRate } from '@/utils/common';
 import WidgetPlaceholder from './widget-placeholder.vue';
+import type { StatKpi } from './types';
 
 defineOptions({ name: 'PaymentOperationsAuditWidget' });
 
@@ -50,7 +51,7 @@ const columns = [
   }
 ];
 
-const kpis: { key: string; label: App.I18n.I18nKey; value: () => string }[] = [
+const kpis: StatKpi[] = [
   { key: 'auditCount', label: 'page.payment.stats.operationsAudit.auditCount', value: () => formatCount(store.operationsAudit?.auditCount) },
   { key: 'approvalRate', label: 'page.payment.stats.operationsAudit.approvalRate', value: () => formatRate(store.operationsAudit?.approvalRate) },
   { key: 'avgDuration', label: 'page.payment.stats.operationsAudit.avgDuration', value: () => `${formatCount(store.operationsAudit?.avgAuditDurationSeconds)} s` }

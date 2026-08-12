@@ -563,6 +563,7 @@ const local: App.I18n.Schema = {
         statusDistribution: {
           title: 'Order Status Distribution',
           paymentStatus: 'Payment Status',
+          refundStatus: 'Refund Status',
           refundBacklog: 'Refund Pending Audit',
           backlogCount: 'orders'
         },
