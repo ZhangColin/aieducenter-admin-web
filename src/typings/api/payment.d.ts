@@ -138,6 +138,70 @@ declare namespace Api {
       createdAt: string;
     }
 
+    // ---- 退款订单（列表 / 筛选）----
+
+    /**
+     * 后端 RefundOrderSummaryResponse（GET /refunds 列表项）。
+     * 各字段为 payment 原值透传；`refundAmount` 为整数分；各类 `*No` 为字符串（防 Long 精度丢失）。
+     *
+     * `auditorId` 为 Long → 经全局 Jackson `Long→string` 序列化为 JSON **字符串**，按 string 处理防精度丢失。
+     */
+    interface RefundOrderSummary {
+      refundOrderNo: string;
+      paymentOrderNo: string;
+      businessOrderNo: string;
+      businessSystemName: string | null;
+      /** payment RefundStatus 枚举名 */
+      status: RefundStatus;
+      /** 整数分（BigDecimal → number） */
+      refundAmount: number;
+      /** payment AuditType 枚举名（AUTO 免审 / MANUAL 人工）；未审核可空 */
+      auditType: AuditType | null;
+      /** 审核人 ID，Long→string */
+      auditorId: string | null;
+      /** 审核人姓名，可空 */
+      auditorName: string | null;
+      /** 审核时间，可空（未审核）；ISO 字符串 */
+      auditedAt: string | null;
+      /** 创建时间，ISO 字符串 */
+      createdAt: string;
+    }
+
+    /**
+     * GET /refunds 搜索参数（后端 RefundOrderQuery + Spring Pageable）。
+     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     *
+     * - `statuses` 多选（Spring 绑定 record List<String>，axios qs 默认 indices 格式可绑）；
+     * - 退款金额区间 `refundAmountMin/Max`（整数分）与创建时间区间 `createdAtFrom/To`（ISO 串）均可空，
+     *   空值由调用方剔除；
+     * - `auditorId` 为 Long，前端按 **string** 处理防精度丢失，提交字符串由后端绑 Long。
+     */
+    interface RefundOrderSearchParams {
+      refundOrderNo?: string | null;
+      paymentOrderNo?: string | null;
+      businessOrderNo?: string | null;
+      businessSystemName?: string | null;
+      /** 状态多选；null/空 = 不过滤 */
+      statuses?: RefundStatus[] | null;
+      auditType?: AuditType | null;
+      /** 审核人 ID（Long）—— string 防精度丢失，后端绑 Long */
+      auditorId?: string | null;
+      /** 退款金额下限（整数分，含） */
+      refundAmountMin?: number | null;
+      /** 退款金额上限（整数分，含） */
+      refundAmountMax?: number | null;
+      /** 创建时间起（ISO，含） */
+      createdAtFrom?: string | null;
+      /** 创建时间止（ISO，含） */
+      createdAtTo?: string | null;
+      /** 0-based */
+      page: number;
+      size: number;
+    }
+
+    /** 退款订单筛选载荷（搜索参数去分页——分页由列表页管）。搜索组件 emit、列表页接收。 */
+    type RefundOrderFilter = Omit<RefundOrderSearchParams, 'page' | 'size'>;
+
     // ---- 订单生命周期（GET /orders/{no}/lifecycle）----
 
     /**

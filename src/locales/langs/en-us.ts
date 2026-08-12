@@ -582,6 +582,35 @@ const local: App.I18n.Schema = {
           paidAt: 'Select paid-at range'
         }
       },
+      refund: {
+        title: 'Refund Orders',
+        refundOrderNo: 'Refund Order No.',
+        paymentOrderNo: 'Payment Order No.',
+        businessOrderNo: 'Business Order No.',
+        businessSystemName: 'Business System',
+        status: 'Status',
+        refundAmount: 'Refund Amount',
+        refundAmountRange: 'Refund Amount Range',
+        refundAmountMin: 'Min (CNY)',
+        refundAmountMax: 'Max (CNY)',
+        auditType: 'Audit Type',
+        auditor: 'Auditor',
+        auditorId: 'Auditor ID',
+        auditedAt: 'Audited At',
+        createdAt: 'Created At',
+        moreFilters: 'More Filters',
+        detail: 'Detail',
+        form: {
+          refundOrderNo: 'Enter refund order no.',
+          paymentOrderNo: 'Enter payment order no.',
+          businessOrderNo: 'Enter business order no.',
+          businessSystemName: 'Enter business system name',
+          status: 'Select status',
+          auditType: 'Select audit type',
+          auditorId: 'Enter auditor ID',
+          createdAt: 'Select created-at range'
+        }
+      },
       enum: {
         paymentStatus: {
           pending: 'Pending',

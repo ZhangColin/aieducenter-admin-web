@@ -817,6 +817,35 @@ declare namespace App {
               paidAt: string;
             };
           };
+          refund: {
+            title: string;
+            refundOrderNo: string;
+            paymentOrderNo: string;
+            businessOrderNo: string;
+            businessSystemName: string;
+            status: string;
+            refundAmount: string;
+            refundAmountRange: string;
+            refundAmountMin: string;
+            refundAmountMax: string;
+            auditType: string;
+            auditor: string;
+            auditorId: string;
+            auditedAt: string;
+            createdAt: string;
+            moreFilters: string;
+            detail: string;
+            form: {
+              refundOrderNo: string;
+              paymentOrderNo: string;
+              businessOrderNo: string;
+              businessSystemName: string;
+              status: string;
+              auditType: string;
+              auditorId: string;
+              createdAt: string;
+            };
+          };
           enum: {
             paymentStatus: {
               pending: string;

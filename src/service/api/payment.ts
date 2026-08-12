@@ -16,7 +16,8 @@ import { request } from '../request';
  * - T1 / #43：支付订单列表 `GET /payments`。
  * - T2 / #44：支付订单详情 `GET /payments/{no}`、订单生命周期 `GET /orders/{no}/lifecycle`、
  *   通知重发 `POST /payments/{no}/notifications/resend`。
- * 其余端点随退款/日志/写操作/仪表盘各 ticket 增补。
+ * - T3 / #45：退款订单列表 `GET /refunds`。
+ * 其余端点随退款详情/写操作/日志/仪表盘各 ticket 增补。
  */
 
 /** 支付订单分页列表（GET /payments） */
@@ -33,6 +34,15 @@ export function fetchGetPaymentOrderDetail(paymentOrderNo: string) {
   return request<Api.Payment.PaymentOrderDetail>({
     url: `/payment/payments/${paymentOrderNo}`,
     method: 'get'
+  });
+}
+
+/** 退款订单分页列表（GET /refunds） */
+export function fetchGetRefundOrderList(params: Api.Payment.RefundOrderSearchParams) {
+  return request<Api.Common.PageResponse<Api.Payment.RefundOrderSummary>>({
+    url: '/payment/refunds',
+    method: 'get',
+    params
   });
 }
 

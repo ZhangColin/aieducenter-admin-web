@@ -578,6 +578,35 @@ const local: App.I18n.Schema = {
           paidAt: '请选择支付时间范围'
         }
       },
+      refund: {
+        title: '退款订单',
+        refundOrderNo: '退款订单号',
+        paymentOrderNo: '支付订单号',
+        businessOrderNo: '业务订单号',
+        businessSystemName: '业务系统',
+        status: '状态',
+        refundAmount: '退款金额',
+        refundAmountRange: '退款金额区间',
+        refundAmountMin: '最低（元）',
+        refundAmountMax: '最高（元）',
+        auditType: '审核类型',
+        auditor: '审核人',
+        auditorId: '审核人 ID',
+        auditedAt: '审核时间',
+        createdAt: '创建时间',
+        moreFilters: '更多筛选',
+        detail: '详情',
+        form: {
+          refundOrderNo: '请输入退款订单号',
+          paymentOrderNo: '请输入支付订单号',
+          businessOrderNo: '请输入业务订单号',
+          businessSystemName: '请输入业务系统名',
+          status: '请选择状态',
+          auditType: '请选择审核类型',
+          auditorId: '请输入审核人 ID',
+          createdAt: '请选择创建时间范围'
+        }
+      },
       enum: {
         paymentStatus: {
           pending: '待支付',

@@ -1,15 +1,205 @@
-<script setup lang="ts">
-/** 退款订单（列表 + 详情抽屉 + 退款审核 + 通知重发）。归 T2/T5。 */
+<script setup lang="tsx">
+/**
+ * 退款订单列表（T3 / #45）。
+ *
+ * 只读分页列表 + 9 字段筛选（NCollapse 折叠）+ 退款金额 ¥1,234.56 + 详情入口钩子（抽屉本体归 T4 / #48）。
+ * payment 退款非 admin 创建——列表无新增/删除（TableHeaderOperation hideAdd + hideDelete）。
+ *
+ * 复用 T1 整套范式：useNaivePaginatedTable + defaultTransform + 0-based 请求 / 1-based 响应分页。
+ */
+import { ref } from 'vue';
+import { NButton, NDrawer, NDrawerContent, NEmpty, NTag } from 'naive-ui';
+import { auditTypeRecord, refundStatusRecord } from '@/constants/payment';
+import { fetchGetRefundOrderList } from '@/service/api';
+import { useAppStore } from '@/store/modules/app';
+import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
+import { formatDateTime, formatMoney } from '@/utils/common';
+import RefundSearch from './modules/refund-search.vue';
 
 defineOptions({ name: 'PaymentRefund' });
+
+const appStore = useAppStore();
+
+/** 搜索参数 = 分页 + 当前筛选（筛选由 RefundSearch 清洗后并入）。page 0-based。 */
+const searchParams = ref<Api.Payment.RefundOrderSearchParams>({
+  page: 0,
+  size: 10
+});
+
+/** 退款订单状态标签色（运营关注状态，唯一着色列） */
+const statusTagMap: Record<Api.Payment.RefundStatus, NaiveUI.ThemeColor> = {
+  PENDING: 'warning',
+  REJECTED: 'error',
+  APPROVED: 'default',
+  REFUNDING: 'info',
+  SUCCESS: 'success',
+  FAILED: 'error'
+};
+
+/** 文本型枚举列渲染：null → '-'，已知值翻译、未知值回退原值（后端新增枚举时不报错） */
+function renderEnum<T extends string>(record: Record<T, App.I18n.I18nKey>, value: T | null | undefined) {
+  if (!value) return '-';
+  const key = record[value];
+  return key ? $t(key) : value;
+}
+
+const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
+  useNaivePaginatedTable({
+    api: () => fetchGetRefundOrderList(searchParams.value),
+    transform: response => defaultTransform(response),
+    onPaginationParamsChange: params => {
+      searchParams.value.page = (params.page ?? 1) - 1;
+      searchParams.value.size = params.pageSize ?? 10;
+    },
+    columns: () => [
+      {
+        key: 'refundOrderNo',
+        title: $t('page.payment.refund.refundOrderNo'),
+        align: 'center',
+        minWidth: 200
+      },
+      {
+        key: 'paymentOrderNo',
+        title: $t('page.payment.refund.paymentOrderNo'),
+        align: 'center',
+        minWidth: 200
+      },
+      {
+        key: 'businessOrderNo',
+        title: $t('page.payment.refund.businessOrderNo'),
+        align: 'center',
+        minWidth: 170
+      },
+      {
+        key: 'businessSystemName',
+        title: $t('page.payment.refund.businessSystemName'),
+        align: 'center',
+        minWidth: 140,
+        render: row => row.businessSystemName || '-'
+      },
+      {
+        key: 'status',
+        title: $t('page.payment.refund.status'),
+        align: 'center',
+        width: 100,
+        render: row => {
+          const key = refundStatusRecord[row.status];
+          return (
+            <NTag type={statusTagMap[row.status] ?? 'default'} size="small">
+              {key ? $t(key) : row.status}
+            </NTag>
+          );
+        }
+      },
+      {
+        key: 'refundAmount',
+        title: $t('page.payment.refund.refundAmount'),
+        align: 'right',
+        width: 140,
+        render: row => formatMoney(row.refundAmount)
+      },
+      {
+        key: 'auditType',
+        title: $t('page.payment.refund.auditType'),
+        align: 'center',
+        width: 110,
+        render: row => renderEnum(auditTypeRecord, row.auditType)
+      },
+      {
+        key: 'auditor',
+        title: $t('page.payment.refund.auditor'),
+        align: 'center',
+        minWidth: 130,
+        render: row => row.auditorName || row.auditorId || '-'
+      },
+      {
+        key: 'auditedAt',
+        title: $t('page.payment.refund.auditedAt'),
+        align: 'center',
+        width: 170,
+        render: row => (row.auditedAt ? formatDateTime(row.auditedAt) : '-')
+      },
+      {
+        key: 'createdAt',
+        title: $t('page.payment.refund.createdAt'),
+        align: 'center',
+        width: 170,
+        render: row => formatDateTime(row.createdAt)
+      },
+      {
+        key: 'operate',
+        title: $t('common.operate'),
+        align: 'center',
+        width: 90,
+        fixed: 'right',
+        render: row => (
+          <div class="flex-center gap-8px">
+            <NButton type="primary" ghost size="small" onClick={() => openDetail(row.refundOrderNo)}>
+              {$t('page.payment.refund.detail')}
+            </NButton>
+          </div>
+        )
+      }
+    ]
+  });
+
+function getRowKey(row: Api.Payment.RefundOrderSummary) {
+  return row.refundOrderNo;
+}
+
+/** 接筛选条提交：重置筛选字段（保留分页）、并入新筛选，回到第一页 */
+function handleSearch(filter: Api.Payment.RefundOrderFilter) {
+  searchParams.value = { page: searchParams.value.page, size: searchParams.value.size, ...filter };
+  getDataByPage(1);
+}
+
+/**
+ * 详情入口钩子（点「详情」开右抽屉）。
+ * 抽屉本体（只读全字段 + 生命周期 NTimeline + 退款审核 + 通知重发）归 T4 / #48；此处仅留按钮 + 钩子。
+ */
+const detailDrawerVisible = ref(false);
+const selectedRefundNo = ref('');
+
+function openDetail(refundOrderNo: string) {
+  selectedRefundNo.value = refundOrderNo;
+  detailDrawerVisible.value = true;
+}
 </script>
 
 <template>
-  <div class="min-h-500px flex-center">
-    <NCard :bordered="false" size="small" class="card-wrapper">
-      <NEmpty :description="$t('page.payment.common.comingSoon')" />
+  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
+    <RefundSearch @search="handleSearch" />
+    <NCard :title="$t('page.payment.refund.title')" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+      <template #header-extra>
+        <TableHeaderOperation
+          v-model:columns="columnChecks"
+          :hide-add="true"
+          :hide-delete="true"
+          :loading="loading"
+          @refresh="getData"
+        />
+      </template>
+      <NDataTable
+        :columns="columns"
+        :data="data"
+        size="small"
+        :flex-height="!appStore.isMobile"
+        class="sm:h-full"
+        :scroll-x="scrollX"
+        :loading="loading"
+        remote
+        :row-key="getRowKey"
+        :pagination="mobilePagination"
+      />
     </NCard>
+
+    <!-- 详情抽屉占位（T4 / #48 实现本体：只读全字段 + 生命周期 tab + 退款审核 + 通知重发） -->
+    <NDrawer v-model:show="detailDrawerVisible" :width="720">
+      <NDrawerContent :title="`${$t('page.payment.refund.detail')} · ${selectedRefundNo}`" closable>
+        <NEmpty :description="$t('page.payment.common.comingSoon')" />
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 
