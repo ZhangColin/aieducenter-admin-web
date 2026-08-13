@@ -584,5 +584,101 @@ declare namespace Api {
       avgAuditDurationSeconds: string;
       auditors: OperationsAuditorStat[];
     }
+
+    // ---- 统计（仪表盘 tier-2，GET /stats/**）----
+    //
+    // 4 个 tier-2 端点，经 usePaymentStats store 消费（ADR-0002 seam）。与 tier-1 不同：这 4 个端点**无时间窗**
+    // （不带 from/to），不受 REQ-17 影响，应正常出数。约定同 tier-1：Long → JSON 字符串、BigDecimal → number、
+    // 比率 0–1 小数、金额整数分。
+    //
+    // ⚠️ 维度分组键（payMode / accessType / operation）在 stats 聚合 read-model 里按枚举 **NAME** 投影
+    // （如 WECHAT / APP / AUDIT_APPROVE），与列表/详情的 code 序列化（'9' / '5' / '1'）是不同 read-model——
+    // 故展示用 name-token record + 原值回退（见 constants/payment.ts 的 *NameRecord），不复用 code-keyed record。
+
+    /** 按业务系统细分——单一业务系统的支付/退款笔数·金额·成功率·退款率 */
+    interface BusinessSystemStat {
+      /** 业务系统名（PaymentOrder/RefundOrder.businessSystemName，即调用方 callerAppName） */
+      businessSystemName: string;
+      /** 支付笔数（Long→string） */
+      paymentCount: string;
+      /** 支付金额（整数分） */
+      paymentAmount: number;
+      /** 退款笔数（Long→string） */
+      refundCount: string;
+      /** 退款金额（整数分） */
+      refundAmount: number;
+      /** 支付成功率（小数 0–1） */
+      successRate: number;
+      /** 退款率（小数 0–1，退款笔数 / 支付笔数） */
+      refundRate: number;
+    }
+
+    /** GET /stats/by-business-system —— 各业务系统支付/退款笔数·金额·成功率·退款率 */
+    interface BusinessSystemStats {
+      systems: BusinessSystemStat[];
+    }
+
+    /** 按支付方式（payMode）维度——单一支付方式的笔数·金额·成功率 */
+    interface PayModeStat {
+      /** payMode 枚举 NAME token（stats 聚合 read-model，如 WECHAT/ALIPAY/UNIONPAY） */
+      payMode: string;
+      /** 支付笔数（Long→string） */
+      paymentCount: string;
+      /** 支付金额（整数分） */
+      paymentAmount: number;
+      /** 成功率（小数 0–1） */
+      successRate: number;
+    }
+
+    /** 按接入类型（accessType）维度——单一接入类型的笔数·金额·成功率 */
+    interface AccessTypeStat {
+      /** accessType 枚举 NAME token（stats 聚合 read-model，如 APP/H5/WEB） */
+      accessType: string;
+      /** 支付笔数（Long→string） */
+      paymentCount: string;
+      /** 支付金额（整数分） */
+      paymentAmount: number;
+      /** 成功率（小数 0–1） */
+      successRate: number;
+    }
+
+    /** GET /stats/by-channel —— 按 payMode / accessType 两维度聚合的支付笔数·金额·成功率 */
+    interface ChannelStats {
+      byPayMode: PayModeStat[];
+      byAccessType: AccessTypeStat[];
+    }
+
+    /** GET /stats/anomalies —— 长时滞留订单计数 + 近期失败计数（滞留阈值/失败窗口由 payment 定） */
+    interface PaymentAnomalies {
+      /** 长时滞留待支付单数（Long→string） */
+      longPendingCount: string;
+      /** 长时滞留退款中单数（Long→string） */
+      longRefundingCount: string;
+      /** 近期失败事件数（Long→string） */
+      recentFailureCount: string;
+    }
+
+    /** 操作类型计数——单一操作类型（AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND…）的笔数 */
+    interface OperationCount {
+      /** 操作类型枚举 NAME token（stats 聚合 read-model） */
+      operation: string;
+      /** 笔数（Long→string） */
+      count: string;
+    }
+
+    /** 操作员活动——单一操作员的操作类型·笔数分布 + 通知重发次数 */
+    interface OperatorActivityStat {
+      /** 操作员 ID（Long→string） */
+      operatorId: string;
+      operatorName: string | null;
+      operations: OperationCount[];
+      /** 通知重发总次数（Long→string） */
+      notificationResendCount: string;
+    }
+
+    /** GET /stats/operations/activity —— 各操作员操作类型·笔数 + 通知重发次数 */
+    interface OperationsActivity {
+      operators: OperatorActivityStat[];
+    }
   }
 }

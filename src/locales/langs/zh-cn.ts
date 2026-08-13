@@ -579,6 +579,28 @@ const local: App.I18n.Schema = {
           approvalRate: '通过率',
           avgDuration: '平均审核时长',
           auditor: '审核人'
+        },
+        byBusinessSystem: {
+          title: '按业务系统',
+          paymentCount: '支付笔数',
+          refundCount: '退款笔数'
+        },
+        byChannel: {
+          title: '按通道',
+          byPayMode: '按支付方式',
+          byAccessType: '按接入类型',
+          paymentCount: '支付笔数'
+        },
+        anomalies: {
+          title: '异常监控',
+          longPending: '长时滞留待支付',
+          longRefunding: '长时滞留退款中',
+          recentFailure: '近期失败',
+          count: '笔',
+          healthy: '暂无异常'
+        },
+        operationsActivity: {
+          title: '操作员活动'
         }
       },
       order: {

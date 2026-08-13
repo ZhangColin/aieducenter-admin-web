@@ -583,6 +583,28 @@ const local: App.I18n.Schema = {
           approvalRate: 'Approval Rate',
           avgDuration: 'Avg. Audit Duration',
           auditor: 'Auditor'
+        },
+        byBusinessSystem: {
+          title: 'By Business System',
+          paymentCount: 'Payment Count',
+          refundCount: 'Refund Count'
+        },
+        byChannel: {
+          title: 'By Channel',
+          byPayMode: 'By Pay Mode',
+          byAccessType: 'By Access Type',
+          paymentCount: 'Payment Count'
+        },
+        anomalies: {
+          title: 'Anomalies',
+          longPending: 'Long-Pending Payments',
+          longRefunding: 'Long-Refunding Refunds',
+          recentFailure: 'Recent Failures',
+          count: 'orders',
+          healthy: 'No anomalies'
+        },
+        operationsActivity: {
+          title: 'Operator Activity'
         }
       },
       order: {

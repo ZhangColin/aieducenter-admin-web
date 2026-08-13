@@ -819,6 +819,28 @@ declare namespace App {
               avgDuration: string;
               auditor: string;
             };
+            byBusinessSystem: {
+              title: string;
+              paymentCount: string;
+              refundCount: string;
+            };
+            byChannel: {
+              title: string;
+              byPayMode: string;
+              byAccessType: string;
+              paymentCount: string;
+            };
+            anomalies: {
+              title: string;
+              longPending: string;
+              longRefunding: string;
+              recentFailure: string;
+              count: string;
+              healthy: string;
+            };
+            operationsActivity: {
+              title: string;
+            };
           };
           order: {
             title: string;

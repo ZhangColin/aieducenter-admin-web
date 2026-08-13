@@ -121,6 +121,33 @@ export const operationTargetTypeRecord: Record<Api.Payment.OperationTargetType, 
 };
 export const operationTargetTypeOptions = transformRecordToOption(operationTargetTypeRecord);
 
+// ============ stats 聚合维度 token（tier-2 仪表盘）============
+//
+// 与上方 code-keyed record 不同：payment stats 端点（by-channel / operations-activity）按枚举 **NAME** 投影
+// 分组键（read-model 与列表/详情的 code 序列化不同——如 WECHAT 而非 '9'、AUDIT_APPROVE 而非 '1'）。
+// 取值以 admin BFF wire 注释为准；未知 token 经 displayEnumName 原值回退（非闭合，不强求穷举）。
+// 中文 label 复用既有 enum i18n 键（微信/支付宝/云闪付、审核通过/拒绝/通知重发 …），不新增重复键。
+
+/** payMode 枚举 NAME token→i18n（stats by-channel 维度；WECHAT/ALIPAY/UNIONPAY） */
+export const payModeNameRecord: Record<string, App.I18n.I18nKey> = {
+  WECHAT: 'page.payment.enum.payMode.wechat',
+  ALIPAY: 'page.payment.enum.payMode.alipay',
+  UNIONPAY: 'page.payment.enum.payMode.unionpay'
+};
+
+/** accessType 枚举 NAME token→i18n（stats by-channel 维度；APP/H5/WEB…，未知 token 原值回退） */
+export const accessTypeNameRecord: Record<string, App.I18n.I18nKey> = {
+  APP: 'page.payment.enum.accessType.app',
+  H5: 'page.payment.enum.accessType.h5'
+};
+
+/** operation 枚举 NAME token→i18n（stats operations-activity 维度；AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND） */
+export const operationNameRecord: Record<string, App.I18n.I18nKey> = {
+  AUDIT_APPROVE: 'page.payment.enum.operationType.auditApprove',
+  AUDIT_REJECT: 'page.payment.enum.operationType.auditReject',
+  NOTIFY_RESEND: 'page.payment.enum.operationType.notifyResend'
+};
+
 /**
  * 枚举展示（平台统一范式）：后端 `*Name` 优先 → 既有 i18n record 兜底 → code → '-'。
  *

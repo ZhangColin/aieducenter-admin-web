@@ -165,3 +165,40 @@ export function fetchGetOperationsAudit() {
     method: 'get'
   });
 }
+
+// ============ 统计（仪表盘 tier-2，GET /stats/**）============
+//
+// 4 个 tier-2 端点，经 usePaymentStats store 消费（ADR-0002 seam——widget 不直连端点）。
+// 与 tier-1 不同：这 4 个端点**无时间窗**（不带 from/to），不受 REQ-17 影响，应正常出数。
+
+/** 按业务系统细分（GET /stats/by-business-system）——各业务系统支付/退款笔数·金额·成功率·退款率 */
+export function fetchGetBusinessSystemStats() {
+  return request<Api.Payment.BusinessSystemStats>({
+    url: '/payment/stats/by-business-system',
+    method: 'get'
+  });
+}
+
+/** 按通道细分（GET /stats/by-channel）——按 payMode / accessType 聚合的支付笔数·金额·成功率 */
+export function fetchGetChannelStats() {
+  return request<Api.Payment.ChannelStats>({
+    url: '/payment/stats/by-channel',
+    method: 'get'
+  });
+}
+
+/** 异常监控（GET /stats/anomalies）——长时滞留 PENDING/REFUNDING 订单 + 近期失败计数 */
+export function fetchGetAnomalies() {
+  return request<Api.Payment.PaymentAnomalies>({
+    url: '/payment/stats/anomalies',
+    method: 'get'
+  });
+}
+
+/** 操作员活动（GET /stats/operations/activity）——各操作员操作类型·笔数 + 通知重发次数 */
+export function fetchGetOperationsActivity() {
+  return request<Api.Payment.OperationsActivity>({
+    url: '/payment/stats/operations/activity',
+    method: 'get'
+  });
+}
