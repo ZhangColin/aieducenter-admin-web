@@ -135,10 +135,9 @@ export const payModeNameRecord: Record<string, App.I18n.I18nKey> = {
   UNIONPAY: 'page.payment.enum.payMode.unionpay'
 };
 
-/** accessType 枚举 NAME token→i18n（stats by-channel 维度；APP/H5/WEB…，未知 token 原值回退） */
+/** accessType 枚举 NAME token→i18n（stats by-channel 维度；APP…，未知 token 原值回退） */
 export const accessTypeNameRecord: Record<string, App.I18n.I18nKey> = {
-  APP: 'page.payment.enum.accessType.app',
-  H5: 'page.payment.enum.accessType.h5'
+  APP: 'page.payment.enum.accessType.app'
 };
 
 /** operation 枚举 NAME token→i18n（stats operations-activity 维度；AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND） */
@@ -169,4 +168,20 @@ export function displayEnumName<K extends string>(
   if (name) return name;
   if (code && record && record[code]) return $t(record[code]);
   return code || '-';
+}
+
+/**
+ * `OperationLog.result` 标签配色（自由稳定 token，非闭合集合：SUCCESS / DELIVERY_FAILED / SKIPPED /
+ * APPROVE / REJECT …）。按已知 token 启发式着色，未知 token → default，不报错。
+ *
+ * 列表（操作记录页 result 列）与详情抽屉生命周期 outcome tag 共用，避免两处分叉（SUCCESS/FAIL/SKIPPED
+ * 与 FAIL/ERROR/REJECT/SUCCESS/APPROVE/OK/DONE 两套规则收敛为一）。
+ */
+export function operationResultTagType(result: string | null | undefined): NaiveUI.ThemeColor {
+  if (!result) return 'default';
+  const r = result.toUpperCase();
+  if (r.includes('FAIL') || r.includes('ERROR') || r.includes('REJECT')) return 'error';
+  if (r.includes('SUCCESS') || r.includes('APPROVE') || r === 'OK' || r === 'DONE') return 'success';
+  if (r === 'SKIPPED') return 'warning';
+  return 'default';
 }

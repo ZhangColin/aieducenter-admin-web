@@ -538,9 +538,6 @@ const local: App.I18n.Schema = {
       }
     },
     payment: {
-      common: {
-        comingSoon: '即将上线'
-      },
       stats: {
         refresh: '刷新',
         states: {
@@ -740,7 +737,6 @@ const local: App.I18n.Schema = {
           unionpay: '云闪付'
         },
         accessType: {
-          h5: 'H5',
           app: 'APP',
           wechatOa: '微信公众号',
           alipayLife: '支付宝生活号',

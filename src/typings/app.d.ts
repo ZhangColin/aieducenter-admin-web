@@ -777,9 +777,6 @@ declare namespace App {
           };
         };
         payment: {
-          common: {
-            comingSoon: string;
-          };
           stats: {
             refresh: string;
             states: {
@@ -979,7 +976,6 @@ declare namespace App {
               unionpay: string;
             };
             accessType: {
-              h5: string;
               app: string;
               wechatOa: string;
               alipayLife: string;

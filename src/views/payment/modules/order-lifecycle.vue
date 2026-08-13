@@ -11,7 +11,7 @@
  */
 import { ref, watch } from 'vue';
 import { fetchGetOrderLifecycle } from '@/service/api';
-import { displayEnumName, logTypeRecord, operationTypeRecord } from '@/constants/payment';
+import { displayEnumName, logTypeRecord, operationResultTagType, operationTypeRecord } from '@/constants/payment';
 import { $t } from '@/locales';
 import { formatDateTime } from '@/utils/common';
 
@@ -64,14 +64,7 @@ function eventTitle(ev: Api.Payment.LifecycleEvent): string {
   return displayEnumName(ev.operationName, ev.operation, operationTypeRecord);
 }
 
-/** 操作结果（自由稳定 token）启发式着色：FAIL/ERROR/REJECT→error，SUCCESS/APPROVE→success，余 default */
-function resultTagType(result: string | null): NaiveUI.ThemeColor {
-  if (!result) return 'default';
-  const r = result.toUpperCase();
-  if (r.includes('FAIL') || r.includes('ERROR') || r.includes('REJECT')) return 'error';
-  if (r.includes('SUCCESS') || r.includes('APPROVE') || r.includes('OK') || r === 'DONE') return 'success';
-  return 'default';
-}
+/** 操作结果着色复用 `operationResultTagType`（与操作记录列表同源，避免两处分叉）。 */
 
 /** executionTime 为 Long→string（全局 Jackson），展示兜底 Number() */
 function formatExecMs(ms: string | null): string {
@@ -110,7 +103,7 @@ defineExpose({
           <NTag v-if="ev.source === 'PAYMENT_LOG'" size="tiny" :type="ev.success === false ? 'error' : ev.success === true ? 'success' : 'default'">
             {{ ev.success === false ? $t('page.payment.lifecycle.fail') : ev.success === true ? $t('page.payment.lifecycle.success') : $t('page.payment.lifecycle.unknown') }}
           </NTag>
-          <NTag v-else size="tiny" :type="resultTagType(ev.result)">
+          <NTag v-else size="tiny" :type="operationResultTagType(ev.result)">
             {{ ev.result || '-' }}
           </NTag>
         </div>

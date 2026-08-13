@@ -3,16 +3,20 @@
  * tier-1 · 订单状态分布 widget：支付各状态饼 + 退款各状态饼 + 退款待审核积压 KPI。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
- * 两饼同卡片并列（spec「支付 + 退款两列」）；标签走后端 statusName（平台统一范式）回退 code；
- * 配色复用 paymentStatusTagColor / refundStatusTagColor（code 键）。
- * BFF 透传 statusName 前（REQ-16）标签回退 code——不影响饼图比例（值=count）。
+ * 两饼同卡片并列（spec「支付 + 退款两列」）。
+ * - 比例维度 = **笔数**（value=count）；**金额**作 tooltip 第二维度（spec 故事 23「各状态在途笔数·金额」），
+ *   不抢饼比例以避免双量纲混淆。
+ * - 标签走 displayEnumName：后端 statusName 优先 → 既有 i18n record 兜底（BFF 透传 *Name 前，
+ *   REQ-16，过渡期也显示中文，与列表/详情同源）→ code。
+ * - 配色复用 paymentStatusTagColor / refundStatusTagColor（code 键）。
  */
 import { watch } from 'vue';
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { useEcharts } from '@/hooks/common/echarts';
+import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 import { $t } from '@/locales';
-import { paymentStatusTagColor, refundStatusTagColor } from '@/constants/payment';
-import { formatCount } from '@/utils/common';
+import { displayEnumName, paymentStatusRecord, paymentStatusTagColor, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
+import { formatCount, formatMoney } from '@/utils/common';
 import WidgetPlaceholder from './widget-placeholder.vue';
 
 defineOptions({ name: 'PaymentStatusDistributionWidget' });
@@ -22,10 +26,30 @@ const store = usePaymentStatsStore();
 /** 未知 code 的兜底色板 */
 const palette = ['#18a058', '#2080f0', '#f0a020', '#d03050', '#6c6c6c', '#8e9dff', '#26deca'];
 
+/**
+ * 饼图数据点：value=笔数（决定饼比例）、amount=该状态金额（tooltip 呈现，spec 故事 23「各状态在途笔数·金额」）。
+ * echarts tooltip 的 CallbackDataParams.data 透传此原对象，formatter 经 `as` 取 amount。
+ */
+type PieDatum = { name: string; value: number; amount: number; itemStyle?: { color: string } };
+
+/**
+ * 饼图 tooltip：状态名 + 笔数 + 金额 + 占比（spec 故事 23「各状态在途笔数·金额」）。
+ * value=count 决定饼比例，amount 作 tooltip 第二维度（不抢饼比例，避免双量纲混淆）。
+ * 取 echarts 原生 `TooltipComponentFormatterCallbackParams`（CallbackDataParams | 其数组），
+ * 按 trigger=item 取单值，`as` 读 data 上的 amount。
+ */
+function pieTooltipFormatter(params: TooltipComponentFormatterCallbackParams): string {
+  // 饼图 trigger=item，params 取单个 CallbackDataParams 形态（数组形态仅 axis 触发，这里不会出现）。
+  const p = Array.isArray(params) ? params[0] : params;
+  if (!p) return '';
+  const amount = (p.data as PieDatum | undefined)?.amount;
+  return `${p.name}：${formatCount(p.value as number | string)} 笔 · ${formatMoney(amount)}（${p.percent ?? 0}%）`;
+}
+
 // 支付/退款两饼——各以独立内联 factory 构造（保持 useEcharts 对 series 的窄类型推断，
 // 与 overview-widget 同范式；两饼仅 series.name 不同）。
 const { domRef: payDomRef, updateOptions: updatePay } = useEcharts(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  tooltip: { trigger: 'item', formatter: pieTooltipFormatter },
   legend: { bottom: '1%', left: 'center', type: 'scroll' },
   series: [
     {
@@ -35,13 +59,13 @@ const { domRef: payDomRef, updateOptions: updatePay } = useEcharts(() => ({
       avoidLabelOverlap: true,
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
       label: { show: true, formatter: '{b}\n{d}%' },
-      data: [] as { name: string; value: number; itemStyle?: { color: string } }[]
+      data: [] as PieDatum[]
     }
   ]
 }));
 
 const { domRef: refundDomRef, updateOptions: updateRefund } = useEcharts(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  tooltip: { trigger: 'item', formatter: pieTooltipFormatter },
   legend: { bottom: '1%', left: 'center', type: 'scroll' },
   series: [
     {
@@ -51,7 +75,7 @@ const { domRef: refundDomRef, updateOptions: updateRefund } = useEcharts(() => (
       avoidLabelOverlap: true,
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
       label: { show: true, formatter: '{b}\n{d}%' },
-      data: [] as { name: string; value: number; itemStyle?: { color: string } }[]
+      data: [] as PieDatum[]
     }
   ]
 }));
@@ -63,8 +87,9 @@ watch(
     const payBuckets = sd.paymentStatuses.filter(b => Number(b.count) > 0);
     updatePay(opts => {
       opts.series[0].data = payBuckets.map((b, i) => ({
-        name: b.statusName || b.status,
+        name: displayEnumName(b.statusName, b.status as Api.Payment.PaymentStatus, paymentStatusRecord),
         value: Number(b.count),
+        amount: Number(b.amount),
         itemStyle: { color: paymentStatusTagColor[b.status as Api.Payment.PaymentStatus] ?? palette[i % palette.length] }
       }));
       return opts;
@@ -72,8 +97,9 @@ watch(
     const refundBuckets = sd.refundStatuses.filter(b => Number(b.count) > 0);
     updateRefund(opts => {
       opts.series[0].data = refundBuckets.map((b, i) => ({
-        name: b.statusName || b.status,
+        name: displayEnumName(b.statusName, b.status as Api.Payment.RefundStatus, refundStatusRecord),
         value: Number(b.count),
+        amount: Number(b.amount),
         itemStyle: { color: refundStatusTagColor[b.status as Api.Payment.RefundStatus] ?? palette[i % palette.length] }
       }));
       return opts;

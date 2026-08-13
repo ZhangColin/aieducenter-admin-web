@@ -542,9 +542,6 @@ const local: App.I18n.Schema = {
       }
     },
     payment: {
-      common: {
-        comingSoon: 'Coming soon'
-      },
       stats: {
         refresh: 'Refresh',
         states: {
@@ -744,7 +741,6 @@ const local: App.I18n.Schema = {
           unionpay: 'UnionPay'
         },
         accessType: {
-          h5: 'H5',
           app: 'App',
           wechatOa: 'WeChat OA',
           alipayLife: 'Alipay Life',

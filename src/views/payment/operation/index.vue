@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue';
 import { NTag } from 'naive-ui';
-import { displayEnumName, operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
+import { displayEnumName, operationResultTagType, operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
 import { fetchGetOperationLogList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -57,19 +57,11 @@ function renderEnumTag<T extends string>(
 
 /**
  * 操作结果列：result 为**自由稳定 token**（非闭合集合：SUCCESS / DELIVERY_FAILED / SKIPPED …），原值展示。
- * 按已知 token 启发式着色（SUCCESS→success、含 FAIL→error、SKIPPED→warning、其余 default），未知 token 不报错。
+ * 着色复用 `operationResultTagType`（与生命周期 outcome tag 同源，避免两处分叉）。
  */
-function resultTagType(result: string): NaiveUI.ThemeColor {
-  const r = result.toUpperCase();
-  if (r === 'SUCCESS') return 'success';
-  if (r.includes('FAIL')) return 'error';
-  if (r === 'SKIPPED') return 'warning';
-  return 'default';
-}
-
 function renderResult(value: string | null) {
   if (!value) return '-';
-  return <NTag type={resultTagType(value)} size="small">{value}</NTag>;
+  return <NTag type={operationResultTagType(value)} size="small">{value}</NTag>;
 }
 
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
