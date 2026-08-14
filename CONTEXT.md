@@ -55,6 +55,10 @@
 | **通知重发 (notification resend)** | 补发支付/退款结果通知给业务系统，**不改订单状态**（仅补投递） |
 | **主动查行 (bank query)** | 触发 payment 向银行查真相并同步本地状态；条件性暴露（payment 提供端点则做，admin#46 / T9） |
 | **订单生命周期 (lifecycle)** | 按时间合并某单的 PaymentLog + OperationLog 的端到端追溯视图；详情抽屉内一个 tab，不种菜单 |
+| **Account（终端用户账号）** | 平台终端用户的账号，归 identity 域，以 `userId`(TSID) 标识，email/phone 均可空。与 **Operator（运营用户）** 对举：「账号管理」管 Account，**不**管 Operator（后台员工走系统管理>用户管理）。_Avoid_: 把两者混称「用户」 |
+| **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
+| **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
+| **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
 
 ---
 
@@ -114,6 +118,22 @@
 ## 本仓库决策（Decisions）
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
+
+### 2026-08-14 平台账号管理前端 grilling（admin-web #50，消费 admin BFF admin#49；后端已就绪）
+
+复用 payment 列表+抽屉范式，建「平台账号」目录 + 账号列表页 + 详情抽屉 + 4 写操作。后端 6 端点（`GET /accounts`、`GET /accounts/{userId}/management`、`POST .../disable|activate|unlock|sessions/revoke`）已合入 admin 本地 develop、测试齐全。
+
+- **术语与文案**：glossary 已补 **Account（终端用户账号）** 与 **Operator 对举**、封号/解封、系统锁定、强制下线四条。菜单中文文案**前端 locales 定**（后端 V14 只下发 i18n_key）：`route.account` = **「平台账号」**、`route.account_list` = 「账号列表」——与「系统管理>用户管理」（Operator）拉开区分度（Q1）。
+- **两条状态轴独立呈现**（Q2，identity javadoc 印证）：封号轴（status Integer 1=ACTIVE/0=DISABLED）与系统锁定轴（locked boolean）分开渲染——列表主「状态」列只渲染封号轴 tag，locked 作独立标记；抽屉分块各说各的。**无 `*Name` 字段**，前端按 code 映射文案（两值+布尔，整数枚举手写 options 范式）。
+- **操作按钮 = 互斥切换显示，不灰**（Q3 用户修正「禁用」方案）：封号/解封**单按钮按状态切换 label+handler**（ACTIVE→「封号」error / DISABLED→「解封」）；「解除锁定」仅 locked=true 时 v-if 显示；「强制下线」恒显。全组 `hasAuth('admin:account:write')` 门控（read/write 两值已定、不拆）。
+- **reason 交互**（Q7）：封号独立弹窗 reason 必填 ≤500（NTextarea + maxlength 计数）；解封/解锁/强制下线 `$dialog.warning` 纯二次确认——后端三端点的可选 reason body **不消费**（审计已有 X-User-Id/X-User-Name 出站透传）。写操作响应 `data:null`，成功后回读详情 + 刷新列表。
+- **`hasPassword` 不展示**（Q8 用户拍板）：它是「是否设过密码」布尔标志（社交/纯验证码账号 false），非密文本身；类型里保留字段、UI 不渲染。
+- **注册时间仅筛选项**：`createdFrom/createdTo` query 支持，但列表/详情响应**均无注册时间字段**（identity 不回）——不做时间列。
+- **分页契约分歧 → REQ-18**（Q6 用户拍板平台统一路线）：account 响应 `page` 是 **0-based**（BFF 透传 identity 协议），与全平台「响应 1-based」相反。前端 account 专属 transform **+1 临时适配**；REQ-18 提 admin BFF 北向归一化 1-based、再层层向各服务提 issue 统一分页协议。后端改好后删适配。
+- **落位/形态**（Q5）：`src/views/account/list/index.vue`（→ `account_list` / `/account/list`，与 V14 `view.account_list` 对齐，同构 `app_list`）；详情抽屉无路由、NDrawer **720**（对齐 payment）；筛选 6 字段（email/phone/userId/status/locked/注册时间区间）**平铺不折叠**；service `src/service/api/account.ts` + `src/typings/api/account.d.ts`（`Api.Account` 命名空间）；页面局部状态、**不建 store**。
+- **commit = 2 个**：① service/types + REQ-18 文档；② 页面 + 抽屉 + i18n 三处 + gen-route 产物。
+- **E2E**：测试终端账号（手机号 18001828301，用户提供）——封号→列表已封号→测试账号登录被拒→解封恢复；锁定→locked 标记→解锁；登录拿 token→强制下线→token 失效。identity 服务须起着（`localhost:10001`）。
+- **UI 原型拍板（/prototype 三变体，headless 冒烟 20/20，2026-08-14）**：**A 的筛选 + B 的主体**。筛选 = A 形态（keyword 类输入 + status/locked 下拉 + 注册时间区间，平铺）；列表 = B（合成徽章单列——主状态 tag + 锁定小 tag 并排，双轴叠加不丢信息；行内「查看 + 操作下拉」，互斥/不可达操作**不出现**在下拉里）；详情抽屉 = B（状态横幅置顶——合成态大字 + 操作按钮长在横幅上，资料单列在下）；按钮/下拉文案**不带省略号**（「封号…」→「封号」）。原型全量保档 `prototype/account-ui` 分支（三变体 + 浮动切换条 + mock，仅作设计过程 primary source，勿合回）。
 
 ### 2026-08-12 支付管理前端 grilling（admin-web #41，消费 admin-bff #38）
 
@@ -299,6 +319,7 @@ _（grilling 收尾——核心决策已定，剩余为实现细节，见下「�
 - **[REQ-8] 后端对齐 Soybean 系统管理完整功能（用户/角色/菜单）→ ✅ 已提后端 issue #11（2026-07-31）** — 用户拍板 Soybean `example` 系统管理（用户/角色/菜单）**完整移植**：功能一切以 Soybean 为准，后端只保留通用结构（`ApiResponse`/`PageResponse` 外壳、路径风格、Long→string、整数枚举），其余字段/接口缺啥补啥。拆为 REQ-8~11（REQ-12 已撤，见末）：① **REQ-8 菜单扩成路由生成器**（`component`/`routeName`/`i18nKey`/`keepAlive`/`hideInMenu`/`buttons`/`status` + 分页扁平列表端点；**type 用 Soybean directory/menu 2 值——DIVIDER 随 nav-tree 旧方案废弃、REQ-1 被覆盖；icon 用 Soybean iconify+iconType——REQ-6 Material Symbols 作废**，二者均按 Soybean 既定、非开放项）；② **REQ-9 按钮权限模型**（per-menu `buttons` DB 管理 + 角色→按钮分配，按 Soybean 实现；注解扫描保留作后端守卫码来源，二者并存）；③ **REQ-10 角色增强**（status 启停 / home 默认首页 / 去 3 处 `@NotEmpty` 允许清空 / `GET /roles/all` 轻量字典）；④ **REQ-11 用户增强**（gender / 列表内 userRoles 回显 / phone 搜索）；⑤ ~~REQ-12 操作人审计~~ **已撤**——非 Soybean UI 需求（example 三列表均不渲染审计字段，已核实），审计单独待办 admin-web[#19](https://github.com/ZhangColin/aieducenter-admin-web/issues/19)（等系统管理功能做完后前后端共审）、审计列 ticket #18 已关、前端不动 `CommonRecord`。**同时反转旧决策「菜单页重写不移植」→ 完整移植**。issue：https://github.com/ZhangColin/aieducenter-admin/issues/11 ；详情见 `docs/backend-requirements/REQ-8-soybean-system-mgmt-full-alignment.md`。**优先级：高（阻塞 Soybean 系统管理完整功能落地）**。**前端侧安排（2026-07-31，已纠正 scope）**：**仅按钮权限（REQ-9 per-menu buttons）延后**——用户存疑（「可能跟我想得不太一样」），等后端 #11 落地先重新确认模型再做。**其余系统管理功能按「能做的就做」推进**：现在能做的 = 用户分配角色（REQ-4 后端已 CLOSED，不卡后端）；依赖 #11 的（菜单页 REQ-8、用户 gender/列表角色列/手机号搜索 REQ-11、角色 status/home REQ-10）等后端完成、用户通知后再做。**✅ 后端已交付（2026-08-01 核实，后端 PR #13/REQ-8 菜单 + #16/REQ-10 角色 + #17/REQ-11 用户 + #15 菜单分页软删测试）**：curl 实测 `GET /menus`(分页)节点已是完整 Soybean 路由生成器字段、`GET /menus/tree` 同字段树、`GET /roles/all`=`[{id,name,code}]`、`GET /roles` 项含 `status/home`、`GET /users` 项含 `gender/genderName/roles[]`、`AdminUserQuery` 加 `phone/gender`、`AdminRoleQuery` 加 `status`。**→ 后端对前端 #15(菜单页)/#16(用户字段)/#17(角色字段) 三 ticket 充分，可开做。** **「不出记录」已查清 = 陈旧后端构建**（curl 当前后端 items 正常、fresh dev 浏览器两表均出行），非字段/分页契约缺陷——重启后端+前端即恢复。**⚠️ 菜单字段改名（REQ-8 副作用）已修**：后端 `MenuResponse` 旧 `{name,path,type}` → 新 `{menuName,routePath,routeName,component,menuType,iconType,...}`（DIVIDER/type=3 废弃，仅 directory(1)/menu(2)）。前端跟进（2026-08-01）：`Api.Auth.BackendMenu` 类型对齐 Soybean 字段、`menu-auth-modal` `label-field="name"→"menuName"`、`menu-tree.ts` 去掉 DIVIDER 过滤（无第 3 值）、`fetchGetAllRoles` 由 `/roles` 大页兜底迁移到 `/roles/all`（+`RoleOption` 类型）。实测菜单树标签恢复（`首页/系统管理`）、用户分配角色下拉正常。**#15（菜单管理页）✅ 已交付**；**#17（角色 status/home）✅ 已交付**。**#16（gender 列/搜索/抽屉）✅ 已做**。
 - **[REQ-13] 新增「我的导航」端点 `GET /menus/my` + `/auth/current` 移除 menus → ✅ 已交付并实测（2026-08-02，后端 issue [#20](https://github.com/ZhangColin/aieducenter-admin/issues/20) CLOSED，拆票链 #21→#22→#23）** — 动态菜单 spec（admin-web#20）的阻塞边，按「身份 vs 导航」划界：① `GET /menus/my` 返 `{home, menus}`（登录即可、按角色裁剪、**只下发启用菜单**——directory 禁用整棵子树不下发、超管全量启用；home = 按 `(sortOrder, id)` 取第一个非空白角色 home）；② `/auth/current` 收敛 `{user, roleCodes, permissions}` 移除 menus；③ **范围外交付**：禁用角色在 roleCodes/permissions/菜单聚合中视为不存在（后端 #21，真实访问回收 200→403）。前端 curl 实测（2026-08-02）：`/auth/current` keys=[user,roleCodes,permissions]；`/menus/my` home='home'、菜单树 component 为 Soybean 格式；禁用 manage_menu 后 `/menus/my` 不下发、恢复后回来。需求详情 `docs/backend-requirements/REQ-13-my-menus-endpoint.md`。前端对接 = admin-web #21/#22/#23。
 - **[REQ-14] 角色删除「使用中」检查未过滤已软删用户 → 🐞 已提后端 issue [#24](https://github.com/ZhangColin/aieducenter-admin/issues/24)，后端处理中（2026-08-03 更新）** — 用户软删后其 `sys_admin_user_roles` 关联记录残留，`AdminRoleRepository.isUsedByAnyAdmin` 只按 `roleId` 计数、未 join 用户过滤 `deleted=false` → 角色永不可删。**后端方向：尽量放弃软删除，即使保留软删也由后端侧彻底处理（如级联清关联或在查询侧过滤），前端不 workaround。** 需求详情 + 复现脚本见 `docs/backend-requirements/REQ-14-role-delete-in-use-ignores-softdeleted-users.md`。
+- **[REQ-18] account BFF 分页响应 `page` 0-based → 平台分页协议统一（2026-08-14 grilling 定稿，待提 issue）** — account 列表响应 `page` 沿用 identity 0-based 回显（`AccountBffIntegrationTest` 钉死 `page()=0`），与 admin 北向既有域（system-manage/payment：请求 0-based / **响应 1-based**）相反——同壳不同义。**用户拍板路线**：前端↔admin BFF 约定一种（即既有「响应 1-based」，改 system-manage+payment 代价不可接受），BFF account 归一化；再层层向各服务（identity、payment…）提 issue，把整个平台分页协议统一掉。**前端过渡**：account 列表 transform `page+1` 临时适配，后端落地后删。需求详情 `docs/backend-requirements/REQ-18-account-bff-page-zero-based-unify.md`。
 
 ---
 
