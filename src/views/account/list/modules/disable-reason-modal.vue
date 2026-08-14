@@ -22,17 +22,14 @@ const emit = defineEmits<{
 }>();
 
 const reason = ref('');
-const submitting = ref(false);
 
 watch(visible, val => {
   if (val) reason.value = '';
 });
 
-async function handleConfirm() {
+function handleConfirm() {
   if (!reason.value.trim()) return;
-  submitting.value = true;
   emit('confirm', reason.value.trim());
-  submitting.value = false;
   visible.value = false;
 }
 </script>

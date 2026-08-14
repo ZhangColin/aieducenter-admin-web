@@ -57,10 +57,5 @@ declare namespace Api {
     interface DisableAccountCommand {
       reason: string;
     }
-
-    /** activate / unlock / sessions/revoke 可选 body（@Size(max=500) 可空）——Q7 拍板不消费，仅记录契约。 */
-    interface AccountReasonCommand {
-      reason?: string;
-    }
   }
 }

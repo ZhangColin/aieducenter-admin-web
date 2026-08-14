@@ -64,8 +64,8 @@ const banner = computed(() => {
   return { bg: '#edf7f0', text: $t('page.account.banner.active'), dot: '#18a058' };
 });
 
-/** 解封/解锁/强制下线：$dialog 二次确认（Q7 定稿——后端可选 reason 不消费）。 */
-function confirmThen(text: string, action: () => Promise<{ error?: unknown }>) {
+/** 解封/解锁/强制下线：$dialog 二次确认（Q7 定稿——后端可选 reason 不消费）；成功 toast 后回读。 */
+function confirmThen(text: string, successText: string, action: () => Promise<{ error?: unknown }>) {
   const d = detail.value;
   if (!d) return;
   window.$dialog?.warning({
@@ -78,6 +78,7 @@ function confirmThen(text: string, action: () => Promise<{ error?: unknown }>) {
       const { error } = await action();
       operating.value = false;
       if (!error) {
+        window.$message?.success(successText);
         emit('updated');
         await loadDetail();
       }
@@ -86,15 +87,21 @@ function confirmThen(text: string, action: () => Promise<{ error?: unknown }>) {
 }
 
 function handleActivate() {
-  confirmThen($t('page.account.confirm.activate'), () => fetchActivateAccount(props.userId));
+  confirmThen($t('page.account.confirm.activate'), $t('page.account.success.activated'), () =>
+    fetchActivateAccount(props.userId)
+  );
 }
 
 function handleUnlock() {
-  confirmThen($t('page.account.confirm.unlock'), () => fetchUnlockAccount(props.userId));
+  confirmThen($t('page.account.confirm.unlock'), $t('page.account.success.unlocked'), () =>
+    fetchUnlockAccount(props.userId)
+  );
 }
 
 function handleRevoke() {
-  confirmThen($t('page.account.confirm.revoke'), () => fetchRevokeAccountSessions(props.userId));
+  confirmThen($t('page.account.confirm.revoke'), $t('page.account.success.revoked'), () =>
+    fetchRevokeAccountSessions(props.userId)
+  );
 }
 
 defineExpose({ reload: loadDetail });
@@ -128,7 +135,7 @@ defineExpose({ reload: loadDetail });
 
         <!-- 资料单列（hasPassword 按 Q8 拍板不渲染；注册时间响应无此字段） -->
         <div class="grid grid-cols-[110px_1fr] gap-x-16px gap-y-10px text-14px">
-          <span class="text-right text-#999">{{ $t('page.account.userId') }}</span><span>{{ detail.userId }}</span>
+          <span class="text-right text-#999">{{ $t('page.account.userId') }}</span><span class="font-mono">{{ detail.userId }}</span>
           <span class="text-right text-#999">{{ $t('page.account.nickname') }}</span><span>{{ detail.nickname ?? '-' }}</span>
           <span class="text-right text-#999">{{ $t('page.account.email') }}</span><span>{{ detail.email ?? '-' }}</span>
           <span class="text-right text-#999">{{ $t('page.account.phone') }}</span><span>{{ detail.phone ?? '-' }}</span>

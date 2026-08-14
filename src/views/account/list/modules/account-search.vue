@@ -9,6 +9,7 @@
  */
 import { computed, reactive } from 'vue';
 import { NButton, NDatePicker, NForm, NFormItemGi, NGrid, NInput, NSelect } from 'naive-ui';
+import dayjs from 'dayjs';
 import { accountLockedOptions, accountStatusOptions } from '@/constants/account';
 import { $t } from '@/locales';
 
@@ -41,10 +42,9 @@ const model = reactive<LocalFilter>({
 const statusOptions = computed(() => accountStatusOptions.map(o => ({ ...o, label: $t(o.label) })));
 const lockedOptions = computed(() => accountLockedOptions.map(o => ({ ...o, label: $t(o.label) })));
 
-function toIsoLocal(ts: number) {
-  const d = new Date(ts);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+/** 与 payment 域 tsToIso 同形：时间戳 → LocalDateTime ISO 本地串。 */
+function tsToIso(ts: number): string {
+  return dayjs(ts).format('YYYY-MM-DDTHH:mm:ss');
 }
 
 function buildFilter(): Api.Account.AccountFilter {
@@ -55,8 +55,8 @@ function buildFilter(): Api.Account.AccountFilter {
   if (model.status !== null) filter.status = model.status as Api.Account.AccountStatus;
   if (model.locked !== null) filter.locked = model.locked === 1;
   if (model.createdRange) {
-    filter.createdFrom = toIsoLocal(model.createdRange[0]);
-    filter.createdTo = toIsoLocal(model.createdRange[1]);
+    filter.createdFrom = tsToIso(model.createdRange[0]);
+    filter.createdTo = tsToIso(model.createdRange[1]);
   }
   return filter;
 }

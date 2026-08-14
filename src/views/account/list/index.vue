@@ -6,7 +6,8 @@
  * 并排，双轴叠加不丢信息）+ 行内「查看 + 操作下拉」（互斥/不可达操作不出现）；
  * 详情 = B 横幅抽屉（AccountDetailDrawer）。
  * 权限：写按钮组 hasAuth('admin:account:write') 门控；页面读权限由菜单/路由控制。
- * ⚠️ 分页：响应 page 0-based（REQ-18 待归一）——accountTransform +1 临时适配。
+ * ⚠️ 分页：请求 page 0-based（identity 协议，onPaginationParamsChange -1 适配；响应 pageNum
+ * 表格不消费，无影响）——REQ-18 归一后删 -1 即回归。
  */
 import { ref } from 'vue';
 import { NButton, NDropdown, NTag } from 'naive-ui';
@@ -21,7 +22,6 @@ import {
 } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
-import type { FlatResponseData } from '@sa/axios';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import AccountSearch from './modules/account-search.vue';
@@ -37,19 +37,10 @@ const canWrite = hasAuth('admin:account:write');
 /** 搜索参数 = 分页 + 当前筛选（AccountSearch 清洗后并入）。请求 page 0-based。 */
 const searchParams = ref<Api.Account.AccountSearchParams>({ page: 0, size: 10 });
 
-/**
- * account BFF 响应 page 是 0-based（identity 透传，与全平台「响应 1-based」相反）。
- * +1 适配 useTable 的 1-based 页码——REQ-18 落地后删、回归 defaultTransform。
- */
-function accountTransform(response: FlatResponseData<any, Api.Common.PageResponse<Api.Account.AccountSummary>>) {
-  const { data, pageNum, pageSize, total } = defaultTransform(response);
-  return { data, pageNum: pageNum + 1, pageSize, total };
-}
-
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
   useNaivePaginatedTable({
     api: () => fetchGetAccountList(searchParams.value),
-    transform: response => accountTransform(response),
+    transform: response => defaultTransform(response),
     onPaginationParamsChange: params => {
       searchParams.value.page = (params.page ?? 1) - 1;
       searchParams.value.size = params.pageSize ?? 10;
@@ -160,7 +151,8 @@ function openDetail(userId: string) {
 
 /* ---- 封号弹窗 ---- */
 const disableModalVisible = ref(false);
-const disableTarget = ref<Api.Account.AccountSummary | null>(null);
+/** 封号弹窗只需提示文案两字段（不存整行——行可能不在当前页）。 */
+const disableTarget = ref<{ userId: string; nickname: string | null } | null>(null);
 
 async function handleDisableConfirm(reason: string) {
   const target = disableTarget.value;
@@ -180,10 +172,8 @@ async function handleDisableConfirm(reason: string) {
 function onAction(userId: string, key: string) {
   const row = data.value.find(item => item.userId === userId);
   if (key === 'disable') {
-    if (row) {
-      disableTarget.value = row;
-      disableModalVisible.value = true;
-    }
+    disableTarget.value = { userId, nickname: row?.nickname ?? null };
+    disableModalVisible.value = true;
     return;
   }
   const confirms: Record<string, { title: string; run: () => Promise<{ error?: unknown }>; success: string }> = {
@@ -223,8 +213,7 @@ function onAction(userId: string, key: string) {
 /** 抽屉发起的封号（横幅按钮）——目标行可能不在当前页，用 selectedUserId 兜底。 */
 function handleDisableFromDrawer() {
   const row = data.value.find(item => item.userId === selectedUserId.value);
-  disableTarget.value =
-    row ?? { userId: selectedUserId.value, nickname: null, email: null, phone: null, avatar: null, status: 1, locked: false, hasPassword: false };
+  disableTarget.value = { userId: selectedUserId.value, nickname: row?.nickname ?? null };
   disableModalVisible.value = true;
 }
 </script>
