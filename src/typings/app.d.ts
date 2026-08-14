@@ -1027,6 +1027,62 @@ declare namespace App {
             noEvents: string;
           };
         };
+        account: {
+          title: string;
+          detailTitle: string;
+          userId: string;
+          nickname: string;
+          email: string;
+          phone: string;
+          status: string;
+          locked: string;
+          detail: string;
+          more: string;
+          form: {
+            email: string;
+            phone: string;
+            userId: string;
+            status: string;
+            locked: string;
+            createdRange: string;
+          };
+          statusEnum: {
+            active: string;
+            disabled: string;
+            locked: string;
+            unlocked: string;
+          };
+          banner: {
+            active: string;
+            locked: string;
+            disabled: string;
+            disabledLocked: string;
+          };
+          action: {
+            disable: string;
+            activate: string;
+            unlock: string;
+            revoke: string;
+          };
+          confirm: {
+            target: string;
+            activate: string;
+            unlock: string;
+            revoke: string;
+          };
+          disableModal: {
+            title: string;
+            tip: string;
+            reasonPlaceholder: string;
+            confirm: string;
+          };
+          success: {
+            disabled: string;
+            activated: string;
+            unlocked: string;
+            revoked: string;
+          };
+        };
       };
       form: {
         required: string;

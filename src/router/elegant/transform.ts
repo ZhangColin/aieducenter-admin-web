@@ -166,6 +166,8 @@ const routeMap: RouteMap = {
   "403": "/403",
   "404": "/404",
   "500": "/500",
+  "account": "/account",
+  "account_list": "/account/list",
   "app": "/app",
   "app_list": "/app/list",
   "home": "/home",

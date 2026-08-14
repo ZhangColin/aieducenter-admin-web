@@ -239,7 +239,9 @@ const local: App.I18n.Schema = {
     payment_refund: '退款订单',
     payment_channel: '通道交互',
     payment_channel_log: '通道交互日志',
-    payment_operation: '订单操作记录'
+    payment_operation: '订单操作记录',
+    account: '平台账号',
+    account_list: '账号列表'
   },
   page: {
     login: {
@@ -786,6 +788,62 @@ const local: App.I18n.Schema = {
         operator: '操作人',
         remark: '备注',
         noEvents: '暂无生命周期事件'
+      }
+    },
+    account: {
+      title: '平台账号列表',
+      detailTitle: '账号详情',
+      userId: '用户 ID',
+      nickname: '昵称',
+      email: '邮箱',
+      phone: '手机号',
+      status: '状态',
+      locked: '锁定',
+      detail: '查看',
+      more: '操作',
+      form: {
+        email: '邮箱（模糊）',
+        phone: '手机号（模糊）',
+        userId: '用户 ID（精确）',
+        status: '状态',
+        locked: '锁定',
+        createdRange: '注册时间'
+      },
+      statusEnum: {
+        active: '正常',
+        disabled: '已封号',
+        locked: '已锁定',
+        unlocked: '未锁定'
+      },
+      banner: {
+        active: '正常',
+        locked: '正常 · 系统锁定',
+        disabled: '已封号',
+        disabledLocked: '已封号 · 系统锁定'
+      },
+      action: {
+        disable: '封号',
+        activate: '解封',
+        unlock: '解除系统锁定',
+        revoke: '强制下线'
+      },
+      confirm: {
+        target: '账号 {name}（{userId}）',
+        activate: '解封该账号？',
+        unlock: '解除该账号的系统锁定？',
+        revoke: '强制下线该账号的全部会话？'
+      },
+      disableModal: {
+        title: '封号',
+        tip: '账号 {name} 将被封禁，全部会话立即失效。',
+        reasonPlaceholder: '封号原因（必填）',
+        confirm: '确认封号'
+      },
+      success: {
+        disabled: '已封号——全部会话已失效',
+        activated: '已解封——用户需重新登录',
+        unlocked: '已解除系统锁定',
+        revoked: '已强制下线'
       }
     }
   },

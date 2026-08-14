@@ -243,7 +243,9 @@ const local: App.I18n.Schema = {
     payment_refund: 'Refund Orders',
     payment_channel: 'Channel',
     payment_channel_log: 'Channel Logs',
-    payment_operation: 'Operation Logs'
+    payment_operation: 'Operation Logs',
+    account: 'Accounts',
+    account_list: 'Account List'
   },
   page: {
     login: {
@@ -790,6 +792,62 @@ const local: App.I18n.Schema = {
         operator: 'Operator',
         remark: 'Remark',
         noEvents: 'No lifecycle events'
+      }
+    },
+    account: {
+      title: 'Platform Accounts',
+      detailTitle: 'Account Detail',
+      userId: 'User ID',
+      nickname: 'Nickname',
+      email: 'Email',
+      phone: 'Phone',
+      status: 'Status',
+      locked: 'Locked',
+      detail: 'View',
+      more: 'Actions',
+      form: {
+        email: 'Email (fuzzy)',
+        phone: 'Phone (fuzzy)',
+        userId: 'User ID (exact)',
+        status: 'Status',
+        locked: 'Locked',
+        createdRange: 'Registered at'
+      },
+      statusEnum: {
+        active: 'Active',
+        disabled: 'Disabled',
+        locked: 'Locked',
+        unlocked: 'Unlocked'
+      },
+      banner: {
+        active: 'Active',
+        locked: 'Active · System Locked',
+        disabled: 'Disabled',
+        disabledLocked: 'Disabled · System Locked'
+      },
+      action: {
+        disable: 'Disable',
+        activate: 'Activate',
+        unlock: 'Unlock',
+        revoke: 'Force Logout'
+      },
+      confirm: {
+        target: 'Account {name} ({userId})',
+        activate: 'Activate this account?',
+        unlock: 'Release the system lock on this account?',
+        revoke: 'Revoke all sessions of this account?'
+      },
+      disableModal: {
+        title: 'Disable Account',
+        tip: 'Account {name} will be disabled; all sessions expire immediately.',
+        reasonPlaceholder: 'Reason (required)',
+        confirm: 'Confirm'
+      },
+      success: {
+        disabled: 'Disabled — all sessions revoked',
+        activated: 'Activated — user must sign in again',
+        unlocked: 'System lock released',
+        revoked: 'All sessions revoked'
       }
     }
   },
