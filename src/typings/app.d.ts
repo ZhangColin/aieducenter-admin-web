@@ -798,20 +798,23 @@ declare namespace App {
               refundStatus: string;
               refundBacklog: string;
               backlogCount: string;
+              backlogAmount: string;
             };
             gatewayHealth: {
               title: string;
               bankInterface: string;
-              callCount: string;
+              totalCount: string;
               successCount: string;
               successRate: string;
-              avgExecutionTime: string;
+              avgExecutionTimeMs: string;
               returnCodes: string;
             };
             operationsAudit: {
               title: string;
+              totalAudits: string;
               auditCount: string;
               approvedCount: string;
+              rejectedCount: string;
               approvalRate: string;
               avgDuration: string;
               auditor: string;
@@ -890,7 +893,6 @@ declare namespace App {
             auditType: string;
             auditor: string;
             auditorId: string;
-            auditedAt: string;
             createdAt: string;
             moreFilters: string;
             detail: string;
@@ -1024,6 +1026,8 @@ declare namespace App {
             bankInterface: string;
             operator: string;
             remark: string;
+            performer: string;
+            detail: string;
             noEvents: string;
           };
         };

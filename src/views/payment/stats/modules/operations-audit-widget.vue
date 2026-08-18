@@ -1,7 +1,10 @@
 <script setup lang="tsx">
 /**
- * tier-1 · 审核统计 widget：审核笔数·通过率·平均审核时长（KPI）+ 按审核人聚合（表）。
+ * tier-1 · 审核统计 widget：审核总笔数·通过率·平均审核时长（KPI）+ 按审核人聚合（表）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
+ *
+ * #54 对齐：顶层 totalAudits / avgAuditDurationMinutes（**分钟**，number）；byAuditor 无人均时长
+ * （payment 契约无该字段），补拒绝笔数列。
  */
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { $t } from '@/locales';
@@ -22,11 +25,11 @@ const columns = [
     render: (row: Api.Payment.OperationsAuditorStat) => row.auditorName || row.auditorId || '-'
   },
   {
-    key: 'auditCount',
+    key: 'count',
     title: $t('page.payment.stats.operationsAudit.auditCount'),
     align: 'right' as const,
     width: 110,
-    render: (row: Api.Payment.OperationsAuditorStat) => formatCount(row.auditCount)
+    render: (row: Api.Payment.OperationsAuditorStat) => formatCount(row.count)
   },
   {
     key: 'approvedCount',
@@ -36,25 +39,25 @@ const columns = [
     render: (row: Api.Payment.OperationsAuditorStat) => formatCount(row.approvedCount)
   },
   {
+    key: 'rejectedCount',
+    title: $t('page.payment.stats.operationsAudit.rejectedCount'),
+    align: 'right' as const,
+    width: 110,
+    render: (row: Api.Payment.OperationsAuditorStat) => formatCount(row.rejectedCount)
+  },
+  {
     key: 'approvalRate',
     title: $t('page.payment.stats.operationsAudit.approvalRate'),
     align: 'right' as const,
     width: 110,
     render: (row: Api.Payment.OperationsAuditorStat) => formatRate(row.approvalRate)
-  },
-  {
-    key: 'avgAuditDurationSeconds',
-    title: $t('page.payment.stats.operationsAudit.avgDuration'),
-    align: 'right' as const,
-    width: 130,
-    render: (row: Api.Payment.OperationsAuditorStat) => `${formatCount(row.avgAuditDurationSeconds)} s`
   }
 ];
 
 const kpis: StatKpi[] = [
-  { key: 'auditCount', label: 'page.payment.stats.operationsAudit.auditCount', value: () => formatCount(store.operationsAudit?.auditCount) },
+  { key: 'totalAudits', label: 'page.payment.stats.operationsAudit.totalAudits', value: () => formatCount(store.operationsAudit?.totalAudits) },
   { key: 'approvalRate', label: 'page.payment.stats.operationsAudit.approvalRate', value: () => formatRate(store.operationsAudit?.approvalRate) },
-  { key: 'avgDuration', label: 'page.payment.stats.operationsAudit.avgDuration', value: () => `${formatCount(store.operationsAudit?.avgAuditDurationSeconds)} s` }
+  { key: 'avgDuration', label: 'page.payment.stats.operationsAudit.avgDuration', value: () => `${formatCount(store.operationsAudit?.avgAuditDurationMinutes)} min` }
 ];
 </script>
 
@@ -84,7 +87,7 @@ const kpis: StatKpi[] = [
     >
       <NDataTable
         :columns="columns"
-        :data="store.operationsAudit!.auditors"
+        :data="store.operationsAudit!.byAuditor"
         size="small"
         :pagination="false"
         :scroll-x="600"

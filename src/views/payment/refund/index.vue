@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue';
 import { NButton, NTag } from 'naive-ui';
-import { auditTypeRecord, displayEnumName, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
+import { auditTypeRecord, displayEnumName, enumTagColor, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
 import { fetchGetRefundOrderList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -68,7 +68,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         align: 'center',
         width: 100,
         render: row => (
-          <NTag type={refundStatusTagColor[row.status] ?? 'default'} size="small">
+          <NTag type={enumTagColor(refundStatusTagColor, row.status)} size="small">
             {displayEnumName(row.statusName, row.status, refundStatusRecord)}
           </NTag>
         )
@@ -92,14 +92,8 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         title: $t('page.payment.refund.auditor'),
         align: 'center',
         minWidth: 130,
-        render: row => row.auditorName || row.auditorId || '-'
-      },
-      {
-        key: 'auditedAt',
-        title: $t('page.payment.refund.auditedAt'),
-        align: 'center',
-        width: 170,
-        render: row => (row.auditedAt ? formatDateTime(row.auditedAt) : '-')
+        // #54 对齐：响应只余 auditorName（auditorId/auditedAt 为 payment ghost，admin #59 删）
+        render: row => row.auditorName || '-'
       },
       {
         key: 'createdAt',

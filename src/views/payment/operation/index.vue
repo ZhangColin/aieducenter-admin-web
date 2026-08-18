@@ -40,17 +40,19 @@ const operationTagMap: Partial<Record<Api.Payment.OperationType, NaiveUI.ThemeCo
   '3': 'info'
 };
 
-/** 枚举 tag 列：null → '-'；后端 *Name 优先、record 兜底（displayEnumName）。复用于目标类型 / 操作类型两列。 */
+/** 枚举 tag 列：null → '-'；后端 *Name 优先、record 兜底（displayEnumName）。复用于目标类型 / 操作类型两列。
+ * code 为 JSON number（#54 对齐），经 String() 归一查 tagMap/record（键 = code 字符串字面量）。 */
 function renderEnumTag<T extends string>(
   name: string | null | undefined,
-  value: T | null,
+  value: number | T | null,
   record: Record<T, App.I18n.I18nKey>,
   tagMap: Partial<Record<T, NaiveUI.ThemeColor>>
 ) {
-  if (!value) return '-';
+  if (value === null || value === undefined) return '-';
+  const key = String(value) as T;
   return (
-    <NTag type={tagMap[value] ?? 'default'} size="small">
-      {displayEnumName(name, value, record)}
+    <NTag type={tagMap[key] ?? 'default'} size="small">
+      {displayEnumName(name, key, record)}
     </NTag>
   );
 }

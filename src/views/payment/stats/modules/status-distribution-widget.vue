@@ -1,21 +1,27 @@
 <script setup lang="ts">
 /**
- * tier-1 · 订单状态分布 widget：支付各状态饼 + 退款各状态饼 + 退款待审核积压 KPI。
+ * tier-1 · 订单状态分布 widget：支付各状态饼 + 退款各状态饼 + 退款待审核积压 KPI（笔数·金额）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
  * 两饼同卡片并列（spec「支付 + 退款两列」）。
  * - 比例维度 = **笔数**（value=count）；**金额**作 tooltip 第二维度（spec 故事 23「各状态在途笔数·金额」），
  *   不抢饼比例以避免双量纲混淆。
- * - 标签走 displayEnumName：后端 statusName 优先 → 既有 i18n record 兜底（BFF 透传 *Name 前，
- *   REQ-16，过渡期也显示中文，与列表/详情同源）→ code。
- * - 配色复用 paymentStatusTagColor / refundStatusTagColor（code 键）。
+ * - 标签走 displayEnumName：后端 statusName 优先 → 既有 i18n record 兜底（与列表/详情同源）→ code。
+ * - 配色复用 paymentStatusTagColor / refundStatusTagColor（code 键，number code 经 enumTagColor 归一）。
+ * - 积压 KPI：嵌套 refundBacklog{pendingCount, pendingAmount}（#54 对齐）——积压金额首次可用、一并展示。
  */
 import { watch } from 'vue';
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { useEcharts } from '@/hooks/common/echarts';
 import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 import { $t } from '@/locales';
-import { displayEnumName, paymentStatusRecord, paymentStatusTagColor, refundStatusRecord, refundStatusTagColor } from '@/constants/payment';
+import {
+  displayEnumName,
+  paymentStatusRecord,
+  paymentStatusTagColor,
+  refundStatusRecord,
+  refundStatusTagColor
+} from '@/constants/payment';
 import { formatCount, formatMoney } from '@/utils/common';
 import WidgetPlaceholder from './widget-placeholder.vue';
 
@@ -87,20 +93,20 @@ watch(
     const payBuckets = sd.paymentStatuses.filter(b => Number(b.count) > 0);
     updatePay(opts => {
       opts.series[0].data = payBuckets.map((b, i) => ({
-        name: displayEnumName(b.statusName, b.status as Api.Payment.PaymentStatus, paymentStatusRecord),
+        name: displayEnumName(b.statusName, b.status, paymentStatusRecord),
         value: Number(b.count),
         amount: Number(b.amount),
-        itemStyle: { color: paymentStatusTagColor[b.status as Api.Payment.PaymentStatus] ?? palette[i % palette.length] }
+        itemStyle: { color: paymentStatusTagColor[String(b.status) as Api.Payment.PaymentStatus] ?? palette[i % palette.length] }
       }));
       return opts;
     });
     const refundBuckets = sd.refundStatuses.filter(b => Number(b.count) > 0);
     updateRefund(opts => {
       opts.series[0].data = refundBuckets.map((b, i) => ({
-        name: displayEnumName(b.statusName, b.status as Api.Payment.RefundStatus, refundStatusRecord),
+        name: displayEnumName(b.statusName, b.status, refundStatusRecord),
         value: Number(b.count),
         amount: Number(b.amount),
-        itemStyle: { color: refundStatusTagColor[b.status as Api.Payment.RefundStatus] ?? palette[i % palette.length] }
+        itemStyle: { color: refundStatusTagColor[String(b.status) as Api.Payment.RefundStatus] ?? palette[i % palette.length] }
       }));
       return opts;
     });
@@ -119,12 +125,14 @@ watch(
       </NButton>
     </template>
 
-    <!-- 退款待审核积压 -->
+    <!-- 退款待审核积压（嵌套 refundBacklog：笔数 + 金额——#54 起积压金额首次可用、一并展示） -->
     <div class="mb-8px flex items-center justify-between rounded-4px bg-#f5f5f5 px-12px py-8px dark:bg-#262626">
       <span class="text-13px opacity-75">{{ $t('page.payment.stats.statusDistribution.refundBacklog') }}</span>
       <span>
-        <span class="font-600">{{ formatCount(store.statusDistribution?.refundPendingAuditCount) }}</span>
+        <span class="font-600">{{ formatCount(store.statusDistribution?.refundBacklog?.pendingCount) }}</span>
         <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.statusDistribution.backlogCount') }}</span>
+        <span class="ml-8px font-600">{{ formatMoney(store.statusDistribution?.refundBacklog?.pendingAmount) }}</span>
+        <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.statusDistribution.backlogAmount') }}</span>
       </span>
     </div>
 

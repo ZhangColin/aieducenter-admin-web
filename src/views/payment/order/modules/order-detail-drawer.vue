@@ -5,9 +5,8 @@
  * 从列表点「详情」打开右侧 NDrawer（width=720）：
  * - 「基本信息」tab：desc-table 全字段只读回显（含状态 NTag / 金额 ¥ / 枚举翻译）。
  * - 「生命周期」tab：NTimeline 渲染 `GET /orders/{no}/lifecycle`（payment 已合并 PaymentLog +
- *   OperationLog 按 createdAt 排序）。机机通道事件 vs 人/系统操作事件 **分色（dot outcome）+
- *   分图标（source）**，success/fail 可辨（PAYMENT_LOG 的 success boolean + OPERATION_LOG 的
- *   result 启发式着色）。生命周期 tab 按需首次加载。
+ *   OperationLog 按 createdAt 排序，语义 9 字段扁平事件数组——#54 对齐）。GATEWAY（机机通道）
+ *   vs OPERATION（行为者操作）**分图标（source）**，outcome token 着色 dot + tag。按需首次加载。
  * - 抽屉头部「通知重发」按钮 → $dialog.warning 二次确认 → `POST /payments/{no}/notifications/resend`
  *   （不改订单状态，仅补发投递；成功 toast）。
  *
@@ -18,6 +17,7 @@ import { fetchGetPaymentOrderDetail, fetchResendPaymentNotification } from '@/se
 import {
   accessTypeRecord,
   displayEnumName,
+  enumTagColor,
   payModeRecord,
   paymentChannelRecord,
   paymentStatusRecord,
@@ -122,7 +122,7 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.order.status') }}</div>
               <div class="desc-value">
-                <NTag size="small" :type="paymentStatusTagColor[detail.status] ?? 'default'">
+                <NTag size="small" :type="enumTagColor(paymentStatusTagColor, detail.status)">
                   {{ displayEnumName(detail.statusName, detail.status, paymentStatusRecord) }}
                 </NTag>
               </div>

@@ -7,30 +7,30 @@ declare namespace Api {
    *
    * 分页约定同 SystemManage：请求 `page` **0-based**、响应 `PageResponse{ items, total, page(1-based), size }`。
    *
-   * ⚠️ payment 枚举线上序列化：BaseEnum（PaymentStatus / PayMode / …）为 **Integer code 的字符串**
-   * （如 `status: "5"`），admin BFF 原值透传——前端按 code 字面量建模。展示统一走后端 `*Name`
-   * （`statusName` / `payModeName` …，平台统一枚举范式：后端给中文 label、前端只显示）；
-   * code 仅用于筛选选项 value 与标签配色。纯 String token（LogType / result）按 token 字面量建模。
-   * （admin BFF 透传 `*Name` 尚未落地，见 docs/backend-requirements/REQ-16；落地前展示回退 code。）
+   * ⚠️ payment 枚举线上序列化（#54 对齐 admin ADR-0009/0011）：BaseEnum（PaymentStatus / PayMode / …）
+   * 出口为 **Integer code → JSON number**（如 `status: 2`），配同名 `*Name` 中文名（`statusName` /
+   * `payModeName` …，后端已透传，前端直读展示）；code 仅用于标签配色。**请求侧**（筛选下拉 value /
+   * `statuses` 等查询参数）仍按 code 字符串提交——后端绑 Integer，见下方 code 字面量类型。
+   * 纯 String token（LogType / result）按 token 字面量建模、原值展示。
    *
-   * ⚠️ 金额（amount / refundAmount / 各金额区间）单位 = **整数分**（payment 域 `Long`，BFF 透传）。
-   * 前端展示经 `formatMoney` 除以 100；金额筛选 `amountMin/Max` 同样以分提交（UI 元换算）。
-   * （spec「假设整数分、接真核对」——payment 服务侧 #9–#18 联调时核对。）
+   * ⚠️ 金额（amount / refundAmount / 各分桶 amount / refundBacklog.pendingAmount …）单位 = **整数分**，
+   * 类型一律 **string**（payment 域 `Long`，框架全局 Long→JSON string，admin BFF 同型透传、零换算——
+   * ADR-0011）。前端算术/比较入口统一显式 `Number(...)`；展示经 `formatMoney`（内部 ÷100）；
+   * 金额筛选 `amountMin/Max` 同样以分提交（UI 元换算）。
    */
   namespace Payment {
-    // ---- 枚举字面量 ----
+    // ---- 枚举字面量（请求侧 code 字符串）----
     //
-    // payment 域枚举线上序列化分两类（契约源：payment domain enums + 实测 curl）：
+    // payment 域枚举分两类（#54 对齐 admin ADR-0009/0011，契约源：payment domain enums + ContractTest）：
     //  1. BaseEnum（Integer code）：PaymentStatus / PayMode / AccessType / PaymentChannel /
-    //     RefundStatus / AuditType / OperationType / OperationLogTargetType。payment 经全局
-    //     Jackson 序列化为 **Integer code 的字符串**（如 `status: "5"`），admin BFF 原值透传——
-    //     故前端按 code（字符串字面量）建模。
-    //     展示统一走后端 `*Name`（见各 summary 的 `statusName` / `payModeName` …，平台统一枚举范式：
-    //     后端给中文 label、前端只显示）；code 仅用于筛选选项 value + 标签配色。
-    //     ⚠️ 现阶段 admin BFF 尚未透传 `*Name`（见 docs/backend-requirements/REQ-16），前端展示
-    //     暂回退到 code，BFF 落地 *Name 后自动显示中文——零前端改动。
-    //  2. 纯 String token（非 enum）：LogType（PaymentLog.logType 列）、OperationLog.result。
-    //     取值稳定但非闭合，线上即 token 本身（如 `"PAYMENT_REQUEST"`），按 token 字面量建模。
+    //     RefundStatus / AuditType / OperationType / OperationLogTargetType。**响应侧**经 admin BFF
+    //     出口为 Integer code → JSON **number**（如 `status: 2`），配 `*Name` 中文名（后端已透传，
+    //     前端直读展示）；code 仅用于标签配色（`enumTagColor` 经 String() 归一查表）。
+    //     **请求侧**（筛选下拉 value / `statuses` 等查询参数）按下方 code 字符串字面量建模提交——
+    //     后端绑 Integer，字符串 code 可直接绑定（NSelect value 也须 string）。
+    //  2. 纯 String token（非 enum）：LogType（PaymentLog.logType 列）、OperationLog.result、
+    //     lifecycle 的 action / outcome。取值稳定但非闭合，线上即 token 本身（如 `"PAYMENT_REQUEST"`），
+    //     按 token 字面量建模、原值展示。
 
     /** 支付订单状态 code（payment PaymentStatus）：1=待支付 2=已支付 3=支付失败 4=已取消 5=已过期 */
     type PaymentStatus = '1' | '2' | '3' | '4' | '5';
@@ -69,29 +69,30 @@ declare namespace Api {
 
     /**
      * 后端 PaymentOrderSummaryResponse（GET /payments 列表项）。
-     * 各字段为 payment 原值透传；`amount` 为整数分；各类 `*No` 为字符串（防 Long 精度丢失）。
+     * 各字段为 payment 原值透传；`amount` 为整数分（Long→JSON **string**，#54/ADR-0011）；
+     * 各类 `*No` 为字符串（防 Long 精度丢失）；枚举 code 为 JSON **number**（Integer）。
      */
     interface PaymentOrderSummary {
       paymentOrderNo: string;
       businessOrderNo: string;
       businessSystemName: string | null;
-      /** payment PaymentStatus 枚举 code（字符串） */
-      status: PaymentStatus;
-      /** 状态中文名（后端序列化，展示用）；BFF 透传——见 REQ-16，未落地前为 null */
+      /** payment PaymentStatus 枚举 code（Integer→number；配色经 enumTagColor 归一查表） */
+      status: number;
+      /** 状态中文名（后端序列化，直读展示；枚举可空时为 null） */
       statusName: string | null;
-      /** 整数分 */
-      amount: number;
-      /** payment PayMode 枚举 code */
-      payMode: PayMode | null;
-      /** 支付方式中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 支付金额（整数分，Long→string；展示经 formatMoney） */
+      amount: string;
+      /** payment PayMode 枚举 code（Integer→number） */
+      payMode: number | null;
+      /** 支付方式中文名（后端序列化，直读展示） */
       payModeName: string | null;
-      /** payment AccessType 枚举 code */
-      accessType: AccessType | null;
-      /** 接入类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment AccessType 枚举 code（Integer→number） */
+      accessType: number | null;
+      /** 接入类型中文名（后端序列化，直读展示） */
       accessTypeName: string | null;
-      /** payment PaymentChannel 枚举 code */
-      paymentChannel: PaymentChannel | null;
-      /** 支付通道中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment PaymentChannel 枚举 code（Integer→number） */
+      paymentChannel: number | null;
+      /** 支付通道中文名（后端序列化，直读展示） */
       paymentChannelName: string | null;
       /** 支付时间，可空（未支付）；ISO 字符串 */
       paidAt: string | null;
@@ -103,7 +104,8 @@ declare namespace Api {
      * GET /payments 搜索参数（后端 PaymentOrderQuery + Spring Pageable）。
      * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
      *
-     * - `statuses` 多选（Spring 绑定 record List<String>，axios qs 默认 indices 格式可绑）；
+     * - `statuses` 多选（admin PaymentOrderQuery 绑 `List<Integer>`，前端提交字符串 code 可直接绑——
+     *   axios qs 默认 indices 格式）；
      * - 金额区间（`amountMin/Max`）与时间区间（`createdAtFrom/To`、`paidAtFrom/To`）均为可空，
      *   空值由调用方剔除；金额单位分、时间为 ISO 字符串（`YYYY-MM-DDTHH:mm:ss`）。
      */
@@ -143,25 +145,29 @@ declare namespace Api {
      *
      * 与列表项 {@link PaymentOrderSummary} 字段面当前一致，但详情是完整聚合投影、独立演进
      * （payment 契约定型后详情可新增字段）——故单立类型、不与列表项共用。
-     * `amount` 为 BigDecimal → JSON number（整数分）；其余约定同 PaymentOrderSummary。
+     * `amount` 为整数分（Long→JSON **string**）；枚举 code 为 JSON **number**；其余约定同列表项。
      */
     interface PaymentOrderDetail {
       paymentOrderNo: string;
       businessOrderNo: string;
       businessSystemName: string | null;
-      status: PaymentStatus;
-      /** 状态中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment PaymentStatus 枚举 code（Integer→number） */
+      status: number;
+      /** 状态中文名（后端序列化，直读展示） */
       statusName: string | null;
-      /** 整数分（BigDecimal → number） */
-      amount: number;
-      payMode: PayMode | null;
-      /** 支付方式中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 支付金额（整数分，Long→string） */
+      amount: string;
+      /** payment PayMode 枚举 code（Integer→number） */
+      payMode: number | null;
+      /** 支付方式中文名（后端序列化，直读展示） */
       payModeName: string | null;
-      accessType: AccessType | null;
-      /** 接入类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment AccessType 枚举 code（Integer→number） */
+      accessType: number | null;
+      /** 接入类型中文名（后端序列化，直读展示） */
       accessTypeName: string | null;
-      paymentChannel: PaymentChannel | null;
-      /** 支付通道中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment PaymentChannel 枚举 code（Integer→number） */
+      paymentChannel: number | null;
+      /** 支付通道中文名（后端序列化，直读展示） */
       paymentChannelName: string | null;
       /** 支付时间，可空（未支付）；ISO 字符串 */
       paidAt: string | null;
@@ -173,31 +179,29 @@ declare namespace Api {
 
     /**
      * 后端 RefundOrderSummaryResponse（GET /refunds 列表项）。
-     * 各字段为 payment 原值透传；`refundAmount` 为整数分；各类 `*No` 为字符串（防 Long 精度丢失）。
+     * 各字段为 payment 原值透传；`refundAmount` 为整数分（Long→JSON **string**，#54/ADR-0011）；
+     * 各类 `*No` 为字符串（防 Long 精度丢失）；枚举 code 为 JSON **number**（Integer）。
      *
-     * `auditorId` 为 Long → 经全局 Jackson `Long→string` 序列化为 JSON **字符串**，按 string 处理防精度丢失。
+     * ⚠️ 审核人出口仅 `auditorName`——payment 从不发送 `auditorId`/`auditedAt`（ghost，admin #59 删，
+     * #54 前端同步）；按审核人筛选走 query 侧 `auditorId`（见 {@link RefundOrderSearchParams}）。
      */
     interface RefundOrderSummary {
       refundOrderNo: string;
       paymentOrderNo: string;
       businessOrderNo: string;
       businessSystemName: string | null;
-      /** payment RefundStatus 枚举 code（字符串） */
-      status: RefundStatus;
-      /** 状态中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** payment RefundStatus 枚举 code（Integer→number） */
+      status: number;
+      /** 状态中文名（后端序列化，直读展示） */
       statusName: string | null;
-      /** 整数分（BigDecimal → number） */
-      refundAmount: number;
-      /** payment AuditType 枚举 code（1=免审 / 2=人工）；未审核可空 */
-      auditType: AuditType | null;
-      /** 审核类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 退款金额（整数分，Long→string；展示经 formatMoney） */
+      refundAmount: string;
+      /** payment AuditType 枚举 code（Integer→number；1=免审 / 2=人工）；未审核可空 */
+      auditType: number | null;
+      /** 审核类型中文名（后端序列化，直读展示） */
       auditTypeName: string | null;
-      /** 审核人 ID，Long→string */
-      auditorId: string | null;
       /** 审核人姓名，可空 */
       auditorName: string | null;
-      /** 审核时间，可空（未审核）；ISO 字符串 */
-      auditedAt: string | null;
       /** 创建时间，ISO 字符串 */
       createdAt: string;
     }
@@ -206,10 +210,12 @@ declare namespace Api {
      * GET /refunds 搜索参数（后端 RefundOrderQuery + Spring Pageable）。
      * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
      *
-     * - `statuses` 多选（Spring 绑定 record List<String>，axios qs 默认 indices 格式可绑）；
+     * - `statuses` 多选（admin RefundOrderQuery 绑 `List<Integer>`，前端提交字符串 code 可直接绑——
+     *   axios qs 默认 indices 格式）；
      * - 退款金额区间 `refundAmountMin/Max`（整数分）与创建时间区间 `createdAtFrom/To`（ISO 串）均可空，
      *   空值由调用方剔除；
-     * - `auditorId` 为 Long，前端按 **string** 处理防精度丢失，提交字符串由后端绑 Long。
+     * - `auditorId` 为 Long，前端按 **string** 处理防精度丢失，提交字符串由后端绑 Long
+     *   （**query 侧保留**——payment 支持按审核人筛选，仅响应出口无该字段，#54/ADR-0011）。
      */
     interface RefundOrderSearchParams {
       refundOrderNo?: string | null;
@@ -242,31 +248,29 @@ declare namespace Api {
     /**
      * 后端 RefundOrderDetailResponse（GET /refunds/{refundOrderNo}）。
      *
-     * 与列表项 {@link RefundOrderSummary} 字段面当前一致，但详情是完整聚合投影、独立演进
+     * 与列表项 {@link RefundOrderSummary} 字段面当前一致（#54 起**同样带 `*Name`** 中文名——
+     * 旧「refund 详情不含 *Name」以 payment 现契约为准作废），但详情是完整聚合投影、独立演进
      * （payment 契约定型后详情可新增字段）——故单立类型、不与列表项共用。
-     *
-     * ⚠️ 与支付详情不同：refund 详情响应**不含** `*Name` 字段（无 statusName / auditTypeName）——
-     * payment 该聚合投影未带枚举中文名，故展示统一经 `displayEnumName(null, code, record)` 走 i18n record
-     * （BFF 透传 `*Name` 落地前即如此，REQ-16 后 refund 详情是否补 `*Name` 以 payment 为准）。
-     * `refundAmount` 为 BigDecimal → JSON number（整数分）；`auditorId` 为 Long → string。
+     * `refundAmount` 为整数分（Long→JSON **string**）；枚举 code 为 JSON **number**；
+     * 审核人出口仅 `auditorName`（同列表项，ghost 已删）。
      */
     interface RefundOrderDetail {
       refundOrderNo: string;
       paymentOrderNo: string;
       businessOrderNo: string;
       businessSystemName: string | null;
-      /** payment RefundStatus 枚举 code（字符串） */
-      status: RefundStatus;
-      /** 整数分（BigDecimal → number） */
-      refundAmount: number;
-      /** payment AuditType 枚举 code（1=免审 / 2=人工）；未审核可空 */
-      auditType: AuditType | null;
-      /** 审核人 ID，Long→string */
-      auditorId: string | null;
+      /** payment RefundStatus 枚举 code（Integer→number） */
+      status: number;
+      /** 状态中文名（后端序列化，直读展示） */
+      statusName: string | null;
+      /** 退款金额（整数分，Long→string） */
+      refundAmount: string;
+      /** payment AuditType 枚举 code（Integer→number；1=免审 / 2=人工）；未审核可空 */
+      auditType: number | null;
+      /** 审核类型中文名（后端序列化，直读展示） */
+      auditTypeName: string | null;
       /** 审核人姓名，可空 */
       auditorName: string | null;
-      /** 审核时间，可空（未审核）；ISO 字符串 */
-      auditedAt: string | null;
       /** 创建时间，ISO 字符串 */
       createdAt: string;
     }
@@ -354,21 +358,21 @@ declare namespace Api {
      * 记录行为者对订单的操作（审核通过/拒绝、通知重发等），admin 原值透传、不做翻译。
      *
      * - `id` / `operatorId` 为 Long → JSON **字符串**，按 string 处理防精度丢失；
-     * - `result` 为自由稳定 token（非闭合集合：SUCCESS / DELIVERY_FAILED / SKIPPED …），原值展示；
-     * - `targetType` / `operation` 取值稳定，按已知枚举映射 i18n、未知值原值回退。
+     * - `targetType` / `operation` 枚举 code 为 JSON **number**（Integer），配 `*Name` 中文名直读展示；
+     * - `result` 为自由稳定 token（非闭合集合：SUCCESS / DELIVERY_FAILED / SKIPPED …），原值展示。
      */
     interface OperationLogSummary {
       /** Long→string */
       id: string;
-      /** 目标类型枚举 code */
-      targetType: OperationTargetType | null;
-      /** 目标类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 目标类型枚举 code（Integer→number） */
+      targetType: number | null;
+      /** 目标类型中文名（后端序列化，直读展示） */
       targetTypeName: string | null;
       /** 目标单号（支付订单号 / 退款订单号） */
       targetNo: string | null;
-      /** 操作类型枚举 code */
-      operation: OperationType | null;
-      /** 操作类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 操作类型枚举 code（Integer→number） */
+      operation: number | null;
+      /** 操作类型中文名（后端序列化，直读展示） */
       operationName: string | null;
       /** 操作者 ID，Long→string */
       operatorId: string | null;
@@ -417,119 +421,134 @@ declare namespace Api {
 
     /**
      * 生命周期事件来源（payment 已在 BFF 上游合并 PaymentLog + OperationLog 按 createdAt 排序返回）。
-     * - `PAYMENT_LOG`：机机通道事件（与银行/通道网关的交互留痕），网关字段组生效；
-     * - `OPERATION_LOG`：人/系统行为者操作事件（审核/通知重发等），操作字段组生效。
-     * 非生效组字段为 null（union 平表投影）。
+     * - `GATEWAY`：机机通道事件（与银行/通道网关的交互留痕）——performer=网关接口、
+     *   performerSystem=银行 code、detail=返回消息/错误信息；
+     * - `OPERATION`：人/系统行为者操作事件（审核/通知重发等）——performer=操作人、
+     *   performerSystem=来源系统、detail=备注。
+     * 两类来源共用同一组语义字段（无旧平表 union 的互斥字段组）。
      */
-    type LifecycleSource = 'PAYMENT_LOG' | 'OPERATION_LOG';
+    type LifecycleSource = 'GATEWAY' | 'OPERATION';
 
     /**
-     * 后端 OrderLifecycleResponse.LifecycleEvent——payment 合并后的单条时间线条目。
+     * 后端 OrderLifecycleResponse——payment 合并后时间线的**单个语义事件**（9 字段，#54 对齐
+     * admin ADR-0011 / ContractTest）。
      *
-     * 平表投影：source=PAYMENT_LOG 时网关字段组（logType…success）生效、操作字段组为 null；
-     * source=OPERATION_LOG 时反之。
-     *
-     * ⚠️ Long 字段（executionTime / operatorId）经 cartisan-web 全局 Jackson `Long→string`
-     * 序列化为 JSON **字符串**（见 JacksonConfiguration），故按 string 处理防精度丢失；
-     * 展示时 `Number()` 兜底。`success` 为 Boolean（可空）。
+     * 响应为 `ApiResponse<List<OrderLifecycleResponse>>` **扁平事件数组**——无 orderNo 包装
+     * （orderNo 走路径参数）；`id` 为 Long → JSON **字符串**（框架 ToStringSerializer），
+     * 按 string 处理防精度丢失。
      */
     interface LifecycleEvent {
+      /** 源记录主键（Long→string，同时间排序的稳定键） */
+      id: string;
       source: LifecycleSource;
       /** 发生时间（合并排序键，payment 已排好序）；ISO 字符串 */
       createdAt: string;
-
-      // ===== PaymentLog 字段（source=PAYMENT_LOG 时生效，否则 null）=====
-      logType: LogType | null;
-      paymentOrderNo: string | null;
-      refundOrderNo: string | null;
-      bankInterface: string | null;
-      returnCode: string | null;
-      returnMsg: string | null;
-      /** 执行耗时（毫秒），Long→string */
-      executionTime: string | null;
-      success: boolean | null;
-
-      // ===== OperationLog 字段（source=OPERATION_LOG 时生效，否则 null）=====
-      targetType: OperationTargetType | null;
-      /** 目标类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
-      targetTypeName: string | null;
-      targetNo: string | null;
-      operation: OperationType | null;
-      /** 操作类型中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
-      operationName: string | null;
-      /** 操作人 ID，Long→string */
-      operatorId: string | null;
-      operatorName: string | null;
-      operatorSystem: string | null;
-      /** 操作结果（自由稳定 token、非闭合枚举），原值展示 */
-      result: string | null;
-      remark: string | null;
+      /** 动作稳定 token（如 AUDIT_APPROVE / PAYMENT_REQUEST） */
+      action: string;
+      /** 动作中文名（后端已给，直读展示；GATEWAY 事件可能即 token 本身） */
+      actionName: string;
+      /** 结果 token（如 SUCCESS / FAILED） */
+      outcome: string;
+      /** 执行方：OPERATION=操作人名；GATEWAY=网关接口名（如 ICBC_PAY） */
+      performer: string | null;
+      /** 执行方系统：OPERATION=来源系统（如 admin-console）；GATEWAY=银行 code（如 ICBC） */
+      performerSystem: string | null;
+      /** 补充说明：OPERATION=备注；GATEWAY=返回消息/错误信息 */
+      detail: string | null;
     }
 
-    /**
-     * 后端 OrderLifecycleResponse——payment 已合并（按 createdAt 排序）的时间线。
-     * admin BFF 原值透传、不本地再合并（避免与 payment 双逻辑不一致）。
-     */
-    interface OrderLifecycle {
-      orderNo: string;
-      events: LifecycleEvent[];
+    // ---- 统计（仪表盘，GET /stats/**）----
+    //
+    // admin BFF 逐字镜像 payment 聚合结果（#54 对齐 ADR-0011：字段名/类型/嵌套零加戏，契约源 =
+    // admin 仓 PaymentClient*ContractTest）。序列化约定：Long（金额/笔数/id）→ JSON **字符串**、
+    // Integer 枚举 code 与 BigDecimal 比率/均值 → JSON **number**、LocalDateTime → ISO 串。
+    // 比率（successRate / refundRate / approvalRate）为 **小数 0–1 区间**（展示时 ×100）；
+    // 均值（avgExecutionTimeMs / avgAuditDurationMinutes）保持 number 原单位；金额为整数分
+    // （`formatMoney` 内 ÷100）。
+    //
+    // ⚠️ 6 个窗口端点（overview / gateway-health / operations-audit / by-business-system /
+    // by-channel / operations-activity）`from`/`to` **必填**（payment 契约，admin 北向同步必填——
+    // 旧 REQ-17「BFF 未转发」已随 admin #51/#55 修复）；status-distribution / anomalies 无时间窗。
+
+    /** stats 时间窗查询参数（窗口端点必填；ISO 本地串 `YYYY-MM-DDTHH:mm:ss`，后端绑 LocalDateTime） */
+    interface StatsWindowParams {
+      /** 窗口起（含） */
+      from: string;
+      /** 窗口止（含） */
+      to: string;
     }
 
-    // ---- 统计（仪表盘 tier-1，GET /stats/**）----
-    //
-    // admin BFF 透传 payment 聚合结果。约定同上：Long → JSON **字符串**、BigDecimal → number、
-    // LocalDateTime → ISO 串。比率（successRate / approvalRate）为 **小数 0–1 区间**（payment wire 约定，
-    // 展示时 ×100）。金额为整数分（`formatMoney` ÷100）。
-    //
-    // ⚠️ 现阶段 3 个带时间窗的端点（overview / gateway-health / operations-audit）因 admin BFF 未转发
-    // payment 必填的 `from`/`to` 返回 400（见 docs/backend-requirements/REQ-17）；status-distribution 正常。
-    // 前端按锁定契约建，BFF 修复后自动通数据。
+    /** 计数·金额摘要（overview 与 by-business-system 共用：笔数·金额·成功笔数·成功金额·成功率） */
+    interface StatsSummary {
+      /** 笔数（Long→string） */
+      count: string;
+      /** 金额（整数分，Long→string） */
+      amount: string;
+      /** 成功笔数（Long→string） */
+      successCount: string;
+      /** 成功金额（整数分，Long→string） */
+      successAmount: string;
+      /** 成功率（小数 0–1，BigDecimal→number） */
+      successRate: number;
+    }
 
-    /** overview 趋势分桶（某时间窗内的支付/退款笔数·金额快照） */
+    /** overview 趋势分桶（某时间窗内的支付/退款笔数·金额快照，含成功子集） */
     interface PaymentOverviewTrendBucket {
       /** 时间桶起（LocalDateTime → ISO 串） */
       bucket: string;
       /** 支付笔数（Long→string） */
       paymentCount: string;
-      /** 支付金额（整数分） */
-      paymentAmount: number;
+      /** 支付金额（整数分，Long→string） */
+      paymentAmount: string;
+      /** 支付成功笔数（Long→string） */
+      paidCount: string;
+      /** 支付成功金额（整数分，Long→string） */
+      paidAmount: string;
       /** 退款笔数（Long→string） */
       refundCount: string;
-      /** 退款金额（整数分） */
-      refundAmount: number;
+      /** 退款金额（整数分，Long→string） */
+      refundAmount: string;
+      /** 退款成功笔数（Long→string） */
+      refundedCount: string;
+      /** 退款成功金额（整数分，Long→string） */
+      refundedAmount: string;
     }
 
-    /** GET /stats/payments/overview —— 支付/退款笔数·金额·成功率·净额 + 时间分桶趋势 */
+    /** GET /stats/payments/overview —— 支付/退款嵌套摘要 + 净额 + 趋势分桶（from/to 必填） */
     interface PaymentOverview {
-      paymentCount: string;
-      paymentAmount: number;
-      refundCount: string;
-      refundAmount: number;
-      /** 成功率（小数 0–1） */
-      successRate: number;
-      /** 净额（整数分，支付金额 − 退款金额） */
-      netAmount: number;
+      payment: StatsSummary;
+      refund: StatsSummary;
+      /** 净额（整数分，支付金额 − 退款金额；Long→string） */
+      netAmount: string;
       trend: PaymentOverviewTrendBucket[];
     }
 
     /** 状态分桶（payment/refund 各状态在途笔数·金额） */
     interface OrderStatusBucket {
-      /** 状态 code（PaymentStatus / RefundStatus 的 Integer code 字符串） */
-      status: string;
-      /** 状态中文名（后端序列化，展示用）；REQ-16 未落地前为 null */
+      /** 状态 code（PaymentStatus / RefundStatus 的 Integer code → JSON number） */
+      status: number;
+      /** 状态中文名（后端序列化，直读展示） */
       statusName: string | null;
       /** 笔数（Long→string） */
       count: string;
-      /** 金额（整数分；paymentStatuses=支付金额，refundStatuses=退款金额） */
-      amount: number;
+      /** 金额（整数分，Long→string；paymentStatuses=支付金额，refundStatuses=退款金额） */
+      amount: string;
     }
 
-    /** GET /stats/orders/status-distribution —— 支付/退款各状态分布 + 退款待审核积压 */
+    /** 退款待审核积压——PENDING 退款单的笔数与金额（#54 起嵌套，积压金额首次透出） */
+    interface RefundBacklog {
+      /** 积压笔数（Long→string） */
+      pendingCount: string;
+      /** 积压金额（整数分，Long→string） */
+      pendingAmount: string;
+    }
+
+    /** GET /stats/orders/status-distribution —— 支付/退款各状态分布 + 退款待审核积压（无时间窗） */
     interface OrderStatusDistribution {
       paymentStatuses: OrderStatusBucket[];
       refundStatuses: OrderStatusBucket[];
-      /** 退款待审核积压笔数（Long→string） */
-      refundPendingAuditCount: string;
+      /** 嵌套积压（#54 对齐：旧扁平 refundPendingAuditCount 已废） */
+      refundBacklog: RefundBacklog | null;
     }
 
     /** gateway 返回码分布（单一 returnCode 出现次数） */
@@ -541,144 +560,156 @@ declare namespace Api {
 
     /** 单一银行接口健康度（调用次数·成功率·平均耗时·返回码分布） */
     interface GatewayBankInterfaceStat {
+      /** 银行 code（如 "ICBC"） */
+      bankCode: string | null;
       /** 银行接口名（如 "ICBC_PAY"） */
       bankInterface: string;
-      /** 调用次数（Long→string） */
-      callCount: string;
+      /** 调用次数（Long→string；旧名 callCount 已废） */
+      totalCount: string;
       /** 成功次数（Long→string） */
       successCount: string;
       /** 成功率（小数 0–1） */
       successRate: number;
-      /** 平均执行耗时（毫秒，Long→string） */
-      avgExecutionTime: string;
+      /** 平均执行耗时（毫秒，BigDecimal→number） */
+      avgExecutionTimeMs: number;
       returnCodes: GatewayReturnCodeStat[];
     }
 
-    /** GET /stats/gateway/health —— 各银行接口调用统计 + 返回码分布 */
+    /** GET /stats/gateway/health —— 各银行接口调用统计 + 返回码分布（from/to 必填） */
     interface GatewayHealth {
-      bankInterfaces: GatewayBankInterfaceStat[];
+      /** 列表名 interfaces（旧名 bankInterfaces 已废） */
+      interfaces: GatewayBankInterfaceStat[];
     }
 
-    /** 单一审核人统计（审核笔数·通过率·平均时长） */
+    /** 单一审核人统计（审核笔数·通过/拒绝数·通过率；无人均时长——payment 契约无该字段） */
     interface OperationsAuditorStat {
       /** 审核人 ID（Long→string） */
       auditorId: string;
       auditorName: string | null;
       /** 审核笔数（Long→string） */
-      auditCount: string;
+      count: string;
       /** 通过笔数（Long→string） */
       approvedCount: string;
+      /** 拒绝笔数（Long→string） */
+      rejectedCount: string;
       /** 通过率（小数 0–1） */
       approvalRate: number;
-      /** 平均审核时长（秒，Long→string） */
-      avgAuditDurationSeconds: string;
     }
 
-    /** GET /stats/operations/audit —— 审核笔数·通过率·平均时长 + 按审核人聚合 */
+    /** GET /stats/operations/audit —— 审核笔数·通过/拒绝数·通过率·平均时长 + 按审核人聚合（from/to 必填） */
     interface OperationsAudit {
-      /** 审核总笔数（Long→string） */
-      auditCount: string;
+      /** 审核总笔数（Long→string；旧名 auditCount 已废） */
+      totalAudits: string;
+      /** 通过笔数（Long→string） */
+      approvedCount: string;
+      /** 拒绝笔数（Long→string） */
+      rejectedCount: string;
       /** 通过率（小数 0–1） */
       approvalRate: number;
-      /** 平均审核时长（秒，Long→string） */
-      avgAuditDurationSeconds: string;
-      auditors: OperationsAuditorStat[];
+      /** 平均审核时长（**分钟**，BigDecimal→number；旧 avgAuditDurationSeconds 已废） */
+      avgAuditDurationMinutes: number;
+      /** 列表名 byAuditor（旧名 auditors 已废） */
+      byAuditor: OperationsAuditorStat[];
     }
 
-    // ---- 统计（仪表盘 tier-2，GET /stats/**）----
-    //
-    // 4 个 tier-2 端点，经 usePaymentStats store 消费（ADR-0002 seam）。与 tier-1 不同：这 4 个端点**无时间窗**
-    // （不带 from/to），不受 REQ-17 影响，应正常出数。约定同 tier-1：Long → JSON 字符串、BigDecimal → number、
-    // 比率 0–1 小数、金额整数分。
-    //
-    // ⚠️ 维度分组键（payMode / accessType / operation）在 stats 聚合 read-model 里按枚举 **NAME** 投影
-    // （如 WECHAT / APP / AUDIT_APPROVE），与列表/详情的 code 序列化（'9' / '5' / '1'）是不同 read-model——
-    // 故展示用 name-token record + 原值回退（见 constants/payment.ts 的 *NameRecord），不复用 code-keyed record。
-
-    /** 按业务系统细分——单一业务系统的支付/退款笔数·金额·成功率·退款率 */
+    /** 按业务系统细分——单一业务系统的支付/退款嵌套摘要 + 退款率 */
     interface BusinessSystemStat {
       /** 业务系统名（PaymentOrder/RefundOrder.businessSystemName，即调用方 callerAppName） */
       businessSystemName: string;
-      /** 支付笔数（Long→string） */
-      paymentCount: string;
-      /** 支付金额（整数分） */
-      paymentAmount: number;
-      /** 退款笔数（Long→string） */
-      refundCount: string;
-      /** 退款金额（整数分） */
-      refundAmount: number;
-      /** 支付成功率（小数 0–1） */
-      successRate: number;
+      payment: StatsSummary;
+      refund: StatsSummary;
       /** 退款率（小数 0–1，退款笔数 / 支付笔数） */
       refundRate: number;
     }
 
-    /** GET /stats/by-business-system —— 各业务系统支付/退款笔数·金额·成功率·退款率 */
+    /** GET /stats/by-business-system —— 各业务系统支付/退款摘要·成功率·退款率（from/to 必填） */
     interface BusinessSystemStats {
-      systems: BusinessSystemStat[];
+      /** 列表名 businessSystems（旧名 systems 已废） */
+      businessSystems: BusinessSystemStat[];
     }
 
-    /** 按支付方式（payMode）维度——单一支付方式的笔数·金额·成功率 */
-    interface PayModeStat {
-      /** payMode 枚举 NAME token（stats 聚合 read-model，如 WECHAT/ALIPAY/UNIONPAY） */
-      payMode: string;
-      /** 支付笔数（Long→string） */
-      paymentCount: string;
-      /** 支付金额（整数分） */
-      paymentAmount: number;
+    /** 渠道维度统计（payMode / accessType 两维度同构） */
+    interface ChannelBreakdownStat {
+      /** 渠道枚举 code（PayMode / AccessType 的 Integer code → JSON number） */
+      channelCode: number;
+      /** 渠道中文名（后端序列化，直读展示，如 微信 / 支付宝 / H5） */
+      channelName: string;
+      /** 笔数（Long→string） */
+      count: string;
+      /** 金额（整数分，Long→string） */
+      amount: string;
+      /** 成功笔数（Long→string） */
+      successCount: string;
+      /** 成功金额（整数分，Long→string） */
+      successAmount: string;
       /** 成功率（小数 0–1） */
       successRate: number;
     }
 
-    /** 按接入类型（accessType）维度——单一接入类型的笔数·金额·成功率 */
-    interface AccessTypeStat {
-      /** accessType 枚举 NAME token（stats 聚合 read-model，如 APP/H5/WEB） */
-      accessType: string;
-      /** 支付笔数（Long→string） */
-      paymentCount: string;
-      /** 支付金额（整数分） */
-      paymentAmount: number;
-      /** 成功率（小数 0–1） */
-      successRate: number;
-    }
-
-    /** GET /stats/by-channel —— 按 payMode / accessType 两维度聚合的支付笔数·金额·成功率 */
+    /**
+     * GET /stats/by-channel —— 按 payMode / accessType 两维度聚合（from/to 必填）。
+     * #54 对齐：旧 NAME-token 维度键（WECHAT/APP… read-model）已废——现行契约为
+     * Integer code + `channelName` 中文名（与列表/详情同范式，直读展示）。
+     */
     interface ChannelStats {
-      byPayMode: PayModeStat[];
-      byAccessType: AccessTypeStat[];
+      byPayMode: ChannelBreakdownStat[];
+      byAccessType: ChannelBreakdownStat[];
     }
 
-    /** GET /stats/anomalies —— 长时滞留订单计数 + 近期失败计数（滞留阈值/失败窗口由 payment 定） */
+    /** 滞留单统计（长时滞留订单的笔数 + 金额合计；阈值由 payment 定） */
+    interface StuckOrdersStat {
+      /** 笔数（Long→string） */
+      count: string;
+      /** 金额（整数分，Long→string） */
+      amount: string;
+    }
+
+    /** 近期失败统计（总次数 + 按日志类型明细；失败窗口由 payment 定） */
+    interface RecentFailuresStat {
+      /** 总次数（Long→string） */
+      totalCount: string;
+      /** 按日志类型明细 */
+      byType: { logType: string; failureCount: string }[];
+    }
+
+    /** GET /stats/anomalies —— 长时滞留支付/退款单（笔数·金额嵌套）+ 近期失败（无时间窗） */
     interface PaymentAnomalies {
-      /** 长时滞留待支付单数（Long→string） */
-      longPendingCount: string;
-      /** 长时滞留退款中单数（Long→string） */
-      longRefundingCount: string;
-      /** 近期失败事件数（Long→string） */
-      recentFailureCount: string;
+      longPendingPayments: StuckOrdersStat;
+      longRefundingRefunds: StuckOrdersStat;
+      recentFailures: RecentFailuresStat;
     }
 
-    /** 操作类型计数——单一操作类型（AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND…）的笔数 */
-    interface OperationCount {
-      /** 操作类型枚举 NAME token（stats 聚合 read-model） */
-      operation: string;
+    /** 操作类型计数——单一操作类型的笔数（code + 中文名） */
+    interface OperationCountStat {
+      /** 操作类型枚举 code（Integer → JSON number） */
+      operation: number;
+      /** 操作类型中文名（后端序列化，直读展示） */
+      operationName: string;
       /** 笔数（Long→string） */
       count: string;
     }
 
-    /** 操作员活动——单一操作员的操作类型·笔数分布 + 通知重发次数 */
+    /** 操作员活动——单一操作员的操作类型·笔数分布 + 全部操作总数 */
     interface OperatorActivityStat {
-      /** 操作员 ID（Long→string） */
-      operatorId: string;
+      /** 操作员 ID（Long→string；系统动作可空） */
+      operatorId: string | null;
       operatorName: string | null;
-      operations: OperationCount[];
-      /** 通知重发总次数（Long→string） */
-      notificationResendCount: string;
+      /** 该操作员全部操作总数（Long→string） */
+      totalCount: string;
+      operations: OperationCountStat[];
     }
 
-    /** GET /stats/operations/activity —— 各操作员操作类型·笔数 + 通知重发次数 */
+    /** GET /stats/operations/activity —— 各操作员操作类型·笔数 + 通知重发汇总（from/to 必填） */
     interface OperationsActivity {
-      operators: OperatorActivityStat[];
+      /** 列表名 byOperator（旧名 operators 已废） */
+      byOperator: OperatorActivityStat[];
+      /** 通知重发汇总（总数 + 按来源业务系统；旧 per-operator notificationResendCount 已废） */
+      notifyResend: {
+        /** 重发总次数（Long→string） */
+        totalCount: string;
+        /** 按来源业务系统归组（来源可空——系统动作单列一组） */
+        byBusinessSystem: { businessSystem: string | null; count: string }[];
+      };
     }
   }
 }

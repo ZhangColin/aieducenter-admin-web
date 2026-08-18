@@ -3,7 +3,8 @@
  * tier-1 · 通道健康 widget：各银行接口调用次数·成功率条·平均耗时·返回码分布（表）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
- * 成功率（successRate 0–1 小数）用 NProgress 条 + 百分比文本；耗时 ms；返回码分布内联渲染。
+ * 成功率（successRate 0–1 小数）用 NProgress 条 + 百分比文本；耗时 ms（avgExecutionTimeMs 为
+ * BigDecimal→number，#54 对齐）；返回码分布内联渲染。列表名 interfaces、调用次数 totalCount。
  */
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { $t } from '@/locales';
@@ -23,11 +24,11 @@ const columns = [
     minWidth: 160
   },
   {
-    key: 'callCount',
-    title: $t('page.payment.stats.gatewayHealth.callCount'),
+    key: 'totalCount',
+    title: $t('page.payment.stats.gatewayHealth.totalCount'),
     align: 'right' as const,
     width: 110,
-    render: (row: Api.Payment.GatewayBankInterfaceStat) => formatCount(row.callCount)
+    render: (row: Api.Payment.GatewayBankInterfaceStat) => formatCount(row.totalCount)
   },
   {
     key: 'successCount',
@@ -52,11 +53,11 @@ const columns = [
     }
   },
   {
-    key: 'avgExecutionTime',
-    title: $t('page.payment.stats.gatewayHealth.avgExecutionTime'),
+    key: 'avgExecutionTimeMs',
+    title: $t('page.payment.stats.gatewayHealth.avgExecutionTimeMs'),
     align: 'right' as const,
-    width: 120,
-    render: (row: Api.Payment.GatewayBankInterfaceStat) => `${formatCount(row.avgExecutionTime)} ms`
+    width: 130,
+    render: (row: Api.Payment.GatewayBankInterfaceStat) => `${formatCount(row.avgExecutionTimeMs)} ms`
   },
   {
     key: 'returnCodes',
@@ -91,12 +92,12 @@ const columns = [
     <WidgetPlaceholder
       :loading="store.gatewayHealthLoading"
       :error="store.gatewayHealthError"
-      :has-data="Boolean(store.gatewayHealth?.bankInterfaces?.length)"
+      :has-data="Boolean(store.gatewayHealth?.interfaces?.length)"
       min-height="h-300px"
     >
       <NDataTable
         :columns="columns"
-        :data="store.gatewayHealth!.bankInterfaces"
+        :data="store.gatewayHealth!.interfaces"
         size="small"
         :pagination="false"
         :scroll-x="860"

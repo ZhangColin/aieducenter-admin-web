@@ -3,13 +3,15 @@
  * tier-2 · 异常监控 widget：长时滞留待支付 / 长时滞留退款中 / 近期失败（列表）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
- * 三项计数以行列表展示、按严重度配色（滞留=warning、失败=error）。三项全 0 时附「暂无异常」提示——
- * 这是真实数据（无异常即 0），非「即将上线」占位。计数 Long→string 经 formatCount 兜底。
+ * 三项以行列表展示、按严重度配色（滞留=warning、失败=error）。#54 对齐：滞留项为嵌套
+ * {count, amount}（笔数 + 金额，金额首次可用、经 formatMoney 展示）；近期失败为 recentFailures.totalCount。
+ * 三项笔数全 0 时附「暂无异常」提示——这是真实数据（无异常即 0），非「即将上线」占位。
+ * 计数 Long→string 经 formatCount/Number() 兜底。
  */
 import { computed } from 'vue';
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { $t } from '@/locales';
-import { formatCount } from '@/utils/common';
+import { formatCount, formatMoney } from '@/utils/common';
 import WidgetPlaceholder from './widget-placeholder.vue';
 
 defineOptions({ name: 'PaymentAnomaliesWidget' });
@@ -22,6 +24,8 @@ interface AnomalyItem {
   /** 严重度色（warning=#f0a020、error=#d03050，与 status-distribution 调色板一致） */
   color: string;
   count: () => number;
+  /** 滞留金额（整数分，string；仅两类滞留行有） */
+  amount?: () => string | undefined;
 }
 
 const items = computed<AnomalyItem[]>(() => [
@@ -29,23 +33,25 @@ const items = computed<AnomalyItem[]>(() => [
     key: 'longPending',
     label: 'page.payment.stats.anomalies.longPending',
     color: '#f0a020',
-    count: () => Number(store.anomalies?.longPendingCount) || 0
+    count: () => Number(store.anomalies?.longPendingPayments?.count) || 0,
+    amount: () => store.anomalies?.longPendingPayments?.amount
   },
   {
     key: 'longRefunding',
     label: 'page.payment.stats.anomalies.longRefunding',
     color: '#f0a020',
-    count: () => Number(store.anomalies?.longRefundingCount) || 0
+    count: () => Number(store.anomalies?.longRefundingRefunds?.count) || 0,
+    amount: () => store.anomalies?.longRefundingRefunds?.amount
   },
   {
     key: 'recentFailure',
     label: 'page.payment.stats.anomalies.recentFailure',
     color: '#d03050',
-    count: () => Number(store.anomalies?.recentFailureCount) || 0
+    count: () => Number(store.anomalies?.recentFailures?.totalCount) || 0
   }
 ]);
 
-/** 三项全 0 → 展示「暂无异常」（真实数据，非占位） */
+/** 三项笔数全 0 → 展示「暂无异常」（真实数据，非占位） */
 const allZero = computed(() => items.value.every(it => it.count() === 0));
 </script>
 
@@ -79,6 +85,8 @@ const allZero = computed(() => items.value.every(it => it.count() === 0));
           <span>
             <span class="font-600" :style="{ color: it.count() > 0 ? it.color : undefined }">{{ formatCount(`${it.count()}`) }}</span>
             <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.anomalies.count') }}</span>
+            <!-- 滞留行附金额（分，string；#54 起新增展示） -->
+            <span v-if="it.amount" class="ml-8px font-600">{{ formatMoney(it.amount()) }}</span>
           </span>
         </div>
       </div>

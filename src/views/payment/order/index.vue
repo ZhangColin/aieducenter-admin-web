@@ -11,6 +11,7 @@ import { ref } from 'vue';
 import { NButton, NTag } from 'naive-ui';
 import {
   displayEnumName,
+  enumTagColor,
   paymentStatusRecord,
   paymentStatusTagColor,
   payModeRecord,
@@ -69,7 +70,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         align: 'center',
         width: 100,
         render: row => (
-          <NTag type={paymentStatusTagColor[row.status] ?? 'default'} size="small">
+          <NTag type={enumTagColor(paymentStatusTagColor, row.status)} size="small">
             {displayEnumName(row.statusName, row.status, paymentStatusRecord)}
           </NTag>
         )

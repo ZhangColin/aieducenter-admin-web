@@ -564,23 +564,26 @@ const local: App.I18n.Schema = {
           paymentStatus: 'Payment Status',
           refundStatus: 'Refund Status',
           refundBacklog: 'Refund Pending Audit',
-          backlogCount: 'orders'
+          backlogCount: 'orders',
+          backlogAmount: 'backlog amount'
         },
         gatewayHealth: {
           title: 'Gateway Health',
           bankInterface: 'Bank Interface',
-          callCount: 'Call Count',
+          totalCount: 'Total Calls',
           successCount: 'Success Count',
           successRate: 'Success Rate',
-          avgExecutionTime: 'Avg. Latency',
+          avgExecutionTimeMs: 'Avg. Latency (ms)',
           returnCodes: 'Return Codes'
         },
         operationsAudit: {
           title: 'Audit Stats',
+          totalAudits: 'Total Audits',
           auditCount: 'Audit Count',
           approvedCount: 'Approved',
+          rejectedCount: 'Rejected',
           approvalRate: 'Approval Rate',
-          avgDuration: 'Avg. Audit Duration',
+          avgDuration: 'Avg. Audit Duration (min)',
           auditor: 'Auditor'
         },
         byBusinessSystem: {
@@ -657,7 +660,6 @@ const local: App.I18n.Schema = {
         auditType: 'Audit Type',
         auditor: 'Auditor',
         auditorId: 'Auditor ID',
-        auditedAt: 'Audited At',
         createdAt: 'Created At',
         moreFilters: 'More Filters',
         detail: 'Detail',
@@ -791,6 +793,8 @@ const local: App.I18n.Schema = {
         bankInterface: 'Bank Interface',
         operator: 'Operator',
         remark: 'Remark',
+        performer: 'Performer',
+        detail: 'Detail',
         noEvents: 'No lifecycle events'
       }
     },

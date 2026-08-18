@@ -3,14 +3,14 @@
  * tier-2 · 按通道 widget：按支付方式 + 按接入类型两维度支付笔数（两组单系列条形）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
- * 同卡片并列两柱图（与 status-distribution 两饼同范式）：byPayMode / byAccessType 各以 paymentCount 为柱高。
- * 维度分组键为枚举 **NAME** token（stats read-model，与列表 code 不同），经 name-token record 翻译、未知 token 原值回退。
+ * 同卡片并列两柱图（与 status-distribution 两饼同范式）：byPayMode / byAccessType 各以 count 为柱高。
+ * #54 对齐：维度出口为 channelCode（Integer code）+ channelName 中文名——直读展示，
+ * 旧 NAME-token read-model（WECHAT/APP…）已废。
  */
 import { watch } from 'vue';
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { useEcharts } from '@/hooks/common/echarts';
 import { $t } from '@/locales';
-import { accessTypeNameRecord, displayEnumName, payModeNameRecord } from '@/constants/payment';
 import WidgetPlaceholder from './widget-placeholder.vue';
 
 defineOptions({ name: 'PaymentChannelWidget' });
@@ -34,21 +34,21 @@ const { domRef: accessTypeDomRef, updateOptions: updateAccessType } = useEcharts
   series: [{ name: $t('page.payment.stats.byChannel.paymentCount'), type: 'bar', data: [] as number[], barMaxWidth: 40 }]
 }));
 
-/** 数据到达 → 灌两柱图（payMode / accessType 各 paymentCount）。 */
+/** 数据到达 → 灌两柱图（payMode / accessType 各 count；标签直读后端 channelName）。 */
 watch(
   () => store.channel,
   ch => {
     if (!ch) return;
     const byPayMode = ch.byPayMode ?? [];
     updatePayMode(opts => {
-      opts.xAxis.data = byPayMode.map(s => displayEnumName(null, s.payMode, payModeNameRecord));
-      opts.series[0].data = byPayMode.map(s => Number(s.paymentCount) || 0);
+      opts.xAxis.data = byPayMode.map(s => s.channelName || String(s.channelCode));
+      opts.series[0].data = byPayMode.map(s => Number(s.count) || 0);
       return opts;
     });
     const byAccessType = ch.byAccessType ?? [];
     updateAccessType(opts => {
-      opts.xAxis.data = byAccessType.map(s => displayEnumName(null, s.accessType, accessTypeNameRecord));
-      opts.series[0].data = byAccessType.map(s => Number(s.paymentCount) || 0);
+      opts.xAxis.data = byAccessType.map(s => s.channelName || String(s.channelCode));
+      opts.series[0].data = byAccessType.map(s => Number(s.count) || 0);
       return opts;
     });
   }

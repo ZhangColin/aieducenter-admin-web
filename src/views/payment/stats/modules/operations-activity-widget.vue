@@ -3,15 +3,14 @@
  * tier-2 · 操作员活动 widget：各操作员按操作类型分组的笔数（分组条形）。
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
- * x 轴 = 操作员，每个操作类型（AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND…）一组柱（动态 series）。
- * operation 为 stats 聚合 read-model 的枚举 **NAME** token（与列表 code 不同），经 operationNameRecord 翻译、未知 token 原值回退。
- * notificationResendCount 为 NOTIFY_RESEND 的 roll-up，与该 series 同义，不在图上重复。
+ * x 轴 = 操作员，每个操作类型一组柱（动态 series）。#54 对齐：列表名 byOperator；操作类型出口为
+ * Integer code + operationName 中文名（直读展示，旧 NAME-token read-model 已废）；notifyResend 为
+ * 顶层汇总（不在图上重复 NOTIFY_RESEND series）。
  */
 import { watch } from 'vue';
 import { usePaymentStatsStore } from '@/store/modules/payment-stats';
 import { useEcharts } from '@/hooks/common/echarts';
 import { $t } from '@/locales';
-import { displayEnumName, operationNameRecord } from '@/constants/payment';
 import WidgetPlaceholder from './widget-placeholder.vue';
 
 defineOptions({ name: 'PaymentOperationsActivityWidget' });
@@ -28,9 +27,13 @@ const { domRef, updateOptions } = useEcharts(() => ({
   series: [] as { name: string; type: 'bar'; data: number[] }[]
 }));
 
-/** operation token → 展示名（i18n 优先、未知原值回退） */
-function labelOf(token: string): string {
-  return displayEnumName(null, token, operationNameRecord);
+/** 操作类型 code（number→string 归一）→ 展示名（后端 operationName 中文名优先、缺失回退 code） */
+function labelOfCode(operators: Api.Payment.OperatorActivityStat[], code: string): string {
+  for (const op of operators) {
+    const oc = (op.operations ?? []).find(o => String(o.operation) === code);
+    if (oc) return oc.operationName || code;
+  }
+  return code;
 }
 
 /** 数据到达 → 按操作类型构建分组条形。 */
@@ -38,21 +41,22 @@ watch(
   () => store.operationsActivity,
   oa => {
     if (!oa) return;
-    const operators = oa.operators ?? [];
-    // 收集所有出现过的操作类型 token（保序去重），每个 token 一组柱
-    const tokens: string[] = [];
+    const operators = oa.byOperator ?? [];
+    // 收集所有出现过的操作类型 code（归一 string、保序去重），每个 code 一组柱
+    const codes: string[] = [];
     for (const op of operators) {
       for (const oc of op.operations ?? []) {
-        if (oc.operation && !tokens.includes(oc.operation)) tokens.push(oc.operation);
+        const key = String(oc.operation);
+        if (!codes.includes(key)) codes.push(key);
       }
     }
     updateOptions(opts => {
       opts.xAxis.data = operators.map(o => o.operatorName || o.operatorId || '-');
-      opts.legend.data = tokens.map(labelOf);
-      opts.series = tokens.map(token => ({
-        name: labelOf(token),
+      opts.legend.data = codes.map(code => labelOfCode(operators, code));
+      opts.series = codes.map(code => ({
+        name: labelOfCode(operators, code),
         type: 'bar',
-        data: operators.map(o => Number(o.operations?.find(oc => oc.operation === token)?.count) || 0)
+        data: operators.map(o => Number(o.operations?.find(oc => String(oc.operation) === code)?.count) || 0)
       }));
       return opts;
     });
@@ -74,7 +78,7 @@ watch(
     <WidgetPlaceholder
       :loading="store.operationsActivityLoading"
       :error="store.operationsActivityError"
-      :has-data="Boolean(store.operationsActivity?.operators?.length)"
+      :has-data="Boolean(store.operationsActivity?.byOperator?.length)"
       min-height="h-300px"
     >
       <div ref="domRef" class="h-300px overflow-hidden"></div>

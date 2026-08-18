@@ -4,7 +4,8 @@
  * 消费 usePaymentStats store（ADR-0002 seam），不直连端点。
  *
  * 条形按 businessSystemName 分组、支付笔数 + 退款笔数两组柱（运营关心的「哪个业务系统最活跃」）。
- * successRate/refundRate/金额为次要维度，留待后端补 *Name 或后续按需加视图——tier-2 不占位。
+ * #54 对齐：列表名 businessSystems、笔数在嵌套 payment/refund Summary 里。
+ * successRate/refundRate/金额为次要维度，后续按需加视图——不占位。
  * businessSystemName 为调用方 callerAppName，可能较长 → x 轴标签 rotate 防重叠。
  */
 import { watch } from 'vue';
@@ -48,11 +49,11 @@ watch(
   () => store.businessSystem,
   bs => {
     if (!bs) return;
-    const systems = bs.systems ?? [];
+    const systems = bs.businessSystems ?? [];
     updateOptions(opts => {
       opts.xAxis.data = systems.map(s => s.businessSystemName || '-');
-      opts.series[0].data = systems.map(s => Number(s.paymentCount) || 0);
-      opts.series[1].data = systems.map(s => Number(s.refundCount) || 0);
+      opts.series[0].data = systems.map(s => Number(s.payment.count) || 0);
+      opts.series[1].data = systems.map(s => Number(s.refund.count) || 0);
       return opts;
     });
   }
@@ -73,7 +74,7 @@ watch(
     <WidgetPlaceholder
       :loading="store.businessSystemLoading"
       :error="store.businessSystemError"
-      :has-data="Boolean(store.businessSystem?.systems?.length)"
+      :has-data="Boolean(store.businessSystem?.businessSystems?.length)"
       min-height="h-300px"
     >
       <div ref="domRef" class="h-300px overflow-hidden"></div>

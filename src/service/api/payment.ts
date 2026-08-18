@@ -107,10 +107,11 @@ export function fetchGetOperationLogList(params: Api.Payment.OperationLogSearchP
 /**
  * 订单生命周期（GET /orders/{orderNo}/lifecycle）。
  * payment 已在上游合并 PaymentLog + OperationLog 按 createdAt 排序返回；admin BFF 原值透传。
- * 支付/退款抽屉各传自己的 no 复用同一端点。
+ * 响应为**语义 9 字段事件的扁平数组**（无 orderNo 包装——orderNo 走路径参数，#54 对齐
+ * admin ADR-0011）。支付/退款抽屉各传自己的 no 复用同一端点。
  */
 export function fetchGetOrderLifecycle(orderNo: string) {
-  return request<Api.Payment.OrderLifecycle>({
+  return request<Api.Payment.LifecycleEvent[]>({
     url: `/payment/orders/${orderNo}/lifecycle`,
     method: 'get'
   });
@@ -128,21 +129,24 @@ export function fetchResendPaymentNotification(paymentOrderNo: string) {
   });
 }
 
-// ============ 统计（仪表盘 tier-1，GET /stats/**）============
+// ============ 统计（仪表盘，GET /stats/**）============
 //
-// 4 个 tier-1 端点，经 usePaymentStats store 消费（ADR-0002 seam——widget 不直连端点）。
-// ⚠️ overview / gateway-health / operations-audit 带 payment 必填的 from/to 时间窗，admin BFF 现阶段
-// 未转发 → 400（docs/backend-requirements/REQ-17）；status-distribution 无时间窗、正常。
+// 8 个 stats 端点，经 usePaymentStats store 消费（ADR-0002 seam——widget 不直连端点）。
+// ⚠️ 6 个窗口端点（overview / gateway-health / operations-audit / by-business-system / by-channel /
+// operations-activity）`from`/`to` **必填**（payment 契约；admin 北向如实接收并转发——旧 REQ-17
+// 「BFF 未转发 from/to → 400」已随 admin #51/#55 修复），store 传默认时间窗；
+// status-distribution / anomalies 无时间窗。
 
-/** 支付总览（GET /stats/payments/overview）——笔数·金额·成功率·净额 + 趋势 */
-export function fetchGetPaymentOverview() {
+/** 支付总览（GET /stats/payments/overview）——嵌套支付/退款摘要·净额 + 趋势（from/to 必填） */
+export function fetchGetPaymentOverview(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.PaymentOverview>({
     url: '/payment/stats/payments/overview',
-    method: 'get'
+    method: 'get',
+    params
   });
 }
 
-/** 订单状态分布（GET /stats/orders/status-distribution）——支付/退款各状态在途 + 退款待审核积压 */
+/** 订单状态分布（GET /stats/orders/status-distribution）——支付/退款各状态在途 + 退款待审核积压（笔数·金额） */
 export function fetchGetOrderStatusDistribution() {
   return request<Api.Payment.OrderStatusDistribution>({
     url: '/payment/stats/orders/status-distribution',
@@ -150,44 +154,43 @@ export function fetchGetOrderStatusDistribution() {
   });
 }
 
-/** 通道健康（GET /stats/gateway/health）——各银行接口调用次数·成功率·平均耗时·返回码分布 */
-export function fetchGetGatewayHealth() {
+/** 通道健康（GET /stats/gateway/health）——各银行接口调用次数·成功率·平均耗时·返回码分布（from/to 必填） */
+export function fetchGetGatewayHealth(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.GatewayHealth>({
     url: '/payment/stats/gateway/health',
-    method: 'get'
+    method: 'get',
+    params
   });
 }
 
-/** 审核统计（GET /stats/operations/audit）——审核笔数·通过率·平均时长 + 按审核人聚合 */
-export function fetchGetOperationsAudit() {
+/** 审核统计（GET /stats/operations/audit）——审核笔数·通过率·平均时长 + 按审核人聚合（from/to 必填） */
+export function fetchGetOperationsAudit(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.OperationsAudit>({
     url: '/payment/stats/operations/audit',
-    method: 'get'
+    method: 'get',
+    params
   });
 }
 
-// ============ 统计（仪表盘 tier-2，GET /stats/**）============
-//
-// 4 个 tier-2 端点，经 usePaymentStats store 消费（ADR-0002 seam——widget 不直连端点）。
-// 与 tier-1 不同：这 4 个端点**无时间窗**（不带 from/to），不受 REQ-17 影响，应正常出数。
-
-/** 按业务系统细分（GET /stats/by-business-system）——各业务系统支付/退款笔数·金额·成功率·退款率 */
-export function fetchGetBusinessSystemStats() {
+/** 按业务系统细分（GET /stats/by-business-system）——各业务系统支付/退款摘要·退款率（from/to 必填） */
+export function fetchGetBusinessSystemStats(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.BusinessSystemStats>({
     url: '/payment/stats/by-business-system',
-    method: 'get'
+    method: 'get',
+    params
   });
 }
 
-/** 按通道细分（GET /stats/by-channel）——按 payMode / accessType 聚合的支付笔数·金额·成功率 */
-export function fetchGetChannelStats() {
+/** 按通道细分（GET /stats/by-channel）——按 payMode / accessType 聚合（channelCode + channelName，from/to 必填） */
+export function fetchGetChannelStats(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.ChannelStats>({
     url: '/payment/stats/by-channel',
-    method: 'get'
+    method: 'get',
+    params
   });
 }
 
-/** 异常监控（GET /stats/anomalies）——长时滞留 PENDING/REFUNDING 订单 + 近期失败计数 */
+/** 异常监控（GET /stats/anomalies）——长时滞留 PENDING/REFUNDING 订单（笔数·金额）+ 近期失败 */
 export function fetchGetAnomalies() {
   return request<Api.Payment.PaymentAnomalies>({
     url: '/payment/stats/anomalies',
@@ -195,10 +198,11 @@ export function fetchGetAnomalies() {
   });
 }
 
-/** 操作员活动（GET /stats/operations/activity）——各操作员操作类型·笔数 + 通知重发次数 */
-export function fetchGetOperationsActivity() {
+/** 操作员活动（GET /stats/operations/activity）——各操作员操作类型·笔数 + 通知重发汇总（from/to 必填） */
+export function fetchGetOperationsActivity(params: Api.Payment.StatsWindowParams) {
   return request<Api.Payment.OperationsActivity>({
     url: '/payment/stats/operations/activity',
-    method: 'get'
+    method: 'get',
+    params
   });
 }

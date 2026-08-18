@@ -58,12 +58,13 @@ watch(
   }
 );
 
+// KPI：嵌套 payment/refund Summary（#54 对齐——旧扁平字段已废）；金额（分，string）经 formatMoney ÷100
 const stats: StatKpi[] = [
-  { key: 'paymentCount', label: 'page.payment.stats.overview.paymentCount', value: () => formatCount(store.overview?.paymentCount) },
-  { key: 'paymentAmount', label: 'page.payment.stats.overview.paymentAmount', value: () => formatMoney(store.overview?.paymentAmount) },
-  { key: 'refundCount', label: 'page.payment.stats.overview.refundCount', value: () => formatCount(store.overview?.refundCount) },
-  { key: 'refundAmount', label: 'page.payment.stats.overview.refundAmount', value: () => formatMoney(store.overview?.refundAmount) },
-  { key: 'successRate', label: 'page.payment.stats.overview.successRate', value: () => formatRate(store.overview?.successRate) },
+  { key: 'paymentCount', label: 'page.payment.stats.overview.paymentCount', value: () => formatCount(store.overview?.payment.count) },
+  { key: 'paymentAmount', label: 'page.payment.stats.overview.paymentAmount', value: () => formatMoney(store.overview?.payment.amount) },
+  { key: 'refundCount', label: 'page.payment.stats.overview.refundCount', value: () => formatCount(store.overview?.refund.count) },
+  { key: 'refundAmount', label: 'page.payment.stats.overview.refundAmount', value: () => formatMoney(store.overview?.refund.amount) },
+  { key: 'successRate', label: 'page.payment.stats.overview.successRate', value: () => formatRate(store.overview?.payment.successRate) },
   { key: 'netAmount', label: 'page.payment.stats.overview.netAmount', value: () => formatMoney(store.overview?.netAmount) }
 ];
 </script>

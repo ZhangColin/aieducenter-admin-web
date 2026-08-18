@@ -560,23 +560,26 @@ const local: App.I18n.Schema = {
           paymentStatus: '支付状态',
           refundStatus: '退款状态',
           refundBacklog: '退款待审核积压',
-          backlogCount: '笔'
+          backlogCount: '笔',
+          backlogAmount: '积压金额'
         },
         gatewayHealth: {
           title: '通道健康',
           bankInterface: '银行接口',
-          callCount: '调用次数',
+          totalCount: '调用次数',
           successCount: '成功次数',
           successRate: '成功率',
-          avgExecutionTime: '平均耗时',
+          avgExecutionTimeMs: '平均耗时（ms）',
           returnCodes: '返回码分布'
         },
         operationsAudit: {
           title: '审核统计',
+          totalAudits: '审核总笔数',
           auditCount: '审核笔数',
           approvedCount: '通过笔数',
+          rejectedCount: '拒绝笔数',
           approvalRate: '通过率',
-          avgDuration: '平均审核时长',
+          avgDuration: '平均审核时长（分钟）',
           auditor: '审核人'
         },
         byBusinessSystem: {
@@ -653,7 +656,6 @@ const local: App.I18n.Schema = {
         auditType: '审核类型',
         auditor: '审核人',
         auditorId: '审核人 ID',
-        auditedAt: '审核时间',
         createdAt: '创建时间',
         moreFilters: '更多筛选',
         detail: '详情',
@@ -787,6 +789,8 @@ const local: App.I18n.Schema = {
         bankInterface: '银行接口',
         operator: '操作人',
         remark: '备注',
+        performer: '执行方',
+        detail: '说明',
         noEvents: '暂无生命周期事件'
       }
     },

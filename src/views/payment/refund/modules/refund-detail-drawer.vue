@@ -4,7 +4,7 @@
  *
  * 从退款列表点「详情」打开右侧 NDrawer（width=720），同 T2 结构：
  * - 「基本信息」tab：desc-table 全字段只读回显（状态 NTag / 退款金额 ¥ / 枚举翻译）。
- *   ⚠️ refund 详情响应**不含** `*Name`，展示统一经 `displayEnumName(null, code, record)` 走 i18n record。
+ *   #54 起详情与列表同样带 `*Name` 中文名（statusName / auditTypeName）直读展示。
  * - 「生命周期」tab：复用 `OrderLifecycle` 组件（T2 抽出，payment `/orders/{no}/lifecycle` 同取退款号）。
  * - 抽屉头部「审核」按钮 → 独立审核弹窗（RefundAuditModal：approve/reject + reason）→
  *   `POST /refunds/{no}/audit`；成功后用返回的最新详情就地刷新 + emit `audited` 通知列表重拉。
@@ -19,6 +19,7 @@ import { fetchGetRefundOrderDetail, fetchResendRefundNotification } from '@/serv
 import {
   auditTypeRecord,
   displayEnumName,
+  enumTagColor,
   refundStatusRecord,
   refundStatusTagColor
 } from '@/constants/payment';
@@ -145,8 +146,8 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.refund.status') }}</div>
               <div class="desc-value">
-                <NTag size="small" :type="refundStatusTagColor[detail.status] ?? 'default'">
-                  {{ displayEnumName(null, detail.status, refundStatusRecord) }}
+                <NTag size="small" :type="enumTagColor(refundStatusTagColor, detail.status)">
+                  {{ displayEnumName(detail.statusName, detail.status, refundStatusRecord) }}
                 </NTag>
               </div>
             </div>
@@ -157,19 +158,14 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.refund.auditType') }}</div>
               <div class="desc-value">
-                <span class="text-14px">{{ displayEnumName(null, detail.auditType, auditTypeRecord) }}</span>
+                <span class="text-14px">{{ displayEnumName(detail.auditTypeName, detail.auditType, auditTypeRecord) }}</span>
               </div>
             </div>
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.refund.auditor') }}</div>
               <div class="desc-value">
-                <span class="text-14px">{{ detail.auditorName || detail.auditorId || '-' }}</span>
-              </div>
-            </div>
-            <div class="desc-row">
-              <div class="desc-label">{{ $t('page.payment.refund.auditedAt') }}</div>
-              <div class="desc-value">
-                <span class="text-14px text-disabled">{{ detail.auditedAt ? formatDateTime(detail.auditedAt) : '-' }}</span>
+                <!-- #54 对齐：响应只余 auditorName（auditorId/auditedAt 为 payment ghost，admin #59 删） -->
+                <span class="text-14px">{{ detail.auditorName || '-' }}</span>
               </div>
             </div>
             <div class="desc-row">

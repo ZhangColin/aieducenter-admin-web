@@ -1,20 +1,24 @@
 /**
  * 支付管理领域枚举常量（payment 能力域，经 admin BFF 原值透传）。
  *
- * payment 枚举线上序列化分两类（契约源：payment domain enums + 实测 curl）：
+ * payment 枚举线上序列化分两类（#54 对齐 admin ADR-0009/0011，契约源：payment domain enums +
+ * admin 仓 *ContractTest）：
  * - **BaseEnum（Integer code）**：PaymentStatus / PayMode / AccessType / PaymentChannel /
- *   RefundStatus / AuditType / OperationType / OperationLogTargetType——经全局 Jackson 序列化为
- *   **Integer code 的字符串**（如 `status: "5"`）。故 record 键 = **code 字符串字面量**。
- *   `transformRecordToOption` 产物 `Option<code, I18nKey>`，**仅用于筛选下拉选项的 value/label**
- *   （展示走后端 `*Name`，见下）。
+ *   RefundStatus / AuditType / OperationType / OperationLogTargetType。**响应侧** code 为 JSON
+ *   **number**（如 `status: 2`，Integer→number），故本文件 record 键 = **code 字符串字面量**，
+ *   消费时经 `String(code)` 归一查表（见 displayEnumName / enumTagColor——JS 对象 number key
+ *   运行时本就等价 string key，这里集中归一保证类型诚实）。`transformRecordToOption` 产物
+ *   `Option<code, I18nKey>`，**仅用于筛选下拉选项的 value/label**（请求侧 code 字符串提交，
+ *   后端绑 Integer；展示走后端 `*Name`，见下）。
  * - **纯 String token（非 enum）**：LogType（PaymentLog.logType）——线上即 token（`"PAYMENT_REQUEST"`），
  *   record 键 = token 字面量，option value = token。
  *
- * ⚠️ 展示范式（平台统一）：枚举列/详情展示走后端序列化的 `*Name`（statusName / payModeName …），
- * 前端只显示、不做 code→文案映射。**本文件 record 不参与展示**，仅服务筛选下拉选项 label + 标签配色。
- * （admin BFF 透传 `*Name` 尚未落地，见 docs/backend-requirements/REQ-16；落地前展示回退 code。）
+ * ⚠️ 展示范式（平台统一）：枚举列/详情展示走后端序列化的 `*Name`（statusName / payModeName …，
+ * admin BFF 已透传），前端只显示、不做 code→文案映射。**本文件 record 不参与展示**，
+ * 仅服务筛选下拉选项 label + 标签配色（i18n record 兜底，见 displayEnumName）。
  *
- * 注：`OperationLog.result` 是自由稳定 token、非闭合集合，不在此建 options——其筛选走文本输入。
+ * 注：`OperationLog.result` / lifecycle 的 `outcome` 是自由稳定 token、非闭合集合，不在此建
+ * options——result 筛选走文本输入，outcome 原值展示 + operationResultTagType 启发式着色。
  */
 import { transformRecordToOption } from '@/utils/common';
 import { $t } from '@/locales';
@@ -121,53 +125,53 @@ export const operationTargetTypeRecord: Record<Api.Payment.OperationTargetType, 
 };
 export const operationTargetTypeOptions = transformRecordToOption(operationTargetTypeRecord);
 
-// ============ stats 聚合维度 token（tier-2 仪表盘）============
+// ============ stats 聚合维度 ============
 //
-// 与上方 code-keyed record 不同：payment stats 端点（by-channel / operations-activity）按枚举 **NAME** 投影
-// 分组键（read-model 与列表/详情的 code 序列化不同——如 WECHAT 而非 '9'、AUDIT_APPROVE 而非 '1'）。
-// 取值以 admin BFF wire 注释为准；未知 token 经 displayEnumName 原值回退（非闭合，不强求穷举）。
-// 中文 label 复用既有 enum i18n 键（微信/支付宝/云闪付、审核通过/拒绝/通知重发 …），不新增重复键。
-
-/** payMode 枚举 NAME token→i18n（stats by-channel 维度；WECHAT/ALIPAY/UNIONPAY） */
-export const payModeNameRecord: Record<string, App.I18n.I18nKey> = {
-  WECHAT: 'page.payment.enum.payMode.wechat',
-  ALIPAY: 'page.payment.enum.payMode.alipay',
-  UNIONPAY: 'page.payment.enum.payMode.unionpay'
-};
-
-/** accessType 枚举 NAME token→i18n（stats by-channel 维度；APP…，未知 token 原值回退） */
-export const accessTypeNameRecord: Record<string, App.I18n.I18nKey> = {
-  APP: 'page.payment.enum.accessType.app'
-};
-
-/** operation 枚举 NAME token→i18n（stats operations-activity 维度；AUDIT_APPROVE/AUDIT_REJECT/NOTIFY_RESEND） */
-export const operationNameRecord: Record<string, App.I18n.I18nKey> = {
-  AUDIT_APPROVE: 'page.payment.enum.operationType.auditApprove',
-  AUDIT_REJECT: 'page.payment.enum.operationType.auditReject',
-  NOTIFY_RESEND: 'page.payment.enum.operationType.notifyResend'
-};
+// （#54 对齐后本段无常量）stats 端点维度（by-channel / operations-activity）与列表/详情同范式：
+// Integer code + 后端 `*Name` 中文名（channelName / operationName）直读展示——旧 NAME-token
+// record（payModeNameRecord 等，按 WECHAT/AUDIT_APPROVE 键）已随契约作废删除。
 
 /**
  * 枚举展示（平台统一范式）：后端 `*Name` 优先 → 既有 i18n record 兜底 → code → '-'。
  *
  * 列表/详情/仪表盘所有枚举列共用。
  * - **statusName 优先**：后端序列化的中文 label 是统一来源（同 SystemManage 范式）。
- * - **i18n record 兜底**：admin BFF 透传 `*Name` 前（REQ-16）以本文件 record 翻译——与筛选下拉选项
- *   同源，保证过渡期也显示中文；BFF 落地 `*Name` 后自动切到后端值，零前端改动。
+ * - **i18n record 兜底**：`*Name` 缺失（枚举本身为 null 等）时以本文件 record 翻译——与筛选下拉
+ *   选项同源；record 也未命中则原值回退（非闭合 code 不报错）。
  * - 纯 token 枚举（LogType）无 `*Name`，直接走 record（token 键）。
  *
  * @param name 后端序列化的中文名（statusName / payModeName …），可空
- * @param code 枚举 code / token（线上值），可空
+ * @param code 枚举 code（响应侧 JSON **number**，经 String() 归一查表）/ token 字符串，可空
  * @param record code/token → i18n key 的映射（同文件 record），可选
  */
 export function displayEnumName<K extends string>(
   name: string | null | undefined,
-  code: K | null | undefined,
+  code: K | number | null | undefined,
   record?: Record<K, App.I18n.I18nKey>
 ): string {
   if (name) return name;
-  if (code && record && record[code]) return $t(record[code]);
-  return code || '-';
+  if (code === null || code === undefined || code === '') return '-';
+  const key = String(code) as K;
+  if (record && record[key]) return $t(record[key]);
+  return key;
+}
+
+/**
+ * 枚举 code（响应侧 JSON number）→ 标签配色。
+ *
+ * 配色 record 键 = code 字符串字面量（与筛选 options 同源，见 paymentStatusTagColor 等）；
+ * number code 经 `String()` 归一后查表（JS 对象 number key 运行时等价 string key，这里集中
+ * 归一保证类型诚实），未知 code 回退 default（不报错）。列表/详情/仪表盘枚举 tag 共用。
+ *
+ * @param colorMap code 字符串 → ThemeColor 的映射（同文件 *TagColor）
+ * @param code 枚举 code（number 或字符串字面量），可空
+ */
+export function enumTagColor<K extends string>(
+  colorMap: Partial<Record<K, NaiveUI.ThemeColor>>,
+  code: number | K | null | undefined
+): NaiveUI.ThemeColor {
+  if (code === null || code === undefined || code === '') return 'default';
+  return colorMap[String(code) as K] ?? 'default';
 }
 
 /**

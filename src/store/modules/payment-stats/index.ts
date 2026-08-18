@@ -2,15 +2,19 @@
  * usePaymentStatsStore —— 支付统计仪表盘 store（ADR-0002 seam）。
  *
  * 仪表盘 widget **经此 store 消费** admin-bff stats 端点，**不直连**。
- * store 透传 8 个 stats 端点（tier-1 ×4 + tier-2 ×4），但这层是为「跨服务聚合」留的 seam——日后要组合
+ * store 透传 8 个 stats 端点，但这层是为「跨服务聚合」留的 seam——日后要组合
  * payment/钱包/Token 多源数据时，只改 store、widget 不动（见 ADR-0002 防回退说明）。
  *
- * 每个 widget 一组 { data, loading, error } + 单独 load；`init()` 并发拉 8 个（allSettled，单个失败不阻断其余——
- * tier-1 的 3 个时间窗端点现阶段 400，status-distribution 与全部 tier-2 仍能出数）。
+ * 6 个窗口端点（overview / gateway-health / operations-audit / by-business-system / by-channel /
+ * operations-activity）`from`/`to` 必填（payment 契约，#54 对齐）——本 store 统一传**近 30 天**
+ * 默认窗口（UI 暂无窗口选择器，后续加也只动这层）；status-distribution / anomalies 无时间窗。
+ *
+ * 每个 widget 一组 { data, loading, error } + 单独 load；`init()` 并发拉 8 个（allSettled，单个失败不阻断其余）。
  *
  * 错误处理：@sa/axios flat request 返回 { data, error }，HTTP 非 2xx 走 onError 拦截器（已 toast），
  * store 只记 `error: true` 供 widget 展示降级态——不为不可达态建专属处理（memory: UI 门控/通用兜底）。
  */
+import dayjs from 'dayjs';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -82,8 +86,17 @@ export const usePaymentStatsStore = defineStore(SetupStoreId.PaymentStats, () =>
     loading.value = false;
   }
 
+  /** 窗口端点默认时间窗：近 30 天（ISO 本地串，后端绑 LocalDateTime；from/to 必填——缺参即 400） */
+  function defaultStatsWindow(): Api.Payment.StatsWindowParams {
+    const now = dayjs();
+    return {
+      from: now.subtract(30, 'day').format('YYYY-MM-DDTHH:mm:ss'),
+      to: now.format('YYYY-MM-DDTHH:mm:ss')
+    };
+  }
+
   async function loadOverview() {
-    await loadResource(fetchGetPaymentOverview, overview, overviewLoading, overviewError);
+    await loadResource(() => fetchGetPaymentOverview(defaultStatsWindow()), overview, overviewLoading, overviewError);
   }
 
   async function loadStatusDistribution() {
@@ -96,19 +109,34 @@ export const usePaymentStatsStore = defineStore(SetupStoreId.PaymentStats, () =>
   }
 
   async function loadGatewayHealth() {
-    await loadResource(fetchGetGatewayHealth, gatewayHealth, gatewayHealthLoading, gatewayHealthError);
+    await loadResource(
+      () => fetchGetGatewayHealth(defaultStatsWindow()),
+      gatewayHealth,
+      gatewayHealthLoading,
+      gatewayHealthError
+    );
   }
 
   async function loadOperationsAudit() {
-    await loadResource(fetchGetOperationsAudit, operationsAudit, operationsAuditLoading, operationsAuditError);
+    await loadResource(
+      () => fetchGetOperationsAudit(defaultStatsWindow()),
+      operationsAudit,
+      operationsAuditLoading,
+      operationsAuditError
+    );
   }
 
   async function loadBusinessSystem() {
-    await loadResource(fetchGetBusinessSystemStats, businessSystem, businessSystemLoading, businessSystemError);
+    await loadResource(
+      () => fetchGetBusinessSystemStats(defaultStatsWindow()),
+      businessSystem,
+      businessSystemLoading,
+      businessSystemError
+    );
   }
 
   async function loadChannel() {
-    await loadResource(fetchGetChannelStats, channel, channelLoading, channelError);
+    await loadResource(() => fetchGetChannelStats(defaultStatsWindow()), channel, channelLoading, channelError);
   }
 
   async function loadAnomalies() {
@@ -117,7 +145,7 @@ export const usePaymentStatsStore = defineStore(SetupStoreId.PaymentStats, () =>
 
   async function loadOperationsActivity() {
     await loadResource(
-      fetchGetOperationsActivity,
+      () => fetchGetOperationsActivity(defaultStatsWindow()),
       operationsActivity,
       operationsActivityLoading,
       operationsActivityError
