@@ -146,7 +146,7 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.payment.refund.status') }}</div>
               <div class="desc-value">
-                <NTag size="small" :type="enumTagColor(refundStatusTagColor, detail.status)">
+                <NTag size="small" :type="enumTagColor(detail.status, refundStatusTagColor)">
                   {{ displayEnumName(detail.statusName, detail.status, refundStatusRecord) }}
                 </NTag>
               </div>

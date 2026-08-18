@@ -27,37 +27,32 @@ const { domRef, updateOptions } = useEcharts(() => ({
   series: [] as { name: string; type: 'bar'; data: number[] }[]
 }));
 
-/** 操作类型 code（number→string 归一）→ 展示名（后端 operationName 中文名优先、缺失回退 code） */
-function labelOfCode(operators: Api.Payment.OperatorActivityStat[], code: string): string {
-  for (const op of operators) {
-    const oc = (op.operations ?? []).find(o => String(o.operation) === code);
-    if (oc) return oc.operationName || code;
-  }
-  return code;
-}
-
 /** 数据到达 → 按操作类型构建分组条形。 */
 watch(
   () => store.operationsActivity,
   oa => {
     if (!oa) return;
     const operators = oa.byOperator ?? [];
-    // 收集所有出现过的操作类型 code（归一 string、保序去重），每个 code 一组柱
-    const codes: string[] = [];
-    for (const op of operators) {
-      for (const oc of op.operations ?? []) {
+    // 一次遍历建表：code→展示名（后端 operationName 中文名优先、缺失回退 code；首个命中者定名）
+    // + 各操作员的 code→笔数（Long→string 经 Number() 归一）。legend/series 直接查表，免逐 code 线性扫。
+    const labelByCode = new Map<string, string>();
+    const countsByOperator = operators.map(o => {
+      const counts = new Map<string, number>();
+      for (const oc of o.operations ?? []) {
         const key = String(oc.operation);
-        if (!codes.includes(key)) codes.push(key);
+        counts.set(key, Number(oc.count) || 0);
+        if (!labelByCode.has(key)) labelByCode.set(key, oc.operationName || key);
       }
-    }
+      return counts;
+    });
     updateOptions(opts => {
       opts.xAxis.data = operators.map(o => o.operatorName || o.operatorId || '-');
-      opts.legend.data = codes.map(code => labelOfCode(operators, code));
-      opts.series = codes.map(code => ({
-        name: labelOfCode(operators, code),
-        type: 'bar',
-        data: operators.map(o => Number(o.operations?.find(oc => String(oc.operation) === code)?.count) || 0)
+      opts.series = [...labelByCode].map(([code, label]) => ({
+        name: label,
+        type: 'bar' as const,
+        data: countsByOperator.map(counts => counts.get(code) ?? 0)
       }));
+      opts.legend.data = opts.series.map(s => s.name);
       return opts;
     });
   }

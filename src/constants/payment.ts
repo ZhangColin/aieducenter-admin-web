@@ -163,12 +163,12 @@ export function displayEnumName<K extends string>(
  * number code 经 `String()` 归一后查表（JS 对象 number key 运行时等价 string key，这里集中
  * 归一保证类型诚实），未知 code 回退 default（不报错）。列表/详情/仪表盘枚举 tag 共用。
  *
- * @param colorMap code 字符串 → ThemeColor 的映射（同文件 *TagColor）
  * @param code 枚举 code（number 或字符串字面量），可空
+ * @param colorMap code 字符串 → ThemeColor 的映射（同文件 *TagColor）
  */
 export function enumTagColor<K extends string>(
-  colorMap: Partial<Record<K, NaiveUI.ThemeColor>>,
-  code: number | K | null | undefined
+  code: number | K | null | undefined,
+  colorMap: Partial<Record<K, NaiveUI.ThemeColor>>
 ): NaiveUI.ThemeColor {
   if (code === null || code === undefined || code === '') return 'default';
   return colorMap[String(code) as K] ?? 'default';

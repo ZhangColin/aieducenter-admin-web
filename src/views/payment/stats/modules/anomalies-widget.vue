@@ -83,7 +83,7 @@ const allZero = computed(() => items.value.every(it => it.count() === 0));
             {{ $t(it.label) }}
           </span>
           <span>
-            <span class="font-600" :style="{ color: it.count() > 0 ? it.color : undefined }">{{ formatCount(`${it.count()}`) }}</span>
+            <span class="font-600" :style="{ color: it.count() > 0 ? it.color : undefined }">{{ formatCount(it.count()) }}</span>
             <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.anomalies.count') }}</span>
             <!-- 滞留行附金额（分，string；#54 起新增展示） -->
             <span v-if="it.amount" class="ml-8px font-600">{{ formatMoney(it.amount()) }}</span>

@@ -70,7 +70,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         align: 'center',
         width: 100,
         render: row => (
-          <NTag type={enumTagColor(paymentStatusTagColor, row.status)} size="small">
+          <NTag type={enumTagColor(row.status, paymentStatusTagColor)} size="small">
             {displayEnumName(row.statusName, row.status, paymentStatusRecord)}
           </NTag>
         )

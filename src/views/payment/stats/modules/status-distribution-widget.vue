@@ -129,9 +129,9 @@ watch(
     <div class="mb-8px flex items-center justify-between rounded-4px bg-#f5f5f5 px-12px py-8px dark:bg-#262626">
       <span class="text-13px opacity-75">{{ $t('page.payment.stats.statusDistribution.refundBacklog') }}</span>
       <span>
-        <span class="font-600">{{ formatCount(store.statusDistribution?.refundBacklog?.pendingCount) }}</span>
+        <span class="font-600">{{ formatCount(store.statusDistribution?.refundBacklog.pendingCount) }}</span>
         <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.statusDistribution.backlogCount') }}</span>
-        <span class="ml-8px font-600">{{ formatMoney(store.statusDistribution?.refundBacklog?.pendingAmount) }}</span>
+        <span class="ml-8px font-600">{{ formatMoney(store.statusDistribution?.refundBacklog.pendingAmount) }}</span>
         <span class="ml-4px text-12px opacity-60">{{ $t('page.payment.stats.statusDistribution.backlogAmount') }}</span>
       </span>
     </div>

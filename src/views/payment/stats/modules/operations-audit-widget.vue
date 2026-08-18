@@ -57,7 +57,7 @@ const columns = [
 const kpis: StatKpi[] = [
   { key: 'totalAudits', label: 'page.payment.stats.operationsAudit.totalAudits', value: () => formatCount(store.operationsAudit?.totalAudits) },
   { key: 'approvalRate', label: 'page.payment.stats.operationsAudit.approvalRate', value: () => formatRate(store.operationsAudit?.approvalRate) },
-  { key: 'avgDuration', label: 'page.payment.stats.operationsAudit.avgDuration', value: () => `${formatCount(store.operationsAudit?.avgAuditDurationMinutes)} min` }
+  { key: 'avgDuration', label: 'page.payment.stats.operationsAudit.avgDuration', value: () => `${store.operationsAudit?.avgAuditDurationMinutes.toLocaleString('zh-CN') ?? '-'} min` }
 ];
 </script>
 

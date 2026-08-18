@@ -547,8 +547,8 @@ declare namespace Api {
     interface OrderStatusDistribution {
       paymentStatuses: OrderStatusBucket[];
       refundStatuses: OrderStatusBucket[];
-      /** 嵌套积压（#54 对齐：旧扁平 refundPendingAuditCount 已废） */
-      refundBacklog: RefundBacklog | null;
+      /** 嵌套积压（#54 对齐：旧扁平 refundPendingAuditCount 已废；契约恒有对象） */
+      refundBacklog: RefundBacklog;
     }
 
     /** gateway 返回码分布（单一 returnCode 出现次数） */

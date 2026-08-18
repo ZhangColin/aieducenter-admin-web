@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue';
 import { NTag } from 'naive-ui';
-import { displayEnumName, operationResultTagType, operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
+import { displayEnumName, enumTagColor, operationResultTagType, operationTargetTypeRecord, operationTypeRecord } from '@/constants/payment';
 import { fetchGetOperationLogList } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -41,7 +41,7 @@ const operationTagMap: Partial<Record<Api.Payment.OperationType, NaiveUI.ThemeCo
 };
 
 /** 枚举 tag 列：null → '-'；后端 *Name 优先、record 兜底（displayEnumName）。复用于目标类型 / 操作类型两列。
- * code 为 JSON number（#54 对齐），经 String() 归一查 tagMap/record（键 = code 字符串字面量）。 */
+ * code 为 JSON number（#54 对齐）；配色/文案经 enumTagColor / displayEnumName 归一查表（值在前、查表在后）。 */
 function renderEnumTag<T extends string>(
   name: string | null | undefined,
   value: number | T | null,
@@ -49,10 +49,9 @@ function renderEnumTag<T extends string>(
   tagMap: Partial<Record<T, NaiveUI.ThemeColor>>
 ) {
   if (value === null || value === undefined) return '-';
-  const key = String(value) as T;
   return (
-    <NTag type={tagMap[key] ?? 'default'} size="small">
-      {displayEnumName(name, key, record)}
+    <NTag type={enumTagColor(value, tagMap)} size="small">
+      {displayEnumName(name, value, record)}
     </NTag>
   );
 }
