@@ -1,9 +1,9 @@
 /**
- * E2E 公共 harness（#57 落地，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，六域共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -52,42 +52,39 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
 }
 
 /**
- * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform.orders）。
+ * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform 各域）。
  *
  * @param page playwright page
- * @param fixtures { ORDER_ROWS, ORDER_DETAILS, writeAck } 订单域 fixtures
+ * @param fixtures { order?, project? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
  * @returns {{calls: Array, state: {failNextQuote: boolean}} calls=拦截到的请求流水（断言查询参数用）
  */
-export async function installOrderMocks(page, fixtures) {
+export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
   const state = { failNextQuote: false };
 
   const json = (route, status, body) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
-  /** 订单列表 mock：四维筛选可组合（缺省＝全量），分页 1-based 切片回显。 */
-  function listResponse(query) {
-    let rows = [...fixtures.ORDER_ROWS];
-    const status = query.get('status');
-    if (status) {
-      const codes = status.split(',').map(Number);
-      rows = rows.filter(row => codes.includes(row.status));
-    }
-    const externalId = query.get('externalId');
-    if (externalId) {
-      // mock 语义：externalId 精确命中「下单账号拼音化 externalId」——fixtures 里映射到 ownerDisplayName 演示
-      const ownerMap = { 'ext-wangshi2': '王十二', 'ext-zhaoliu': '赵六' };
-      rows = rows.filter(row => row.ownerDisplayName === (ownerMap[externalId] ?? '@@none@@'));
-    }
-    const orderId = query.get('orderId');
-    if (orderId) {
-      rows = rows.filter(row => row.id === orderId);
-    }
+  /** 时间区间过滤（含两端，字符串比较即可——fixtures/查询均为 ISO-8601 同形本地串）。 */
+  function filterByCreatedRange(rows, query) {
     const from = query.get('createdFrom');
-    if (from) rows = rows.filter(row => row.createdAt >= from);
     const to = query.get('createdTo');
-    if (to) rows = rows.filter(row => row.createdAt <= to);
+    let out = rows;
+    if (from) out = out.filter(row => row.createdAt >= from);
+    if (to) out = out.filter(row => row.createdAt <= to);
+    return out;
+  }
 
+  /** externalId 精确 → ownerDisplayName 映射（两域 fixtures 共用同一批账号档案）。 */
+  const externalIdOwnerMap = { 'ext-wangshi2': '王十二', 'ext-zhaoliu': '赵六' };
+  function filterByExternalId(rows, query) {
+    const externalId = query.get('externalId');
+    if (!externalId) return rows;
+    return rows.filter(row => row.ownerDisplayName === (externalIdOwnerMap[externalId] ?? '@@none@@'));
+  }
+
+  /** 分页切片（1-based，镜像 PageResponse wire：total 为字符串）。 */
+  function paginate(rows, query) {
     const pageNum = Math.max(1, Number(query.get('page') ?? '1'));
     const size = Math.max(1, Number(query.get('size') ?? '10'));
     return {
@@ -102,6 +99,39 @@ export async function installOrderMocks(page, fixtures) {
       requestId: 'e2e-mock',
       errors: null
     };
+  }
+
+  /** 订单列表 mock：四维筛选可组合（缺省＝全量），分页 1-based 切片回显。 */
+  function orderListResponse(query) {
+    let rows = [...fixtures.order.ORDER_ROWS];
+    const status = query.get('status');
+    if (status) {
+      const codes = status.split(',').map(Number);
+      rows = rows.filter(row => codes.includes(row.status));
+    }
+    rows = filterByExternalId(rows, query);
+    const orderId = query.get('orderId');
+    if (orderId) {
+      rows = rows.filter(row => row.id === orderId);
+    }
+    rows = filterByCreatedRange(rows, query);
+    return paginate(rows, query);
+  }
+
+  /** 项目列表 mock：四维筛选（status 三档单值——与订单多选逗号串有意不同），归档照读不特殊处理。 */
+  function projectListResponse(query) {
+    let rows = [...fixtures.project.PROJECT_ROWS];
+    const status = query.get('status');
+    if (status) {
+      rows = rows.filter(row => row.status === Number(status));
+    }
+    rows = filterByExternalId(rows, query);
+    const projectId = query.get('projectId');
+    if (projectId) {
+      rows = rows.filter(row => row.id === projectId);
+    }
+    rows = filterByCreatedRange(rows, query);
+    return paginate(rows, query);
   }
 
   await page.route('**/proxy-default/**', route => {
@@ -131,7 +161,8 @@ export async function installOrderMocks(page, fixtures) {
             { code: 'admin:aiplatform:order:read', name: 'AI 平台 / 订单查看' },
             { code: 'admin:aiplatform:order:quote', name: 'AI 平台 / 订单报价' },
             { code: 'admin:aiplatform:order:cancel', name: 'AI 平台 / 订单取消' },
-            { code: 'admin:aiplatform:order:retry-archive', name: 'AI 平台 / 订单重试归档' }
+            { code: 'admin:aiplatform:order:retry-archive', name: 'AI 平台 / 订单重试归档' },
+            { code: 'admin:aiplatform:project:read', name: 'AI 平台 / 项目查看' }
           ],
           menus: []
         },
@@ -139,7 +170,7 @@ export async function installOrderMocks(page, fixtures) {
         errors: null
       });
     }
-    // ---- 动态菜单（镜像 V15 种子：AI 平台目录 + 订单叶子） ----
+    // ---- 动态菜单（镜像 V15 种子：AI 平台目录 + 订单/项目叶子） ----
     if (path === '/menus/my' && method === 'GET') {
       return json(route, 200, {
         code: 200,
@@ -174,6 +205,20 @@ export async function installOrderMocks(page, fixtures) {
                   sortOrder: 1,
                   menuType: 2,
                   status: 1
+                },
+                {
+                  id: '161',
+                  menuName: '项目管理',
+                  routeName: 'aiplatform_project',
+                  routePath: '/aiplatform/project',
+                  component: 'view.aiplatform_project',
+                  icon: 'carbon:catalog',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_project',
+                  parentId: '82',
+                  sortOrder: 2,
+                  menuType: 2,
+                  status: 1
                 }
               ]
             }
@@ -185,46 +230,86 @@ export async function installOrderMocks(page, fixtures) {
     }
 
     // ---- 订单域 ----
-    if (path === '/aiplatform/orders' && method === 'GET') {
-      return json(route, 200, listResponse(url.searchParams));
+    if (fixtures.order && path === '/aiplatform/orders' && method === 'GET') {
+      return json(route, 200, orderListResponse(url.searchParams));
     }
-    const orderMatch = path.match(/^\/aiplatform\/orders\/([^/]+)(\/(quote|cancel|retry-archive|source-package))?$/);
-    if (orderMatch) {
-      const [, id, , action] = orderMatch;
+    if (fixtures.order) {
+      const orderMatch = path.match(/^\/aiplatform\/orders\/([^/]+)(\/(quote|cancel|retry-archive|source-package))?$/);
+      if (orderMatch) {
+        const [, id, , action] = orderMatch;
 
-      if (!action && method === 'GET') {
-        const detail = fixtures.ORDER_DETAILS[id];
-        if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
-        return json(route, 404, { code: 5001, message: '订单不存在（ORD_001）', data: null, requestId: 'e2e-mock', errors: null });
-      }
-      if (action === 'quote' && method === 'POST') {
-        if (state.failNextQuote) {
-          state.failNextQuote = false;
-          // AiplatformUpstreamErrorAdvice 形状：HTTP 409 + 数字业务码 5007（ORD_007）+ 原文 message
-          return json(route, 409, { code: 5007, message: '订单已支付或已终结，无法报价（ORD_007）', data: null, requestId: 'e2e-mock', errors: null });
+        if (!action && method === 'GET') {
+          const detail = fixtures.order.ORDER_DETAILS[id];
+          if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+          return json(route, 404, { code: 5001, message: '订单不存在（ORD_001）', data: null, requestId: 'e2e-mock', errors: null });
         }
-        return json(route, 200, fixtures.writeAck(id));
-      }
-      if (action === 'cancel' && method === 'POST') {
-        return json(route, 200, fixtures.writeAck(id));
-      }
-      if (action === 'retry-archive' && method === 'POST') {
-        return json(route, 200, fixtures.writeAck(id));
-      }
-      if (action === 'source-package' && method === 'GET') {
-        const gzip = zlib.gzipSync(`e2e-mock-source-package-for-${id}`);
-        return route.fulfill({
-          status: 200,
-          headers: {
-            'content-type': 'application/gzip',
-            'content-disposition': `attachment; filename="${id}-source.tar.gz"`
-          },
-          body: gzip
-        });
+        if (action === 'quote' && method === 'POST') {
+          if (state.failNextQuote) {
+            state.failNextQuote = false;
+            // AiplatformUpstreamErrorAdvice 形状：HTTP 409 + 数字业务码 5007（ORD_007）+ 原文 message
+            return json(route, 409, { code: 5007, message: '订单已支付或已终结，无法报价（ORD_007）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          return json(route, 200, fixtures.order.writeAck(id));
+        }
+        if (action === 'cancel' && method === 'POST') {
+          return json(route, 200, fixtures.order.writeAck(id));
+        }
+        if (action === 'retry-archive' && method === 'POST') {
+          return json(route, 200, fixtures.order.writeAck(id));
+        }
+        if (action === 'source-package' && method === 'GET') {
+          const gzip = zlib.gzipSync(`e2e-mock-source-package-for-${id}`);
+          return route.fulfill({
+            status: 200,
+            headers: {
+              'content-type': 'application/gzip',
+              'content-disposition': `attachment; filename="${id}-source.tar.gz"`
+            },
+            body: gzip
+          });
+        }
       }
     }
 
-    // 其余接口（本票范围外） benign 空成功，避免守卫/其他模块炸掉
+    // ---- 项目域 ----
+    if (fixtures.project && path === '/aiplatform/projects' && method === 'GET') {
+      return json(route, 200, projectListResponse(url.searchParams));
+    }
+    if (fixtures.project) {
+      const versionMatch = path.match(/^\/aiplatform\/projects\/([^/]+)\/versions\/([^/]+)$/);
+      if (versionMatch && method === 'GET') {
+        const [, id, ref] = versionMatch;
+        const detail = fixtures.project.VERSION_DETAILS[`${id}:${ref}`];
+        if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+        return json(route, 404, { code: 4028, message: '版本不存在（PRJ_028）', data: null, requestId: 'e2e-mock', errors: null });
+      }
+      const projectMatch = path.match(/^\/aiplatform\/projects\/([^/]+)(\/(conversation|prd|versions))?$/);
+      if (projectMatch) {
+        const [, id, , action] = projectMatch;
+
+        if (!action && method === 'GET') {
+          const detail = fixtures.project.PROJECT_DETAILS[id];
+          if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+          return json(route, 404, { code: 4001, message: '项目不存在（PRJ_001）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'conversation' && method === 'GET') {
+          const entries = fixtures.project.CONVERSATIONS[id] ?? [];
+          return json(route, 200, { code: 200, message: 'ok', data: entries, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'prd' && method === 'GET') {
+          const prd = fixtures.project.PRDS[id];
+          if (prd) return json(route, 200, { code: 200, message: 'ok', data: prd, requestId: 'e2e-mock', errors: null });
+          // PRD 未产出口径（工作区无 docs/PRD.md）——区别于项目不存在的 PRJ_001
+          return json(route, 404, { code: 4015, message: 'PRD 尚未产出（PRJ_015）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'versions' && method === 'GET') {
+          const versions = fixtures.project.VERSIONS[id] ?? [];
+          return json(route, 200, { code: 200, message: 'ok', data: versions, requestId: 'e2e-mock', errors: null });
+        }
+      }
+    }
+
+    // 其余接口（本票范围外）benign 空成功，避免守卫/其他模块炸掉
     return json(route, 200, { code: 200, message: 'ok', data: null, requestId: 'e2e-mock', errors: null });
   });
 

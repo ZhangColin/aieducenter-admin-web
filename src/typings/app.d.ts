@@ -1161,6 +1161,63 @@ declare namespace App {
               downloaded: string;
             };
           };
+          project: {
+            title: string;
+            detailTitle: string;
+            projectId: string;
+            name: string;
+            owner: string;
+            type: string;
+            status: string;
+            archived: string;
+            archivedYes: string;
+            archivedNo: string;
+            createdAt: string;
+            updatedAt: string;
+            detail: string;
+            form: {
+              createdRange: string;
+              externalId: string;
+              projectId: string;
+            };
+            statusEnum: {
+              all: string;
+              inProgress: string;
+              archived: string;
+            };
+            drawer: {
+              tabs: {
+                basic: string;
+                conversation: string;
+                prd: string;
+                versions: string;
+              };
+              workspaceId: string;
+              prdProducedAt: string;
+              generatedAt: string;
+              activeOrder: string;
+              latestOrder: string;
+              noActiveOrder: string;
+              noOrder: string;
+              costSummary: string;
+              costUnpriced: string;
+              costComplete: string;
+              answered: string;
+              pendingAnswer: string;
+              emptyConversation: string;
+              prdUpdatedAt: string;
+              prdEmpty: string;
+              versionCommit: string;
+              versionSubject: string;
+              versionRunId: string;
+              versionCommittedAt: string;
+              versionRollbackFrom: string;
+              runNone: string;
+              versionEmpty: string;
+              closingCard: string;
+              closingMissing: string;
+            };
+          };
         };
       };
       form: {

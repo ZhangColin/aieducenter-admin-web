@@ -76,6 +76,15 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'aiplatform_order',
           i18nKey: 'route.aiplatform_order'
         }
+      },
+      {
+        name: 'aiplatform_project',
+        path: '/aiplatform/project',
+        component: 'view.aiplatform_project',
+        meta: {
+          title: 'aiplatform_project',
+          i18nKey: 'route.aiplatform_project'
+        }
       }
     ]
   },

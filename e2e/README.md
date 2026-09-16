@@ -19,9 +19,12 @@ node e2e/order.e2e.mjs
 ```
 e2e/
   order.e2e.mjs            订单域验收流（列表/筛选/分页/抽屉/三写/下载/错误 toast）
+  project.e2e.mjs          项目域验收流（列表/筛选/分页/抽屉四 tab：基本信息/对话史/PRD/版本）
   support/
-    harness.mjs            断言台账 + /proxy-default/** mock 安装器（auth / menus.my / aiplatform.orders 全量）
+    harness.mjs            断言台账 + /proxy-default/** mock 安装器（auth / menus.my / 各域端点全量；
+                           installAiplatformMocks(page, { order?, project?, ... }) 域 fixtures 可选挂载）
     order-fixtures.mjs     订单 fixtures（AiplatformOrderSummaryResponse / DetailResponse 形状）
+    project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail / Conversation / Prd / Version 形状）
 ```
 
 ## 为新域加 E2E（T2–T6 照此扩展）
@@ -33,6 +36,8 @@ e2e/
 ## 口径备忘
 
 - 登录走真实 UI（`/auth/login` → mock token → 守卫 → `/menus/my` 动态菜单），不直种 localStorage。
-- 列表筛选断言看 `calls` 里最后一次清单请求的 query（`status` 多选断言**解码后**为逗号单值 `1,5`）。
+- 列表筛选断言看 `calls` 里最后一次清单请求的 query（订单 `status` 多选断言**解码后**为逗号单值 `1,5`；项目 `status` 三档单选**单值** `1`/`3`，两域有意不同）。
 - 写失败 toast 断言透传 message 原文（mock 抛 409 + 数字业务码，形如 `订单已支付或已终结，无法报价（ORD_007）`）。
 - 源码包/文件包为二进制流（`application/gzip`），mock 用 `zlib.gzipSync` 生成真 gzip 字节。
+- 跨页导航用 `page.goto` 直达，不点侧栏菜单——动态路由模式下菜单点击与 addRoute 时序竞态，
+  可能弹回 home（订单域 E2E 本就 home 直达；菜单渲染断言保留，链路 seam #57 已证）。

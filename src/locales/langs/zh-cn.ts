@@ -243,7 +243,8 @@ const local: App.I18n.Schema = {
     account: '平台账号',
     account_list: '账号列表',
     aiplatform: 'AI 平台',
-    aiplatform_order: '订单管理'
+    aiplatform_order: '订单管理',
+    aiplatform_project: '项目管理'
   },
   page: {
     login: {
@@ -924,6 +925,63 @@ const local: App.I18n.Schema = {
           cancelled: '订单已取消',
           retried: '已触发归档重试',
           downloaded: '源码包下载成功'
+        }
+      },
+      project: {
+        title: '项目管理',
+        detailTitle: '项目详情',
+        projectId: '项目 ID',
+        name: '项目',
+        owner: '归属账号',
+        type: '类型',
+        status: '状态',
+        archived: '归档',
+        archivedYes: '是',
+        archivedNo: '否',
+        createdAt: '创建时间',
+        updatedAt: '更新时间',
+        detail: '详情',
+        form: {
+          createdRange: '创建时间',
+          externalId: '账号 External ID',
+          projectId: '项目 ID（精确）'
+        },
+        statusEnum: {
+          all: '全部',
+          inProgress: '进行中',
+          archived: '已归档'
+        },
+        drawer: {
+          tabs: {
+            basic: '基本信息',
+            conversation: '对话史',
+            prd: 'PRD',
+            versions: '版本'
+          },
+          workspaceId: '工作区 ID',
+          prdProducedAt: 'PRD 产出时间',
+          generatedAt: '首次生成时间',
+          activeOrder: '未终结订单',
+          latestOrder: '最近订单',
+          noActiveOrder: '无未终结订单',
+          noOrder: '从未下单',
+          costSummary: '成本汇总',
+          costUnpriced: '存在未计价用量（成本不完整）',
+          costComplete: '成本完整',
+          answered: '已答',
+          pendingAnswer: '待答',
+          emptyConversation: '暂无对话记录',
+          prdUpdatedAt: 'PRD 更新时间',
+          prdEmpty: '暂无 PRD',
+          versionCommit: '提交',
+          versionSubject: '主题',
+          versionRunId: '构建 Run',
+          versionCommittedAt: '成版时间',
+          versionRollbackFrom: '回滚源版本',
+          runNone: '无（回滚版本）',
+          versionEmpty: '暂无版本（尚无收口）',
+          closingCard: '收尾卡',
+          closingMissing: '收尾卡缺位（本轮无收口载荷）'
         }
       }
     }

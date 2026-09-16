@@ -154,6 +154,17 @@ mock E2E（headless Chrome + page.route，fixtures 派生自 `/v3/api-docs`）**
 - **金额线型复核**：aiplatform `amount` swagger 文档化为 `integer/int64`，与 payment 同型——线上仍是 JSON **string**（框架全局 Long→ToStringSerializer，swagger 只标声明类型）；typings 按 `string`（分）+ `formatMoney` 渲染，quote 入参 `number`（Jackson Long 兼容）。
 - **code-review 修正（双轴 review，紧随本票）**：① 删 `orderStatusRecord` 死代码（aiplatform 链路有 `statusName`，record 恒 account 域范式，零引用）+ 死 i18n 键 `confirm.cancel`；② 重试归档收编父页单点（抽屉改 emit `retry`，与 quote/cancel 同先例——此前 index/drawer 双份内联）；③ 「操作」下拉触发器按行隐藏（终态/无写权限行不再出空下拉，account「互斥/不可达不出现」）；④ 列表补 projectId 列（AC 字面九字段齐）；⑤ 下载文件名改读服务端 `Content-Disposition`（端侧拼名降级为兜底）；⑥ `handleWriteSuccess` 注释勘误（modal 遮罩下「开着即同目标」恒成立，非防御性检查遗漏）。review 判断项不修的记录在案：`tsToIso` 第 6 份拷贝（先例容忍）、`installOrderMocks` 名随 T2–T6 泛化时再改。
 
+### 2026-09-16 T2 交付：项目域点亮 ✅（#58，六域之二——列表 + 详情抽屉四 tab）
+
+mock E2E（order 31/31 回归绿 + project **51/51 两轮全绿**）。验收五条全过：列表契约字段（id/name/ownerDisplayName/type·typeName/status·statusName/archived/createdAt/updatedAt，归档照读）/ 四维筛选（**status 三档单选单值直传** `status=1|3`——与订单多选逗号串有意不同、createdFrom/To、externalId、projectId 精确）/ 抽屉四 tab（基本信息含 activeOrder·latestOrder 双档订单引用 + costSummary 指针只读 unpriced（cost:{} REQ-20 暂缓）+ workspaceId 引用；对话史 text/kind·kindName/answered/at 且 question/closing/attachments 载荷跳过（REQ-20 #75，sentinel 断言钉死）；PRD 全文；版本列表新→旧 + 版本详情锚定收尾卡，closing 泛型键值渲染 + null 兜底）/ E2E 覆盖全链路含 PRD 未产出 4015 透传 toast。
+
+- **项目状态两档**（provider ProjectStatus 印证 + api-docs 描述「1=进行中, 3=已归档」，码位 2 注销不复用）：筛选三档 = 全部（缺省不传）/进行中（1)/已归档（3)——「全部」radio 值 'all' 哨兵字符串（NRadio value 不收 null，整数枚举手写 options 先例）。
+- **对话史六 kind**（1=user 2=agent 3=question 4=answer 5=closing 6=guide）：text 对 question/closing 条目恒 null（载荷在跳过对象里）→ 正文 '-' 占位照订单域 null 先例；answered 仅 kind=3 有语义（false=挂起待答）→ 已答/待答双态 tag。
+- **版本详情 closing** = `Map<String,Object>`（api-docs 唯一文档化形状）→ 泛型键值渲染（原始键直出 + 值按类型格式化），不对 key 做端侧映射（键漂移零风险）；回滚版本 runId 空 + rollbackFrom 锚定源版本、closing 可空（收尾卡缺位）→ 统一兜底文案。
+- **E2E seam 泛化**（T1 review 留账）：`installOrderMocks` → `installAiplatformMocks(page, { order?, project?, ... })`，域 fixtures 可选挂载；订单 E2E 仅改导入（31/31 回归证无损）。fixtures 与订单域交叉一致（同批 TSID 项目 id/name）。
+- **坑与定案（E2E 踩出）**：① **动态路由模式下菜单点击与 addRoute 时序竞态**——点「项目管理」可能弹回 home（Vue Router 'No match for' 噪音，URL 瞬变后回落），waitForURL 捕获瞬态 through、后续断言全跑在旧页上是极难排查的假性失败——E2E 跨页一律 `page.goto` 直达（菜单渲染断言保留，菜单链路 #57 已证）；② NRadioButton 根类是 `.n-radio-button`（非 `.n-radio`）；③ 版本 tab 列表与详情同现同主题文本，getByText 断言会撞 strict mode——详情独有文本（全 hash / closing summary）作渲染信号；④ mock 失真警觉：fixtures 的 Long id 必须 string（对话条目 id 曾写 number，spec review 抓住）——**wire 形状钉子 = 类型注释自述**。
+- **code-review 修正（双轴 review，紧随本票）**：① harness `ownerMap` 两域两份收编单点 `filterByExternalId`；② `costSummary` 去 nullable（provider 文档「无用量＝空 cost＋false 明确空态」指针恒在）——null 兜底渲染「成本完整」是误述；③ conversation fixtures id 字符串化（Long 序列化口径）；④ kind 色注释勘误（收尾卡红非紫）。review 判断项不修记录在案：`.desc-table` CSS 同特性内第二份（全仓 4 份先例容忍，萃取共享样式留待 T3–T6）；`tsToIso` 第 7 份拷贝（先例容忍）；对话条目 runId chip 属 AC 外但为契约字段（运营排障叙事有用，保留）。
+
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 
 真后端（admin BFF :8081 + identity :10001 均 local profile）全链验证。**验收八条全过**（含两条语义校准，见下）：

@@ -247,7 +247,8 @@ const local: App.I18n.Schema = {
     account: 'Accounts',
     account_list: 'Account List',
     aiplatform: 'AI Platform',
-    aiplatform_order: 'Orders'
+    aiplatform_order: 'Orders',
+    aiplatform_project: 'Projects'
   },
   page: {
     login: {
@@ -928,6 +929,63 @@ const local: App.I18n.Schema = {
           cancelled: 'Order cancelled',
           retried: 'Archive retry triggered',
           downloaded: 'Source package downloaded'
+        }
+      },
+      project: {
+        title: 'Projects',
+        detailTitle: 'Project Detail',
+        projectId: 'Project ID',
+        name: 'Project',
+        owner: 'Owner',
+        type: 'Type',
+        status: 'Status',
+        archived: 'Archived',
+        archivedYes: 'Yes',
+        archivedNo: 'No',
+        createdAt: 'Created At',
+        updatedAt: 'Updated At',
+        detail: 'Detail',
+        form: {
+          createdRange: 'Created At',
+          externalId: 'Account External ID',
+          projectId: 'Project ID (exact)'
+        },
+        statusEnum: {
+          all: 'All',
+          inProgress: 'In Progress',
+          archived: 'Archived'
+        },
+        drawer: {
+          tabs: {
+            basic: 'Basic Info',
+            conversation: 'Conversation',
+            prd: 'PRD',
+            versions: 'Versions'
+          },
+          workspaceId: 'Workspace ID',
+          prdProducedAt: 'PRD Produced At',
+          generatedAt: 'First Generated At',
+          activeOrder: 'Open Order',
+          latestOrder: 'Latest Order',
+          noActiveOrder: 'No open order',
+          noOrder: 'No orders yet',
+          costSummary: 'Cost Summary',
+          costUnpriced: 'Unpriced usage exists (cost incomplete)',
+          costComplete: 'Cost complete',
+          answered: 'Answered',
+          pendingAnswer: 'Pending',
+          emptyConversation: 'No conversation records',
+          prdUpdatedAt: 'PRD Updated At',
+          prdEmpty: 'No PRD yet',
+          versionCommit: 'Commit',
+          versionSubject: 'Subject',
+          versionRunId: 'Build Run',
+          versionCommittedAt: 'Committed At',
+          versionRollbackFrom: 'Rollback From',
+          runNone: 'None (rollback)',
+          versionEmpty: 'No versions yet',
+          closingCard: 'Closing Card',
+          closingMissing: 'Closing card missing (no payload this run)'
         }
       }
     }

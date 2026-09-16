@@ -1,5 +1,5 @@
 /**
- * AI 平台管理 API（#56/#57）——admin BFF `/api/admin/aiplatform/**`（前端只调 admin 后端，不直连 provider）。
+ * AI 平台管理 API（#56/#57/#58）——admin BFF `/api/admin/aiplatform/**`（前端只调 admin 后端，不直连 provider）。
  *
  * 订单域（T1 tracer bullet，6 端点）。契约正本 = admin :8081 `/v3/api-docs`：
  * - 分页全链 1-based（ADR-0012）：`page` 直传零 ±1。
@@ -9,6 +9,9 @@
  * - 三写成功回执 `OrderWriteAck`（前端不回读此体，自行回详情 + 刷列表）。
  * - 源码包 = tar.gz 二进制流（**无 ApiResponse 信封**）：`responseType: 'blob'`，
  *   失败信封（content-type json）由 @sa/axios 自动 blob→json 走 onError 统一 toast。
+ *
+ * 项目域（T2，6 读端点）。与订单域有意不同：status **三档单选单值直传**（全部/进行中/已归档，
+ * 无逗号拼接）；四 tab 数据各自独立端点、抽屉内按 tab 懒加载；对话史/PRD/版本无分页（全量数组）。
  */
 import { request } from '../request';
 
@@ -50,4 +53,38 @@ export function fetchRetryArchiveAiplatformOrder(id: string) {
 /** GET /aiplatform/orders/{id}/source-package——源码包 tar.gz 二进制流（无信封，成功返回 Blob）。 */
 export function fetchDownloadOrderSourcePackage(id: string) {
   return request<Blob, 'blob'>({ url: `/aiplatform/orders/${id}/source-package`, method: 'get', responseType: 'blob' });
+}
+
+/** GET /aiplatform/projects——项目清单（四维检索：status 三档单选/创建时间区间/externalId/projectId 精确）。 */
+export function fetchGetAiplatformProjectList(params: Api.Aiplatform.ProjectSearchParams) {
+  return request<Api.Common.PageResponse<Api.Aiplatform.ProjectSummary>>({
+    url: '/aiplatform/projects',
+    method: 'get',
+    params
+  });
+}
+
+/** GET /aiplatform/projects/{id}——项目详情（订单引用双档 active/latest + 成本指针 + 工作区引用）。 */
+export function fetchGetAiplatformProject(id: string) {
+  return request<Api.Aiplatform.ProjectDetail>({ url: `/aiplatform/projects/${id}`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/conversation——对话史（全量同序 id 升序=对话序；REQ-20 载荷跳过只渲染 text/kind/answered/at）。 */
+export function fetchGetAiplatformProjectConversation(id: string) {
+  return request<Api.Aiplatform.ConversationEntry[]>({ url: `/aiplatform/projects/${id}/conversation`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/prd——PRD 全文（工作区直读；未产出 404 PRJ_015 走 onError 透传 toast）。 */
+export function fetchGetAiplatformProjectPrd(id: string) {
+  return request<Api.Aiplatform.PrdContent>({ url: `/aiplatform/projects/${id}/prd`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/versions——版本列表（git log 新→旧；零版本=空列表非错误）。 */
+export function fetchGetAiplatformProjectVersions(id: string) {
+  return request<Api.Aiplatform.VersionSummary[]>({ url: `/aiplatform/projects/${id}/versions`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/versions/{ref}——版本详情（锚定收尾卡 closing，可空兜底）。 */
+export function fetchGetAiplatformProjectVersionDetail(id: string, ref: string) {
+  return request<Api.Aiplatform.VersionDetail>({ url: `/aiplatform/projects/${id}/versions/${ref}`, method: 'get' });
 }

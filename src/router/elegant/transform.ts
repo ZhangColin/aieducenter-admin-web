@@ -170,6 +170,7 @@ const routeMap: RouteMap = {
   "account_list": "/account/list",
   "aiplatform": "/aiplatform",
   "aiplatform_order": "/aiplatform/order",
+  "aiplatform_project": "/aiplatform/project",
   "app": "/app",
   "app_list": "/app/list",
   "home": "/home",

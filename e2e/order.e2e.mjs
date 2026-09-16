@@ -8,7 +8,7 @@
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/order.e2e.mjs`。
  */
 import { chromium } from 'playwright-core';
-import { createHarness, installOrderMocks, sleep, waitForMessage } from './support/harness.mjs';
+import { createHarness, installAiplatformMocks, sleep, waitForMessage } from './support/harness.mjs';
 import * as fixtures from './support/order-fixtures.mjs';
 
 const BASE = 'http://localhost:3001';
@@ -38,7 +38,7 @@ async function main() {
   browser = await chromium.launch({ channel: 'chrome', headless: true });  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', err => console.log('  [pageerror]', err.message.split('\n')[0]));
 
-  const { calls, state } = await installOrderMocks(page, fixtures);
+  const { calls, state } = await installAiplatformMocks(page, { order: fixtures });
 
   /* ================= 1. 登录 → 动态菜单点亮「AI 平台 / 订单管理」 ================= */
   await page.goto(`${BASE}/auth/login`);
