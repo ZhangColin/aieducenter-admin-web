@@ -49,6 +49,13 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         render: row => <span class="font-mono">{row.id}</span>
       },
       {
+        key: 'projectId',
+        title: $t('page.aiplatform.order.projectId'),
+        align: 'center',
+        width: 170,
+        render: row => <span class="font-mono">{row.projectId}</span>
+      },
+      {
         key: 'projectName',
         title: $t('page.aiplatform.order.projectName'),
         align: 'center',
@@ -100,20 +107,22 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         align: 'center',
         width: 170,
         fixed: 'right',
-        render: row => (
-          <div class="flex-center gap-8px whitespace-nowrap">
-            <NButton type="primary" ghost size="small" onClick={() => openDetail(row.id)}>
-              {$t('page.aiplatform.order.detail')}
-            </NButton>
-            <NDropdown
-              trigger="click"
-              options={rowOptions(row)}
-              onSelect={key => onAction(row.id, String(key))}
-            >
-              <NButton size="small">{$t('page.aiplatform.order.more')}</NButton>
-            </NDropdown>
-          </div>
-        )
+        render: row => {
+          const opts = rowOptions(row);
+          return (
+            <div class="flex-center gap-8px whitespace-nowrap">
+              <NButton type="primary" ghost size="small" onClick={() => openDetail(row.id)}>
+                {$t('page.aiplatform.order.detail')}
+              </NButton>
+              {/* 无可用写操作（终态行/无写权限）时不渲染下拉触发器——互斥/不可达操作不出现（account 先例） */}
+              {opts.length > 0 && (
+                <NDropdown trigger="click" options={opts} onSelect={key => onAction(row.id, String(key))}>
+                  <NButton size="small">{$t('page.aiplatform.order.more')}</NButton>
+                </NDropdown>
+              )}
+            </div>
+          );
+        }
       }
     ]
   });
@@ -175,7 +184,32 @@ function openQuote(orderId: string, mode: 'quote' | 'requote', amount: string | 
 const cancelModalVisible = ref(false);
 const cancelTargetId = ref('');
 
-/** 行内下拉动作分发（quote/cancel 开弹窗；retryArchive $dialog 二次确认后直调）。 */
+function openCancel(orderId: string) {
+  cancelTargetId.value = orderId;
+  cancelModalVisible.value = true;
+}
+
+/** 重试归档：$dialog 二次确认（行下拉与抽屉共用单点；成功后 toast + 抽屉回读 + 列表刷新）。 */
+function handleRetryArchive(orderId: string) {
+  window.$dialog?.warning({
+    title: $t('page.aiplatform.order.confirm.retryArchive'),
+    content: $t('page.aiplatform.order.confirm.target', { orderId }),
+    positiveText: $t('common.confirm'),
+    negativeText: $t('common.cancel'),
+    onPositiveClick: async () => {
+      const { error } = await fetchRetryArchiveAiplatformOrder(orderId);
+      if (!error) {
+        window.$message?.success($t('page.aiplatform.order.success.retried'));
+        if (drawerVisible.value) {
+          drawerRef.value?.reload();
+        }
+        getData();
+      }
+    }
+  });
+}
+
+/** 行内下拉动作分发（quote/cancel 开弹窗；retryArchive 走父页单点确认，与抽屉事件共用）。 */
 function onAction(orderId: string, key: string) {
   const row = data.value.find(item => item.id === orderId);
   if (!row) return;
@@ -184,28 +218,18 @@ function onAction(orderId: string, key: string) {
     return;
   }
   if (key === 'cancel') {
-    cancelTargetId.value = orderId;
-    cancelModalVisible.value = true;
+    openCancel(orderId);
     return;
   }
   if (key === 'retryArchive') {
-    window.$dialog?.warning({
-      title: $t('page.aiplatform.order.confirm.retryArchive'),
-      content: $t('page.aiplatform.order.confirm.target', { orderId }),
-      positiveText: $t('common.confirm'),
-      negativeText: $t('common.cancel'),
-      onPositiveClick: async () => {
-        const { error } = await fetchRetryArchiveAiplatformOrder(orderId);
-        if (!error) {
-          window.$message?.success($t('page.aiplatform.order.success.retried'));
-          getData();
-        }
-      }
-    });
+    handleRetryArchive(orderId);
   }
 }
 
-/** 写成功统一收口：toast + 抽屉回读（开着且同目标）+ 列表刷新。 */
+/**
+ * 写成功统一收口：toast + 抽屉回读 + 列表刷新。
+ * 写弹窗只能由抽屉内按钮或行下拉触发——抽屉为 modal 遮罩（背景不可点），行触发时抽屉必关，故开着即同目标。
+ */
 function handleWriteSuccess(successKey: 'quoted' | 'cancelled') {
   window.$message?.success($t(`page.aiplatform.order.success.${successKey}`));
   if (drawerVisible.value) {
@@ -247,9 +271,9 @@ function handleWriteSuccess(successKey: 'quoted' | 'cancelled') {
       ref="drawerRef"
       v-model:visible="drawerVisible"
       :order-id="selectedOrderId"
-      @updated="getData"
       @quote="openQuote"
-      @cancel="cancelTargetId = $event; cancelModalVisible = true"
+      @cancel="openCancel"
+      @retry="handleRetryArchive"
     />
     <OrderQuoteModal
       v-model:visible="quoteModalVisible"

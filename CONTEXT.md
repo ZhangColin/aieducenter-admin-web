@@ -152,6 +152,7 @@ mock E2E（headless Chrome + page.route，fixtures 派生自 `/v3/api-docs`）**
 - **状态门控**（provider OrderStatus 五态 + 聚合守卫印证）：未支付 1|2 = 报价/改价（同一端点，已报价=重复提交）+ 取消；已支付 3 = 重试归档；下载源码包无状态门控（404 ORD_001 / 500 WSP_002）。写按钮按态 + `hasAuth` 逐写码（`:quote`/`:cancel`/`:retry-archive`）双门控。
 - **坑与定案（E2E 踩出，T2–T6 直接受益）**：① **NInputNumber v-model 仅 blur/Enter 提交**——弹窗内「输完即点确认」撞禁用态是真实 UX 死胡同，报价金额改 NInput 逐键绑定 + 确认时解析（payment 筛选条用 NInputNumber 是筛选场景可容忍，表单弹窗不用）；② **NModal preset dialog 成功失败都自动关**——写失败要留弹窗需 handler 返回 `false`；③ **NDrawer 默认 modal 遮罩挡背景交互**——E2E 里行级操作必须先 Escape 关抽屉；④ toast 断言用轮询采样（`waitForMessage`，~3s 生命周期，单点 `isVisible`/`waitFor` 易错过闪现）；⑤ Naive datetimerange 键盘输入 = `fill`+`Tab`（Enter 不吃）；⑥ 侧栏菜单 DOM 是 `role=treeitem`（非 `.n-menu` 类），断言等其异步渲染；⑦ 抽屉内价目史用 NDataTable（宅标准），plain NTable 在抽屉内渲染异常（空 tbody，未深究）。
 - **金额线型复核**：aiplatform `amount` swagger 文档化为 `integer/int64`，与 payment 同型——线上仍是 JSON **string**（框架全局 Long→ToStringSerializer，swagger 只标声明类型）；typings 按 `string`（分）+ `formatMoney` 渲染，quote 入参 `number`（Jackson Long 兼容）。
+- **code-review 修正（双轴 review，紧随本票）**：① 删 `orderStatusRecord` 死代码（aiplatform 链路有 `statusName`，record 恒 account 域范式，零引用）+ 死 i18n 键 `confirm.cancel`；② 重试归档收编父页单点（抽屉改 emit `retry`，与 quote/cancel 同先例——此前 index/drawer 双份内联）；③ 「操作」下拉触发器按行隐藏（终态/无写权限行不再出空下拉，account「互斥/不可达不出现」）；④ 列表补 projectId 列（AC 字面九字段齐）；⑤ 下载文件名改读服务端 `Content-Disposition`（端侧拼名降级为兜底）；⑥ `handleWriteSuccess` 注释勘误（modal 遮罩下「开着即同目标」恒成立，非防御性检查遗漏）。review 判断项不修的记录在案：`tsToIso` 第 6 份拷贝（先例容忍）、`installOrderMocks` 名随 T2–T6 泛化时再改。
 
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 

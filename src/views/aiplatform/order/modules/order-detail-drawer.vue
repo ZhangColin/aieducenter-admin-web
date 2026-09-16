@@ -9,7 +9,7 @@
 import { computed, ref, watch } from 'vue';
 import { NButton, NDataTable, NDrawer, NDrawerContent, NTag } from 'naive-ui';
 import type { TableColumns } from 'naive-ui/es/data-table/src/interface';
-import { fetchDownloadOrderSourcePackage, fetchGetAiplatformOrder, fetchRetryArchiveAiplatformOrder } from '@/service/api';
+import { fetchDownloadOrderSourcePackage, fetchGetAiplatformOrder } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 import { $t } from '@/locales';
 import { orderStatusTagColor } from '@/constants/aiplatform';
@@ -22,12 +22,12 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  /** 写操作成功（详情已回读），列表应刷新。 */
-  updated: [];
   /** 请求报价/改价（弹窗在父页挂载；requote 预填当前价）。 */
   quote: [orderId: string, mode: 'quote' | 'requote', currentAmountCents: string | null, currentNote: string | null];
   /** 请求取消（弹窗在父页挂载）。 */
   cancel: [orderId: string];
+  /** 请求重试归档（$dialog 二次确认在父页单点实现，同 account 先例）。 */
+  retry: [orderId: string];
 }>();
 
 const visible = defineModel<boolean>('visible', { default: false });
@@ -36,7 +36,6 @@ const { hasAuth } = useAuth();
 
 const detail = ref<Api.Aiplatform.OrderDetail | null>(null);
 const loading = ref(false);
-const operating = ref(false);
 const downloading = ref(false);
 
 async function loadDetail() {
@@ -73,39 +72,20 @@ function handleQuote() {
   emit('quote', d.id, d.status === 2 ? 'requote' : 'quote', d.amount, d.note);
 }
 
-function handleRetryArchive() {
-  const d = detail.value;
-  if (!d) return;
-  window.$dialog?.warning({
-    title: $t('page.aiplatform.order.confirm.retryArchive'),
-    content: $t('page.aiplatform.order.confirm.target', { orderId: d.id }),
-    positiveText: $t('common.confirm'),
-    negativeText: $t('common.cancel'),
-    onPositiveClick: async () => {
-      operating.value = true;
-      const { error } = await fetchRetryArchiveAiplatformOrder(d.id);
-      operating.value = false;
-      if (!error) {
-        window.$message?.success($t('page.aiplatform.order.success.retried'));
-        emit('updated');
-        await loadDetail();
-      }
-    }
-  });
-}
-
-/** 源码包：tar.gz 无信封 blob；文件名照 provider 约定 `{orderId}-source.tar.gz`。 */
+/** 源码包：tar.gz 无信封 blob；文件名以服务端 Content-Disposition 为准（provider 约定 `{id}-source.tar.gz`），缺失时端侧兜底。 */
 async function handleDownload() {
   const d = detail.value;
   if (!d) return;
   downloading.value = true;
-  const { data, error } = await fetchDownloadOrderSourcePackage(d.id);
+  const { data, error, response } = await fetchDownloadOrderSourcePackage(d.id);
   downloading.value = false;
   if (error || !data) return;
+  const disposition = String(response?.headers?.['content-disposition'] ?? '');
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${d.id}-source.tar.gz`;
   const url = URL.createObjectURL(data);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${d.id}-source.tar.gz`;
+  anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
   window.$message?.success($t('page.aiplatform.order.success.downloaded'));
@@ -156,7 +136,7 @@ defineExpose({ reload: loadDetail });
           <NButton v-if="canCancel" type="error" ghost size="small" @click="emit('cancel', detail.id)">
             {{ $t('page.aiplatform.order.action.cancel') }}
           </NButton>
-          <NButton v-if="canRetryArchive" type="warning" size="small" :loading="operating" @click="handleRetryArchive">
+          <NButton v-if="canRetryArchive" type="warning" size="small" @click="emit('retry', detail.id)">
             {{ $t('page.aiplatform.order.action.retryArchive') }}
           </NButton>
           <NButton v-if="canDownload" size="small" :loading="downloading" @click="handleDownload">

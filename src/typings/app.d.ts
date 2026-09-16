@@ -1151,7 +1151,6 @@ declare namespace App {
               confirm: string;
             };
             confirm: {
-              cancel: string;
               retryArchive: string;
               target: string;
             };

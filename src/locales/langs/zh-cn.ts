@@ -916,7 +916,6 @@ const local: App.I18n.Schema = {
           confirm: '确认取消'
         },
         confirm: {
-          cancel: '取消订单',
           retryArchive: '重试归档',
           target: '订单 {orderId}'
         },

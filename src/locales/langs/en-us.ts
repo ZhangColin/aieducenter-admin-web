@@ -920,7 +920,6 @@ const local: App.I18n.Schema = {
           confirm: 'Confirm Cancel'
         },
         confirm: {
-          cancel: 'Cancel Order',
           retryArchive: 'Retry Archive',
           target: 'Order {orderId}'
         },
