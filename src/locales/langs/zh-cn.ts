@@ -245,7 +245,8 @@ const local: App.I18n.Schema = {
     aiplatform: 'AI 平台',
     aiplatform_order: '订单管理',
     aiplatform_project: '项目管理',
-    aiplatform_workspace: '沙箱管理'
+    aiplatform_workspace: '沙箱管理',
+    aiplatform_cost: '成本中心'
   },
   page: {
     login: {
@@ -1061,6 +1062,45 @@ const local: App.I18n.Schema = {
           hibernate: '沙箱已休眠',
           rebuild: '沙箱已重建',
           seal: '沙箱已封存'
+        }
+      },
+      cost: {
+        title: '成本中心',
+        window: '时间窗',
+        windowRequired: '请选择时间窗后查询（[from, to) 半开区间）',
+        overview: '平台 token 用量总览',
+        byModel: '按模型分解',
+        byAgentKind: '按智能体分解',
+        tier: {
+          input: '输入',
+          output: '输出',
+          cacheRead: '缓存读',
+          cacheWrite: '缓存写',
+          reasoning: '推理'
+        },
+        unpriced: {
+          title: '未配价用量警示',
+          tip: '窗口内存在无生效单价的用量（tokens 只计无价分量）——请到「单价表」补价；补价只影响此后事件，历史成本不漂移',
+          provider: 'Provider',
+          model: '模型',
+          tier: '档位',
+          tokens: '无价 tokens'
+        },
+        projects: {
+          title: '项目成本（成本降序）',
+          projectId: '项目 ID',
+          pricing: '配价状态',
+          allUnpriced: '全未配价',
+          priced: '已配价'
+        },
+        drawer: {
+          detailTitle: '项目成本下钻',
+          unpricedTitle: '未配价档位',
+          unpricedEmpty: '成本构成完整（无未配价档位）'
+        },
+        states: {
+          noData: '暂无数据',
+          loadFailed: '加载失败'
         }
       }
     }

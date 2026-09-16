@@ -249,7 +249,8 @@ const local: App.I18n.Schema = {
     aiplatform: 'AI Platform',
     aiplatform_order: 'Orders',
     aiplatform_project: 'Projects',
-    aiplatform_workspace: 'Sandboxes'
+    aiplatform_workspace: 'Sandboxes',
+    aiplatform_cost: 'Cost Center'
   },
   page: {
     login: {
@@ -1065,6 +1066,45 @@ const local: App.I18n.Schema = {
           hibernate: 'Workspace hibernated',
           rebuild: 'Workspace rebuilt',
           seal: 'Workspace sealed'
+        }
+      },
+      cost: {
+        title: 'Cost Center',
+        window: 'Time Window',
+        windowRequired: 'Select a time window to query (half-open [from, to))',
+        overview: 'Platform Token Usage Overview',
+        byModel: 'By Model',
+        byAgentKind: 'By Agent Kind',
+        tier: {
+          input: 'Input',
+          output: 'Output',
+          cacheRead: 'Cache Read',
+          cacheWrite: 'Cache Write',
+          reasoning: 'Reasoning'
+        },
+        unpriced: {
+          title: 'Unpriced Usage Alert',
+          tip: 'Usage without an effective price in this window (tokens count unpriced portions only) — reprice in Price Entries; repricing only affects future events, historical costs do not drift',
+          provider: 'Provider',
+          model: 'Model',
+          tier: 'Tier',
+          tokens: 'Unpriced Tokens'
+        },
+        projects: {
+          title: 'Project Costs (Cost Descending)',
+          projectId: 'Project ID',
+          pricing: 'Pricing',
+          allUnpriced: 'All Unpriced',
+          priced: 'Priced'
+        },
+        drawer: {
+          detailTitle: 'Project Cost Drill-down',
+          unpricedTitle: 'Unpriced Tiers',
+          unpricedEmpty: 'Cost breakdown complete (no unpriced tiers)'
+        },
+        states: {
+          noData: 'No data',
+          loadFailed: 'Load failed'
         }
       }
     }

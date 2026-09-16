@@ -1,5 +1,5 @@
 /**
- * AI 平台（aiplatform，#56/#57/#58/#60）——类型契约。
+ * AI 平台（aiplatform，#56/#57/#58/#60/#61）——类型契约。
  *
  * 消费 admin BFF `/api/admin/aiplatform/**`（admin#62 定稿、#63–#73 落地；契约正本 =
  * admin :8081 `/v3/api-docs`，逐字镜像 aiplatform provider `/api/backoffice/**`）。
@@ -27,6 +27,10 @@
  *   （封存走深度唤醒、漂移行幂等重建），休眠/重建/封存同拒置备中(1)/封存态(3)。
  *   四写响应＝动作后的观测详情（WorkspaceDetail，区别于订单 OrderWriteAck——响应即新事实，
  *   前端直接回填抽屉免二次回读）；错误码数字形＝域码 1×1000＋序号（1001/1009/1015/1016/1017）。
+ * - 成本域（#61，4 读端点）：时间窗 from/to **必填**（BFF 不设默认窗口；半开 [from,to)、
+ *   ISO-8601 Instant UTC 带 Z）；五档 token 为 primitive long → JSON **数字**（非 Long-string）；
+ *   `cost{}` 按币种分桶暂缓渲染（REQ-20 #75）；byAgentKind 的 agentKindName 为 null 落「—」桶
+ *   （辅助标记）；项目成本清单排序服务端定死成本降序（全未配价排后 allUnpriced=true）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -368,5 +372,109 @@ declare namespace Api {
     }
 
     type WorkspaceFilter = Omit<WorkspaceSearchParams, 'page' | 'size'>;
+
+    /* ---- 成本域（#61）---- */
+
+    /**
+     * token 用量五档（成本域四端点共用载荷）。与订单金额的 Long-string 口径**有意不同**：
+     * 后端 DTO 为 primitive long → JSON **数字**（swagger integer/int64；非包装 Long 的字符串序列化）。
+     */
+    interface TokenUsage {
+      input: number;
+      output: number;
+      cacheRead: number;
+      cacheWrite: number;
+      reasoning: number;
+    }
+
+    /** 分模型聚合项（provider + model 为单价表匹配键）。 */
+    interface ModelUsage {
+      provider: string;
+      model: string;
+      tokens: TokenUsage;
+    }
+
+    /** 分智能体聚合项（agentKind 裸维度串原值；辅助标记 agentKindName 为 null——前端落「—」桶）。 */
+    interface AgentKindUsage {
+      agentKind: string | null;
+      agentKindName: string | null;
+      tokens: TokenUsage;
+    }
+
+    /** 平台成本全局总览（GET /costs/overview）。 */
+    interface CostOverview {
+      from: string;
+      to: string;
+      total: TokenUsage;
+      /** 按币种分桶——swagger 空对象未文档化（REQ-20 #75），v1 不渲染 */
+      cost?: Record<string, number>;
+      byModel: ModelUsage[];
+      byAgentKind: AgentKindUsage[];
+    }
+
+    /** 全局 unpriced 档位项（tokenKind 1=输入…5=推理 + tokenKindName 随行；tokens 只计无价分量）。 */
+    interface UnpricedTierUsage {
+      provider: string;
+      model: string;
+      tokenKind: number;
+      tokenKindName: string;
+      tokens: number;
+    }
+
+    /** unpriced 全局警示（GET /costs/unpriced；空窗/无未配价用量 = 空 items 非错误）。 */
+    interface UnpricedUsage {
+      from: string;
+      to: string;
+      items: UnpricedTierUsage[];
+    }
+
+    /** 项目成本清单行（GET /costs/projects items；排序服务端定死成本降序、全未配价排后）。 */
+    interface ProjectCost {
+      /** 计量 subject 原值（TSID 十进制串；已删项目照列——项目名归前端互查，不解释存在性） */
+      projectId: string;
+      total: TokenUsage;
+      /** 按币种分桶——REQ-20 #75 暂缓渲染 */
+      cost?: Record<string, number>;
+      /** 全未配价标注（有用量但无任何已配价分量——true 时成本不完整） */
+      allUnpriced: boolean;
+    }
+
+    /**
+     * 单项目下钻 unpriced 档位项（**无 tokens**——bySubject 口径无 token 计数，档位用量汇总走
+     * 全局 unpriced 端点；下钻端点 description 自述）。swagger `UnpricedTier` 同名 schema 与全局
+     * 端点嵌套 record 撞名合并成带 tokens 的单形——以下钻端点 description 为准（tokens 不渲染）。
+     */
+    interface UnpricedTierMark {
+      provider: string;
+      model: string;
+      tokenKind: number;
+      tokenKindName: string;
+    }
+
+    /** 单项目成本下钻（GET /costs/projects/{projectId}；无用量/查无此号 = 全零 total + 空结构，非 404）。 */
+    interface ProjectCostDetail {
+      projectId: string;
+      from: string;
+      to: string;
+      total: TokenUsage;
+      /** 按币种分桶——REQ-20 #75 暂缓渲染 */
+      cost?: Record<string, number>;
+      unpriced: UnpricedTierMark[];
+      byModel: ModelUsage[];
+      byAgentKind: AgentKindUsage[];
+    }
+
+    /** 成本域时间窗（from/to 必填——BFF 不设默认窗口，缺参 400；半开 [from,to)）。 */
+    interface CostWindowParams {
+      /** ISO-8601 Instant UTC 带 Z（如 2026-09-01T00:00:00Z） */
+      from: string;
+      to: string;
+    }
+
+    /** GET /costs/projects 查询参数（时间窗 + 分页 1-based 直传）。 */
+    interface CostProjectSearchParams extends CostWindowParams {
+      page: number;
+      size: number;
+    }
   }
 }

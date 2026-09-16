@@ -1,5 +1,5 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60 扩沙箱域，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61 扩沙箱/成本域，六域共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
@@ -221,7 +221,8 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:workspace:wake', name: 'AI 平台 / 沙箱唤醒' },
             { code: 'admin:aiplatform:workspace:hibernate', name: 'AI 平台 / 沙箱休眠' },
             { code: 'admin:aiplatform:workspace:rebuild', name: 'AI 平台 / 沙箱重建' },
-            { code: 'admin:aiplatform:workspace:seal', name: 'AI 平台 / 沙箱封存' }
+            { code: 'admin:aiplatform:workspace:seal', name: 'AI 平台 / 沙箱封存' },
+            { code: 'admin:aiplatform:cost:read', name: 'AI 平台 / 成本查看' }
           ],
           menus: []
         },
@@ -290,6 +291,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_workspace',
                   parentId: '82',
                   sortOrder: 3,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '163',
+                  menuName: '成本中心',
+                  routeName: 'aiplatform_cost',
+                  routePath: '/aiplatform/cost',
+                  component: 'view.aiplatform_cost',
+                  icon: 'carbon:analytics',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_cost',
+                  parentId: '82',
+                  sortOrder: 4,
                   menuType: 2,
                   status: 1
                 }
@@ -441,6 +456,35 @@ export async function installAiplatformMocks(page, fixtures) {
         const detail = fixtures.workspace.WORKSPACE_DETAILS[detailMatch[1]];
         if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
         return json(route, 404, { code: 1001, message: '工作区不存在（WSP_001）', data: null, requestId: 'e2e-mock', errors: null });
+      }
+    }
+
+    // ---- 成本域（#61；四读口 from/to 必填——缺参镜像 BFF 400 框架信封）----
+    if (fixtures.cost && path.startsWith('/aiplatform/costs')) {
+      const query = url.searchParams;
+      const from = query.get('from');
+      const to = query.get('to');
+      const ok = body => json(route, 200, { code: 200, message: 'ok', data: body, requestId: 'e2e-mock', errors: null });
+      if (!from || !to) {
+        return json(route, 400, { code: 400, message: 'Required parameter missing', data: null, requestId: 'e2e-mock', errors: null });
+      }
+
+      if (path === '/aiplatform/costs/overview' && method === 'GET') {
+        return ok({ ...fixtures.cost.OVERVIEW, from, to });
+      }
+      if (path === '/aiplatform/costs/unpriced' && method === 'GET') {
+        // 用量驱动：未配价事件落在 UNPRICED_EVENT_AT，窗口含该时点才出警示（窄窗避开即收起）
+        const covers = from <= fixtures.cost.UNPRICED_EVENT_AT && to > fixtures.cost.UNPRICED_EVENT_AT;
+        return ok({ from, to, items: covers ? fixtures.cost.UNPRICED_ROWS : [] });
+      }
+      if (path === '/aiplatform/costs/projects' && method === 'GET') {
+        return json(route, 200, paginate(fixtures.cost.PROJECT_COST_ROWS, query));
+      }
+      const costDetailMatch = path.match(/^\/aiplatform\/costs\/projects\/([^/]+)$/);
+      if (costDetailMatch && method === 'GET') {
+        const detail = fixtures.cost.PROJECT_COST_DETAILS[costDetailMatch[1]];
+        // 查无此号 = 全零 total + 空结构（明确空态非 404——provider 契约）
+        return ok(detail ?? fixtures.cost.ZERO_DETAIL(costDetailMatch[1]));
       }
     }
 

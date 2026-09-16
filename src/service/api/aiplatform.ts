@@ -1,5 +1,5 @@
 /**
- * AI 平台管理 API（#56/#57/#58）——admin BFF `/api/admin/aiplatform/**`（前端只调 admin 后端，不直连 provider）。
+ * AI 平台管理 API（#56/#57/#58/#61）——admin BFF `/api/admin/aiplatform/**`（前端只调 admin 后端，不直连 provider）。
  *
  * 订单域（T1 tracer bullet，6 端点）。契约正本 = admin :8081 `/v3/api-docs`：
  * - 分页全链 1-based（ADR-0012）：`page` 直传零 ±1。
@@ -20,6 +20,10 @@
  * 沙箱域（T4，6 端点）：期望态/实态两列如实分示（漂移=期望运行而实态无容器，actual=3 即捞漂移清单）；
  * 四写均无 body、响应＝动作后的观测详情（WorkspaceDetail）——区别于订单 OrderWriteAck，
  * 响应即新事实，前端直接回填抽屉免二次回读 + 刷列表。实态/卷大小逐行现场探查（docker 子进程）。
+ *
+ * 成本域（T5，4 读端点）：时间窗 from/to 必填（ISO-8601 Instant UTC 带 Z，半开 [from,to)）——
+ * BFF 不设默认窗口、缺参 400，前端显式传窗（默认最近 30 天、变更即重查）。五档 token 为
+ * primitive long → JSON 数字（区别于金额 Long-string 口径）；cost{} 暂缓渲染（REQ-20 #75）。
  */
 import { request } from '../request';
 
@@ -150,4 +154,30 @@ export function fetchRebuildAiplatformWorkspace(id: string) {
 /** POST /aiplatform/workspaces/{id}/seal——封存（产物同自动封存：打包落存储＋删卷）。 */
 export function fetchSealAiplatformWorkspace(id: string) {
   return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}/seal`, method: 'post' });
+}
+
+/* ---- 成本域（T5，4 读端点；from/to 必填——BFF 不设默认窗口，缺参 400 框架信封）。 */
+
+/** GET /aiplatform/costs/overview——平台成本全局总览（时间窗；五档总量 + 分模型/分智能体两分解；cost{} 暂缓渲染）。 */
+export function fetchGetAiplatformCostOverview(params: Api.Aiplatform.CostWindowParams) {
+  return request<Api.Aiplatform.CostOverview>({ url: '/aiplatform/costs/overview', method: 'get', params });
+}
+
+/** GET /aiplatform/costs/unpriced——unpriced 全局警示（用量驱动；空窗/无未配价用量=空 items 非错误）。 */
+export function fetchGetAiplatformCostUnpriced(params: Api.Aiplatform.CostWindowParams) {
+  return request<Api.Aiplatform.UnpricedUsage>({ url: '/aiplatform/costs/unpriced', method: 'get', params });
+}
+
+/** GET /aiplatform/costs/projects——项目成本清单（窗口聚合；排序服务端定死成本降序、全未配价排后；分页 1-based）。 */
+export function fetchGetAiplatformProjectCostList(params: Api.Aiplatform.CostProjectSearchParams) {
+  return request<Api.Common.PageResponse<Api.Aiplatform.ProjectCost>>({
+    url: '/aiplatform/costs/projects',
+    method: 'get',
+    params
+  });
+}
+
+/** GET /aiplatform/costs/projects/{projectId}——单项目成本下钻（byModel/byAgentKind 分解 + unpriced 档位清单；查无=全零空态非 404）。 */
+export function fetchGetAiplatformProjectCostDetail(projectId: string, params: Api.Aiplatform.CostWindowParams) {
+  return request<Api.Aiplatform.ProjectCostDetail>({ url: `/aiplatform/costs/projects/${projectId}`, method: 'get', params });
 }

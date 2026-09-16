@@ -1296,6 +1296,45 @@ declare namespace App {
               seal: string;
             };
           };
+          cost: {
+            title: string;
+            window: string;
+            windowRequired: string;
+            overview: string;
+            byModel: string;
+            byAgentKind: string;
+            tier: {
+              input: string;
+              output: string;
+              cacheRead: string;
+              cacheWrite: string;
+              reasoning: string;
+            };
+            unpriced: {
+              title: string;
+              tip: string;
+              provider: string;
+              model: string;
+              tier: string;
+              tokens: string;
+            };
+            projects: {
+              title: string;
+              projectId: string;
+              pricing: string;
+              allUnpriced: string;
+              priced: string;
+            };
+            drawer: {
+              detailTitle: string;
+              unpricedTitle: string;
+              unpricedEmpty: string;
+            };
+            states: {
+              noData: string;
+              loadFailed: string;
+            };
+          };
         };
       };
       form: {

@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60）——订单域 + 项目域 + 沙箱域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61）——订单域 + 项目域 + 沙箱域 + 成本域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -126,4 +126,20 @@ export const workspaceWriteAuth: Record<Api.Aiplatform.WorkspaceAction, string> 
   hibernate: 'admin:aiplatform:workspace:hibernate',
   rebuild: 'admin:aiplatform:workspace:rebuild',
   seal: 'admin:aiplatform:workspace:seal'
+};
+
+/* ---- 成本域（#61）---- */
+
+/** token 用量五档键序（stat tile / 柱状图系列 / 表格列统一顺序）。 */
+export const TOKEN_TIER_KEYS = ['input', 'output', 'cacheRead', 'cacheWrite', 'reasoning'] as const;
+
+export type TokenTierKey = (typeof TOKEN_TIER_KEYS)[number];
+
+/** 五档档位名（i18n key；tile 标签与图表系列名共用单点）。 */
+export const tokenTierLabel: Record<TokenTierKey, App.I18n.I18nKey> = {
+  input: 'page.aiplatform.cost.tier.input',
+  output: 'page.aiplatform.cost.tier.output',
+  cacheRead: 'page.aiplatform.cost.tier.cacheRead',
+  cacheWrite: 'page.aiplatform.cost.tier.cacheWrite',
+  reasoning: 'page.aiplatform.cost.tier.reasoning'
 };

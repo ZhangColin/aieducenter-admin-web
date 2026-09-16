@@ -21,6 +21,20 @@ export function formatDateTime(value?: string | null, fmt: string = 'YYYY-MM-DD 
 }
 
 /**
+ * Serialize a picker timestamp as an ISO-8601 Instant UTC string (second precision, trailing `Z`).
+ *
+ * 成本域时间窗契约（admin #67 拍板）：from/to 必填、ISO-8601 Instant **UTC 带 Z**（如
+ * `2026-09-01T00:00:00Z`）、半开 `[from, to)` 直传零调整。与各筛选条的 tsToIso（本地串、
+ * 无 Z）是**两种契约形**——本函数是 UTC 形的唯一实现（tsToIso 家族第 8 份拷贝起收编于此，
+ * 后续 UTC Instant 端点复用）。秒精度切片对齐契约示例（截断毫秒，`to` 端影响 <1s）。
+ *
+ * @param ts 毫秒时间戳（NDatePicker value）
+ */
+export function tsToUtcInstant(ts: number): string {
+  return `${new Date(ts).toISOString().slice(0, 19)}Z`;
+}
+
+/**
  * Format a money amount (integer cents) for display as `¥1,234.56`.
  *
  * payment 域金额单位为**整数分**（`Long`，北向 JSON 为 **string**——框架全局 Long→ToStringSerializer，

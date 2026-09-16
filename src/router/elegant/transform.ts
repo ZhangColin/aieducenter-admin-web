@@ -169,6 +169,7 @@ const routeMap: RouteMap = {
   "account": "/account",
   "account_list": "/account/list",
   "aiplatform": "/aiplatform",
+  "aiplatform_cost": "/aiplatform/cost",
   "aiplatform_order": "/aiplatform/order",
   "aiplatform_project": "/aiplatform/project",
   "aiplatform_workspace": "/aiplatform/workspace",
