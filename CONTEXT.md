@@ -34,8 +34,8 @@
 | **Operator（运营用户）** | 后台使用者；认证 + 角色/部门/岗位/RBAC 归 admin 自有，不在用户域/IdP，本地登录（非 SSO） |
 | **BFF 边界** | 前端 → 只调 admin 后端（经前端反代 `/api/*`，dev 走 Vite proxy）；admin 后端 → 经 `cartisan-openapi` 签名调各能力域 |
 | **Sa-Token** | admin 后端的鉴权机制；token 是 UUID 字符串，走 `Authorization: Bearer <uuid>` header（**不是** JWT、**不走** cookie） |
-| **统一响应 (`ApiResponse<T>`)** | 后端所有接口返回 `{ code, message, data, requestId, errors }`；`code` = HTTP 状态码本身（200/400/401/403…），**非**业务码 |
-| **分页 (`PageResponse<T>`)** | `{ items, total, page, size }`；响应 `page` 是 1-based，**请求** `page` 是 0-based（Spring Pageable 约定） |
+| **统一响应 (`ApiResponse<T>`)** | 后端所有接口返回 `{ code, message, data, requestId, errors }`；`code` = HTTP 状态码本身（200/400/401/403…），**非**业务码。**例外（aiplatform 透传域）**：忠实透传 provider 时，错误信封 `code` = provider 数字业务码（域码×1000＋序号，如 IDN_004→6004）、HTTP 状态独立照抄 |
+| **分页 (`PageResponse<T>`)** | `{ items, total, page, size }`；**全链 1-based**（请求与响应 `page` 均 1-based、首页=1、无 ±1——admin ADR-0012 / #73 收口）。旧「请求 0-based」条目作废 |
 | **权限三件套** | `AdminUser` / `AdminRole` / `AdminMenu` + 关联表；前端拿到 `roleCodes[]` / `permissions[]` / `menus[]` 做指令级控制 |
 | **permissions / roleCodes** | 登录时 `/auth/current` 拉取的权限码数组（如 `admin:user:read`）与角色编码数组（如 `SUPER_ADMIN`）；超管靠后端 bypass 放行 |
 | **财务上下文** | admin 内的只读限界上下文（非独立域）；从各能力域只读取数做收入确认/冲销——**后端尚未实现** |
@@ -59,6 +59,14 @@
 | **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
 | **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
+| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件，共 34 端点） |
+| **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
+| **AI 项目 (Project)** | aiplatform 的交付单元；带订单引用（active/latestOrder）、成本指针（costSummary）、工作区引用（workspaceId）；归档项目照读 |
+| **沙箱 / 工作区 (Workspace)** | **菜单词用「沙箱」**（`沙箱管理`），**领域实体用「工作区」**（`workspaceId`/`Workspace`）；期望态 `desiredState` 与实态 `containerState` 可漂移（清单按两者过滤找 desired≠actual） |
+| **成本 (Cost)** | aiplatform 平台 token 成本观测（与订单报价脱钩、改价不溯及）；时间窗必填（`[from,to)` 半开）、五档用量（input/output/cacheRead/cacheWrite/reasoning）+ 按币种/按模型/按智能体分解 + unpriced 未配价警示 |
+| **单价表 / 价目行 (Unit price entry)** | **菜单词「单价表」**，**领域实体「价目行」**（`price-entry`）；成本换算用的单价数据，append-only（改价 = 关当前行 + 开新行，可预发布未来生效） |
+| **知识素材 (Material)** | aiplatform 沉淀的知识资产；停用⇄启用可逆、删除为治理移除（不动来源项目） |
+| **账号档案 (Account profile)** | aiplatform 侧极简账号档案（`id/externalId/displayName/createdAt`），嵌订单/项目详情抽屉按 `externalId` 查。_Avoid_: identity 域的「Account（终端用户账号）」——不同域 |
 
 ---
 
@@ -118,6 +126,22 @@
 ## 本仓库决策（Decisions）
 
 > 通过 `/grill-with-docs` 逐条结晶。已定稿的迁移至 `docs/adr/`。
+
+### 2026-09-16 AI 平台六域页面 grilling（admin-web #56，消费 admin BFF aiplatform 34 端点；后端已就绪 admin#62/#63–73）
+
+admin 仓 aiplatform BFF 已全量落地（`/api/admin/aiplatform/**` 34 端点，忠实透传 provider `/api/backoffice/**`），菜单 V15 已种、前端无页。本票 grill 拍板 UI 形态与联调口径，逐域按 matt 流程拆票实现（不分批）。
+
+- **契约正本 = admin :8081 `/v3/api-docs`**（不读后端 Java 源码补契约，缺口提 issue）：34 端点与 issue 六域清单吻合（订单 6/项目 9/沙箱 6/成本 4/单价表 3/素材 5/账号 1）。
+- **分页全链 1-based**（ADR-0012）：新页面原生 1-based、零 ±1；区别于旧 8 列表页 0-based（归 #55）。`defaultTransform` 响应侧已 1-based 透传，请求侧 1-based 直传。
+- **页面形态照先例**（不再逐域 /prototype 三变体）：列表 `NDataTable`（flex-height + sm:h-full）+ `NDrawer` 720 + `.desc-table` 只读 + `NTabs` + 写按钮 `hasAuth` 门控；成本中心、项目文件区两处异质另拍（见下）。
+- **错误信封**：aiplatform 透传域 `code`=数字业务码≠HTTP 状态（glossary 已加例外）。前端**不按业务码分支**——写失败走透传 `message` 统一 toast，文件内容拒读走「一态兜底」（统一「无法预览」+ 透传 message，不读 provider 码表）。
+- **成本中心 = 单页 dashboard**（复用 payment/stats widget + echarts 范式）：时间窗 `NDatePicker` range 必填（`[from,to)` 半开）→ token 五档 5 stat tile → byModel/byAgentKind 两柱状 → unpriced 警示卡 → 项目成本表（分页、成本降序）+ 行点击 NDrawer 下钻。「按币种成本」暂缓（`cost:{}` 空对象 → REQ-20）。
+- **项目文件区 = 项目详情抽屉内「交付文件」tab**：`NTree` 按 path 折叠（显 size）→ 点文本文件内嵌只读（`/files/content`）→ 顶部「下载文件包」（`/files/package` tar.gz）。机密/1MiB/非文本三类拒读**一态兜底**。
+- **术语**：沙箱（菜单）/工作区（实体）、单价表（菜单）/价目行（实体）；glossary 补 8 条（AI 平台/订单/项目/沙箱·工作区/成本/单价表·价目行/素材/账号档案）。
+- **i18n**：7 键 `route.aiplatform` + `_order/_project/_workspace/_cost/_price_entry/_material`，文案照 issue 菜单表，三处同步（Schema/zh/en），随各域 commit 落。
+- **REQ-20（#75）**：`cost:{}`、conversation `question/closing/attachments:{}`、`unitPrice` string/number 不对称 → 已提 [admin#75](https://github.com/ZhangColin/aieducenter-admin/issues/75)，前端先渲染已文档化字段绕行。
+
+**收域标准**（admin#61 冒烟四项，联调通过后 admin#61 方可关）：签名负例三连 / 域内全端点 happy path / 写操作留痕落库 / 分页与过滤边界。
 
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 
