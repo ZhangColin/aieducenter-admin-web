@@ -1,4 +1,5 @@
 export * from './account';
+export * from './aiplatform';
 export * from './auth';
 export * from './payment';
 export * from './route';

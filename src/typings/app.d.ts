@@ -1087,6 +1087,82 @@ declare namespace App {
             revoked: string;
           };
         };
+        aiplatform: {
+          order: {
+            title: string;
+            detailTitle: string;
+            orderId: string;
+            projectId: string;
+            projectName: string;
+            owner: string;
+            status: string;
+            amount: string;
+            createdAt: string;
+            quotedAt: string;
+            detail: string;
+            more: string;
+            form: {
+              status: string;
+              createdRange: string;
+              externalId: string;
+              orderId: string;
+            };
+            statusEnum: {
+              pendingQuote: string;
+              quoted: string;
+              paid: string;
+              archived: string;
+              cancelled: string;
+            };
+            drawer: {
+              priceHistory: string;
+              prdSnapshot: string;
+              priceAmount: string;
+              priceNote: string;
+              priceOperator: string;
+              priceAt: string;
+              paidAt: string;
+              archivedAt: string;
+              archiveOperator: string;
+              cancelledAt: string;
+              cancelReason: string;
+              cancelOperator: string;
+              downloadPackage: string;
+            };
+            action: {
+              quote: string;
+              requote: string;
+              cancel: string;
+              retryArchive: string;
+            };
+            quoteModal: {
+              title: string;
+              requoteTitle: string;
+              amount: string;
+              note: string;
+              amountPlaceholder: string;
+              notePlaceholder: string;
+              confirm: string;
+            };
+            cancelModal: {
+              title: string;
+              tip: string;
+              reasonPlaceholder: string;
+              confirm: string;
+            };
+            confirm: {
+              cancel: string;
+              retryArchive: string;
+              target: string;
+            };
+            success: {
+              quoted: string;
+              cancelled: string;
+              retried: string;
+              downloaded: string;
+            };
+          };
+        };
       };
       form: {
         required: string;

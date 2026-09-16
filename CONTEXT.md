@@ -143,6 +143,16 @@ admin 仓 aiplatform BFF 已全量落地（`/api/admin/aiplatform/**` 34 端点�
 
 **收域标准**（admin#61 冒烟四项，联调通过后 admin#61 方可关）：签名负例三连 / 域内全端点 happy path / 写操作留痕落库 / 分页与过滤边界。
 
+### 2026-09-16 T1 交付：AI 平台脚手架 + 订单域 tracer bullet 点亮 ✅（#57，六域共用基座首次落仓）
+
+mock E2E（headless Chrome + page.route，fixtures 派生自 `/v3/api-docs`）**31/31 两轮全绿**。验收六条全过：列表契约字段（金额 Long 分 string + statusName 直读）/ 四维筛选绑定（status 多选逗号单值 `status=1,5`、createdFrom/To、externalId、orderId）/ 抽屉价目史（append-only 新→旧带操作者）/ 三写（报价·改价、取消 reason 必填、重试归档）成功后回读+刷新 / 源码包 tar.gz 二进制流 / 写失败透传 message toast（409 + 数字业务码 5007）。
+
+- **六域共用地基**（后续 T2–T6 照此扩展）：`Api.Aiplatform` 命名空间（`typings/api/aiplatform.d.ts`）+ `service/api/aiplatform.ts`（六端点）+ `constants/aiplatform.ts`（整数枚举手写 options）+ `route.aiplatform{,_order}` i18n 三处同步 + **首个入仓 E2E seam**（`e2e/`，playwright-core devDep + 系统 Chrome channel 免下载浏览器；T2–T6 按 `e2e/README.md` 三步扩展）。`pnpm gen-route` 产出 `aiplatform`（layout.base 目录）+ `aiplatform_order` 两级，与 V15 种子 `view.aiplatform_order` 精确对齐。
+- **status 多选序列化**：service 层显式拼逗号单值（`status.join(',')`）——BFF 文档钉死逗号分隔（provider 签名按参数名去重，`status=1&status=2` 会被丢），不交给 axios 默认数组序列化。
+- **状态门控**（provider OrderStatus 五态 + 聚合守卫印证）：未支付 1|2 = 报价/改价（同一端点，已报价=重复提交）+ 取消；已支付 3 = 重试归档；下载源码包无状态门控（404 ORD_001 / 500 WSP_002）。写按钮按态 + `hasAuth` 逐写码（`:quote`/`:cancel`/`:retry-archive`）双门控。
+- **坑与定案（E2E 踩出，T2–T6 直接受益）**：① **NInputNumber v-model 仅 blur/Enter 提交**——弹窗内「输完即点确认」撞禁用态是真实 UX 死胡同，报价金额改 NInput 逐键绑定 + 确认时解析（payment 筛选条用 NInputNumber 是筛选场景可容忍，表单弹窗不用）；② **NModal preset dialog 成功失败都自动关**——写失败要留弹窗需 handler 返回 `false`；③ **NDrawer 默认 modal 遮罩挡背景交互**——E2E 里行级操作必须先 Escape 关抽屉；④ toast 断言用轮询采样（`waitForMessage`，~3s 生命周期，单点 `isVisible`/`waitFor` 易错过闪现）；⑤ Naive datetimerange 键盘输入 = `fill`+`Tab`（Enter 不吃）；⑥ 侧栏菜单 DOM 是 `role=treeitem`（非 `.n-menu` 类），断言等其异步渲染；⑦ 抽屉内价目史用 NDataTable（宅标准），plain NTable 在抽屉内渲染异常（空 tbody，未深究）。
+- **金额线型复核**：aiplatform `amount` swagger 文档化为 `integer/int64`，与 payment 同型——线上仍是 JSON **string**（框架全局 Long→ToStringSerializer，swagger 只标声明类型）；typings 按 `string`（分）+ `formatMoney` 渲染，quote 入参 `number`（Jackson Long 兼容）。
+
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 
 真后端（admin BFF :8081 + identity :10001 均 local profile）全链验证。**验收八条全过**（含两条语义校准，见下）：

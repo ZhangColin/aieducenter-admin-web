@@ -241,7 +241,9 @@ const local: App.I18n.Schema = {
     payment_channel_log: '通道交互日志',
     payment_operation: '订单操作记录',
     account: '平台账号',
-    account_list: '账号列表'
+    account_list: '账号列表',
+    aiplatform: 'AI 平台',
+    aiplatform_order: '订单管理'
   },
   page: {
     login: {
@@ -848,6 +850,82 @@ const local: App.I18n.Schema = {
         activated: '已解封——用户需重新登录',
         unlocked: '已解除系统锁定',
         revoked: '已强制下线'
+      }
+    },
+    aiplatform: {
+      order: {
+        title: '订单管理',
+        detailTitle: '订单详情',
+        orderId: '订单号',
+        projectId: '项目 ID',
+        projectName: '项目',
+        owner: '下单账号',
+        status: '状态',
+        amount: '金额',
+        createdAt: '创建时间',
+        quotedAt: '报价时间',
+        detail: '详情',
+        more: '操作',
+        form: {
+          status: '状态（可多选）',
+          createdRange: '创建时间',
+          externalId: '账号 External ID',
+          orderId: '订单号（精确）'
+        },
+        statusEnum: {
+          pendingQuote: '待报价',
+          quoted: '已报价',
+          paid: '已支付',
+          archived: '已归档',
+          cancelled: '已取消'
+        },
+        drawer: {
+          priceHistory: '价目历史',
+          prdSnapshot: 'PRD 快照',
+          priceAmount: '金额',
+          priceNote: '备注',
+          priceOperator: '操作者',
+          priceAt: '时间',
+          paidAt: '支付时间',
+          archivedAt: '归档时间',
+          archiveOperator: '归档操作者',
+          cancelledAt: '取消时间',
+          cancelReason: '取消原因',
+          cancelOperator: '取消操作者',
+          downloadPackage: '下载源码包'
+        },
+        action: {
+          quote: '报价',
+          requote: '改价',
+          cancel: '取消订单',
+          retryArchive: '重试归档'
+        },
+        quoteModal: {
+          title: '提交报价',
+          requoteTitle: '修改报价',
+          amount: '报价金额（元）',
+          note: '报价备注',
+          amountPlaceholder: '请输入报价金额',
+          notePlaceholder: '选填，至多 1000 字',
+          confirm: '确认报价'
+        },
+        cancelModal: {
+          title: '取消订单',
+          tip: '订单 {orderId} 将被取消，此操作不可恢复。',
+          reasonPlaceholder: '取消原因（必填）',
+          confirm: '确认取消'
+        },
+        confirm: {
+          cancel: '取消订单',
+          retryArchive: '重试归档',
+          target: '订单 {orderId}'
+        },
+        success: {
+          quoted: '报价成功',
+          cancelled: '订单已取消',
+          retried: '已触发归档重试',
+          downloaded: '源码包下载成功'
+        }
       }
     }
   },

@@ -245,7 +245,9 @@ const local: App.I18n.Schema = {
     payment_channel_log: 'Channel Logs',
     payment_operation: 'Operation Logs',
     account: 'Accounts',
-    account_list: 'Account List'
+    account_list: 'Account List',
+    aiplatform: 'AI Platform',
+    aiplatform_order: 'Orders'
   },
   page: {
     login: {
@@ -852,6 +854,82 @@ const local: App.I18n.Schema = {
         activated: 'Activated — user must sign in again',
         unlocked: 'System lock released',
         revoked: 'All sessions revoked'
+      }
+    },
+    aiplatform: {
+      order: {
+        title: 'Order Management',
+        detailTitle: 'Order Detail',
+        orderId: 'Order ID',
+        projectId: 'Project ID',
+        projectName: 'Project',
+        owner: 'Owner',
+        status: 'Status',
+        amount: 'Amount',
+        createdAt: 'Created At',
+        quotedAt: 'Quoted At',
+        detail: 'View',
+        more: 'Actions',
+        form: {
+          status: 'Status (multi-select)',
+          createdRange: 'Created At',
+          externalId: 'Account External ID',
+          orderId: 'Order ID (exact)'
+        },
+        statusEnum: {
+          pendingQuote: 'Pending Quote',
+          quoted: 'Quoted',
+          paid: 'Paid',
+          archived: 'Archived',
+          cancelled: 'Cancelled'
+        },
+        drawer: {
+          priceHistory: 'Price History',
+          prdSnapshot: 'PRD Snapshot',
+          priceAmount: 'Amount',
+          priceNote: 'Note',
+          priceOperator: 'Operator',
+          priceAt: 'Time',
+          paidAt: 'Paid At',
+          archivedAt: 'Archived At',
+          archiveOperator: 'Archive Operator',
+          cancelledAt: 'Cancelled At',
+          cancelReason: 'Cancel Reason',
+          cancelOperator: 'Cancel Operator',
+          downloadPackage: 'Download Source Package'
+        },
+        action: {
+          quote: 'Quote',
+          requote: 'Re-quote',
+          cancel: 'Cancel Order',
+          retryArchive: 'Retry Archive'
+        },
+        quoteModal: {
+          title: 'Submit Quote',
+          requoteTitle: 'Update Quote',
+          amount: 'Quote Amount (CNY)',
+          note: 'Quote Note',
+          amountPlaceholder: 'Enter quote amount',
+          notePlaceholder: 'Optional, up to 1000 characters',
+          confirm: 'Confirm Quote'
+        },
+        cancelModal: {
+          title: 'Cancel Order',
+          tip: 'Order {orderId} will be cancelled. This cannot be undone.',
+          reasonPlaceholder: 'Cancel reason (required)',
+          confirm: 'Confirm Cancel'
+        },
+        confirm: {
+          cancel: 'Cancel Order',
+          retryArchive: 'Retry Archive',
+          target: 'Order {orderId}'
+        },
+        success: {
+          quoted: 'Quote submitted',
+          cancelled: 'Order cancelled',
+          retried: 'Archive retry triggered',
+          downloaded: 'Source package downloaded'
+        }
       }
     }
   },

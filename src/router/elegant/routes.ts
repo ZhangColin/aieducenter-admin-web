@@ -60,6 +60,26 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'aiplatform',
+    path: '/aiplatform',
+    component: 'layout.base',
+    meta: {
+      title: 'aiplatform',
+      i18nKey: 'route.aiplatform'
+    },
+    children: [
+      {
+        name: 'aiplatform_order',
+        path: '/aiplatform/order',
+        component: 'view.aiplatform_order',
+        meta: {
+          title: 'aiplatform_order',
+          i18nKey: 'route.aiplatform_order'
+        }
+      }
+    ]
+  },
+  {
     name: 'app',
     path: '/app',
     component: 'layout.base',
