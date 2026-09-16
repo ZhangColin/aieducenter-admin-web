@@ -12,6 +12,10 @@
  *
  * 项目域（T2，6 读端点）。与订单域有意不同：status **三档单选单值直传**（全部/进行中/已归档，
  * 无逗号拼接）；四 tab 数据各自独立端点、抽屉内按 tab 懒加载；对话史/PRD/版本无分页（全量数组）。
+ *
+ * 项目交付物文件区（T3，3 端点）：文件树只列文件（目录由前端按路径段合成）、内容点读、
+ * 文件包 tar.gz 二进制流（同订单源码包——无信封 `responseType: 'blob'`）。文件区挂项目不挂订单：
+ * 未下单项目可浏览、归档项目照读。
  */
 import { request } from '../request';
 
@@ -87,4 +91,23 @@ export function fetchGetAiplatformProjectVersions(id: string) {
 /** GET /aiplatform/projects/{id}/versions/{ref}——版本详情（锚定收尾卡 closing，可空兜底）。 */
 export function fetchGetAiplatformProjectVersionDetail(id: string, ref: string) {
   return request<Api.Aiplatform.VersionDetail>({ url: `/aiplatform/projects/${id}/versions/${ref}`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/files——文件树（[{path,size}] 只列文件，目录由前端按路径段合成；归档项目照读）。 */
+export function fetchGetAiplatformProjectFiles(id: string) {
+  return request<Api.Aiplatform.ProjectFiles>({ url: `/aiplatform/projects/${id}/files`, method: 'get' });
+}
+
+/** GET /aiplatform/projects/{id}/files/content?path=——文本文件内容（path 为文件树条目原样回传；机密/超 1MiB/非文本拒读由 provider 全裁决，HTTP 非 2xx）。 */
+export function fetchGetAiplatformProjectFileContent(id: string, path: string) {
+  return request<Api.Aiplatform.FileContent>({
+    url: `/aiplatform/projects/${id}/files/content`,
+    method: 'get',
+    params: { path }
+  });
+}
+
+/** GET /aiplatform/projects/{id}/files/package——文件包 tar.gz 二进制流（无信封，成功返回 Blob；sealed=-archive/未封存=-source 文件名由 provider 经 Content-Disposition 透传）。 */
+export function fetchDownloadProjectFilesPackage(id: string) {
+  return request<Blob, 'blob'>({ url: `/aiplatform/projects/${id}/files/package`, method: 'get', responseType: 'blob' });
 }

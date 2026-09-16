@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 项目详情抽屉（#58）——四 tab：基本信息（订单引用双档/成本指针/工作区引用）/ 对话史 / PRD / 版本。
+ * 项目详情抽屉（#58/#59）——五 tab：基本信息（订单引用双档/成本指针/工作区引用）/ 对话史 / PRD / 版本 / 交付文件。
  *
- * 项目域纯读、四 tab 数据各自独立端点——除基本信息外均「v-if 按 tab 挂载即加载」
- * （切 tab 卸载重挂，天然重置；抽屉每次打开 activeTab 回 basic）。对话史/PRD/版本
+ * 项目域纯读、各 tab 数据各自独立端点——除基本信息外均「v-if 按 tab 挂载即加载」
+ * （切 tab 卸载重挂，天然重置；抽屉每次打开 activeTab 回 basic）。对话史/PRD/版本/交付文件
  * 归档项目照读（工作区保留）。
  */
 import { ref, watch } from 'vue';
@@ -13,6 +13,7 @@ import { $t } from '@/locales';
 import { projectStatusTagColor, orderStatusTagColor } from '@/constants/aiplatform';
 import { formatDateTime } from '@/utils/common';
 import ConversationPane from './conversation-pane.vue';
+import FilesPane from './files-pane.vue';
 import PrdPane from './prd-pane.vue';
 import VersionsPane from './versions-pane.vue';
 
@@ -34,7 +35,7 @@ async function loadDetail() {
   if (!error) detail.value = data;
 }
 
-const activeTab = ref<'basic' | 'conversation' | 'prd' | 'versions'>('basic');
+const activeTab = ref<'basic' | 'conversation' | 'prd' | 'versions' | 'files'>('basic');
 
 watch(visible, val => {
   if (val) {
@@ -150,6 +151,11 @@ watch(visible, val => {
         <!-- 版本列表/详情（新→旧，锚定收尾卡；v-if 挂载即加载） -->
         <NTabPane name="versions" :tab="$t('page.aiplatform.project.drawer.tabs.versions')">
           <VersionsPane v-if="activeTab === 'versions'" :project-id="projectId" />
+        </NTabPane>
+
+        <!-- 交付文件（文件树 + 文本查看器 + 下载文件包；v-if 挂载即加载） -->
+        <NTabPane name="files" :tab="$t('page.aiplatform.project.drawer.tabs.files')">
+          <FilesPane v-if="activeTab === 'files'" :project-id="projectId" />
         </NTabPane>
       </NTabs>
     </NDrawerContent>

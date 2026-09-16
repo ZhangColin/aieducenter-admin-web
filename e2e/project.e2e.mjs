@@ -1,11 +1,15 @@
 /**
- * AI 平台项目域 E2E（#58 验收）——headless Chrome（playwright-core 系统 channel，免下载浏览器）
+ * AI 平台项目域 E2E（#58/#59 验收）——headless Chrome（playwright-core 系统 channel，免下载浏览器）
  * + page.route 全量 mock（fixtures 派生自 /v3/api-docs，见 support/project-fixtures.mjs）。
  *
- * 覆盖验收五条：列表渲染契约字段（含归档照读）/ 四维筛选绑定查询参数（status 三档单选——
- * 与订单多选逗号串有意不同 / 1-based 分页）/ 详情抽屉四 tab（基本信息含订单引用+成本指针+
- * 工作区引用 / 对话史 text·kind·answered·at 且 question·closing·attachments 载荷跳过 /
- * PRD 全文 / 版本列表新→旧 + 版本详情锚定收尾卡含 closing 缺位兜底）。
+ * 覆盖验收（#58 五条）：列表渲染契约字段（含归档照读）/ 四维筛选绑定查询参数（status 三档单选——
+ * 与订单多选逗号串有意不同 / 1-based 分页）/ 详情抽屉基本信息含订单引用+成本指针+工作区引用 /
+ * 对话史 text·kind·answered·at 且 question·closing·attachments 载荷跳过 / PRD 全文 /
+ * 版本列表新→旧 + 版本详情锚定收尾卡含 closing 缺位兜底。
+ *
+ * 覆盖验收（#59 交付文件）：文件树按 path 折叠（目录合成 + 行内 size）/ 点文本文件内嵌只读
+ * （files/content）/ 拒读一态兜底（4022 超限与 4023 非文本两码同 UI 态——钉死「不按业务码分三态」）/
+ * 下载文件包（files/package tar.gz 二进制流无信封）。
  *
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/project.e2e.mjs`。
  */
@@ -211,6 +215,71 @@ async function main() {
   await paidDrawer.locator('.n-tabs-tab', { hasText: 'PRD' }).click();
   const prdToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('PRJ_015')));
   h.check('PRD 未产出 toast 透传 provider message（PRJ_015）', Boolean(prdToast), JSON.stringify(prdToast));
+
+  /* ================= 11. 交付文件 tab（#59）：文件树 + 查看器 + 拒读兜底 + 下载包 ================= */
+  await paidDrawer.locator('.n-tabs-tab', { hasText: '交付文件' }).click();
+  const treeNode = paidDrawer.locator('.files-tree .n-tree-node');
+  await treeNode.first().waitFor({ timeout: 10000 });
+
+  // 11a. 文件树按 path 折叠：只列文件契约（[{path,size}]）→ 前端合成目录（assets/docs/src）+ 根级文件
+  h.check(
+    '文件树：根级目录合成（assets/docs/src）+ 根级文件 package.json',
+    (await treeNode.filter({ hasText: 'assets' }).count()) > 0 &&
+      (await treeNode.filter({ hasText: 'docs' }).count()) > 0 &&
+      (await treeNode.filter({ hasText: 'src' }).count()) > 0 &&
+      (await treeNode.filter({ hasText: 'package.json' }).count()) > 0
+  );
+  // 行内显 size（B/KB/MB 折算；根级目录默认展开 → 一层子项可见）
+  h.check(
+    '文件树：行内显 size（512 B / 12 MB）',
+    (await paidDrawer.getByText('512 B', { exact: true }).isVisible()) &&
+      (await paidDrawer.getByText('12 MB', { exact: true }).isVisible())
+  );
+  h.check('文件树：根级目录默认展开（hero.png 5 MB 可见）', await paidDrawer.getByText('5 MB', { exact: true }).isVisible());
+  h.check('文件树：深层子目录折叠（page.tsx 初始不可见）', !(await paidDrawer.locator('.n-tree-node', { hasText: 'page.tsx' }).first().isVisible()));
+
+  // 11b. 点文本文件内嵌只读
+  await treeNode.filter({ hasText: 'package.json' }).click();
+  await paidDrawer.getByText('club-recruit-miniapp').waitFor({ timeout: 10000 });
+  h.check('查看器：根级文件内容内嵌只读（package.json）', (await paidDrawer.getByText('club-recruit-miniapp').count()) > 0);
+  await treeNode.filter({ hasText: 'PRD.md' }).click();
+  await paidDrawer.getByText('线上报名、社团审核、名单一键导出。').waitFor({ timeout: 10000 });
+  h.check('查看器：目录内文件切换（docs/PRD.md）', (await paidDrawer.getByText('线上报名、社团审核、名单一键导出。').count()) > 0);
+  // 展开深层子目录（expand-on-click）后点叶子
+  await treeNode.filter({ hasText: /^app$/ }).click();
+  await paidDrawer.locator('.n-tree-node', { hasText: 'page.tsx' }).first().waitFor({ timeout: 10000 });
+  await paidDrawer.locator('.n-tree-node', { hasText: 'page.tsx' }).first().click();
+  await paidDrawer.getByText('社团招新报名入口').waitFor({ timeout: 10000 });
+  h.check('查看器：深层文件内容（src/app/page.tsx）', (await paidDrawer.getByText('社团招新报名入口').count()) > 0);
+  h.check(
+    'content 请求 path 参数原样回传（src/app/page.tsx）',
+    calls.some(c => c.path.endsWith('/files/content') && c.query.includes('path=src%2Fapp%2Fpage.tsx')),
+    JSON.stringify(calls.filter(c => c.path.endsWith('/files/content')).map(c => c.query))
+  );
+
+  // 11c. 拒读一态兜底：4023 非文本 / 4022 超 1MiB——两码同「无法预览」态 + 各自透传 message
+  await treeNode.filter({ hasText: 'hero.png' }).click();
+  await paidDrawer.locator('.file-unavailable').waitFor({ timeout: 10000 });
+  h.check(
+    '拒读一态兜底（非文本 4023）：无法预览 + 透传 message',
+    (await paidDrawer.getByText('无法预览').count()) > 0 && (await paidDrawer.getByText('非文本文件，无法在线查看（PRJ_023）').count()) > 0
+  );
+  await treeNode.filter({ hasText: 'sitemap.raw.map' }).click();
+  await paidDrawer.getByText('文件超过在线查看上限（1 MiB）（PRJ_022）').waitFor({ timeout: 10000 });
+  h.check(
+    '拒读一态兜底（超限 4022）：同态切换 + 透传 message（不按业务码分三态）',
+    (await paidDrawer.locator('.file-unavailable').count()) > 0 &&
+      (await paidDrawer.getByText('文件超过在线查看上限（1 MiB）（PRJ_022）').count()) > 0
+  );
+
+  // 11d. 下载文件包：tar.gz 二进制流（无信封）
+  await paidDrawer.getByRole('button', { name: '下载文件包' }).click();
+  h.check(
+    '文件包 GET files/package（二进制流端点）',
+    calls.some(c => c.path.endsWith('/files/package') && c.method === 'GET')
+  );
+  const pkgToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('文件包下载成功')));
+  h.check('文件包下载成功 toast', Boolean(pkgToast), JSON.stringify(pkgToast));
 }
 
 main()

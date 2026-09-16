@@ -245,6 +245,28 @@ declare namespace Api {
       closing: Record<string, unknown> | null;
     }
 
+    /** 文件树条目（GET /projects/{id}/files 的 files 元素）。只列文件——目录由前端按路径段合成；size Long（字节）→ JSON string。 */
+    interface FileEntry {
+      /** 工作区相对路径（服务端按路径稳定排序） */
+      path: string;
+      /** Long（字节）→ JSON string */
+      size: string;
+    }
+
+    /** 文件树（GET /projects/{id}/files；交付口径 = dev 工作区剔 data/、.platform/、node_modules/ 与 .env——与源码包同口径）。 */
+    interface ProjectFiles {
+      projectId: string;
+      files: FileEntry[];
+    }
+
+    /** 文本文件内容（GET /projects/{id}/files/content?path=；provider 只读策略全裁决——机密/超 1MiB/非文本拒读走 HTTP 非 2xx）。 */
+    interface FileContent {
+      /** 原样回显请求 path */
+      path: string;
+      /** 工作区文件原样文本 */
+      content: string;
+    }
+
     /** GET /projects 查询参数。分页 1-based 直传；status 三档单选单值直传（缺省=全部）。 */
     interface ProjectSearchParams {
       page: number;

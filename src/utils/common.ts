@@ -39,6 +39,31 @@ export function formatMoney(cents?: number | string | null): string {
 }
 
 /**
+ * Format a byte count for display (`512 B` / `1.82 KB` / `5 MB`).
+ *
+ * aiplatform 文件树 `size` 为 Long（字节）→ JSON **字符串**（同全局 Long 序列化口径），
+ * `Number()` 兜底后按二进制 1024 折算，1 位小数（整数值不带小数点）。
+ *
+ * `null` / 空串 / 非数 / 负数 → `'-'`（沿用占位约定）。
+ *
+ * @param bytes 字节 size（**string** 为契约正形，number 兼容），可空
+ */
+export function formatFileSize(bytes?: number | string | null): string {
+  if (bytes === null || bytes === undefined || bytes === '') return '-';
+  const n = Number(bytes);
+  if (Number.isNaN(n) || n < 0) return '-';
+  let value = n;
+  let unit = 'B';
+  for (const next of ['KB', 'MB', 'GB']) {
+    if (value < 1024) break;
+    value /= 1024;
+    unit = next;
+  }
+  const text = unit === 'B' ? `${value}` : value.toFixed(Number.isInteger(value) ? 0 : 1);
+  return `${text} ${unit}`;
+}
+
+/**
  * Format a 0–1 decimal rate as a percentage string (`95.60%`).
  *
  * payment 统计的比率（successRate / approvalRate）线上为 **小数 0–1 区间**（BigDecimal → number，
@@ -70,6 +95,25 @@ export function formatCount(count?: number | string | null): string {
   const n = Number(count);
   if (Number.isNaN(n)) return '-';
   return n.toLocaleString('zh-CN');
+}
+
+/**
+ * Trigger a browser download for an in-memory blob.
+ *
+ * 二进制流端点（订单源码包 / 项目文件包 tar.gz，无 ApiResponse 信封）取回 Blob 后的统一
+ * 落盘动作：objectURL → 隐藏 anchor click → revoke 收口。文件名由调用方解析
+ * （服务端 Content-Disposition 优先，端侧兜底——#57 review ⑤ 先例）。
+ *
+ * @param blob 二进制响应体
+ * @param filename 已解析的下载文件名
+ */
+export function saveBlobFile(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 /**

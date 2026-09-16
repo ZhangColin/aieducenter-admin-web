@@ -13,7 +13,7 @@ import { fetchDownloadOrderSourcePackage, fetchGetAiplatformOrder } from '@/serv
 import { useAuth } from '@/hooks/business/auth';
 import { $t } from '@/locales';
 import { orderStatusTagColor } from '@/constants/aiplatform';
-import { formatDateTime, formatMoney } from '@/utils/common';
+import { formatDateTime, formatMoney, saveBlobFile } from '@/utils/common';
 
 defineOptions({ name: 'OrderDetailDrawer' });
 
@@ -82,12 +82,7 @@ async function handleDownload() {
   if (error || !data) return;
   const disposition = String(response?.headers?.['content-disposition'] ?? '');
   const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${d.id}-source.tar.gz`;
-  const url = URL.createObjectURL(data);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  saveBlobFile(data, filename);
   window.$message?.success($t('page.aiplatform.order.success.downloaded'));
 }
 

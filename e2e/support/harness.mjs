@@ -283,7 +283,9 @@ export async function installAiplatformMocks(page, fixtures) {
         if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
         return json(route, 404, { code: 4028, message: '版本不存在（PRJ_028）', data: null, requestId: 'e2e-mock', errors: null });
       }
-      const projectMatch = path.match(/^\/aiplatform\/projects\/([^/]+)(\/(conversation|prd|versions))?$/);
+      const projectMatch = path.match(
+        /^\/aiplatform\/projects\/([^/]+)(\/(conversation|prd|versions|files\/content|files\/package|files))?$/
+      );
       if (projectMatch) {
         const [, id, , action] = projectMatch;
 
@@ -305,6 +307,39 @@ export async function installAiplatformMocks(page, fixtures) {
         if (action === 'versions' && method === 'GET') {
           const versions = fixtures.project.VERSIONS[id] ?? [];
           return json(route, 200, { code: 200, message: 'ok', data: versions, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'files' && method === 'GET') {
+          const tree = fixtures.project.FILE_TREES[id];
+          if (tree) return json(route, 200, { code: 200, message: 'ok', data: tree, requestId: 'e2e-mock', errors: null });
+          return json(route, 404, { code: 4001, message: '项目不存在（PRJ_001）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'files/content' && method === 'GET') {
+          const filePath = url.searchParams.get('path') ?? '';
+          const content = fixtures.project.FILE_CONTENTS[`${id}:${filePath}`];
+          if (content) return json(route, 200, { code: 200, message: 'ok', data: content, requestId: 'e2e-mock', errors: null });
+          const rejection = fixtures.project.FILE_REJECTIONS[`${id}:${filePath}`];
+          if (rejection) {
+            return json(route, rejection.status, {
+              code: rejection.code,
+              message: rejection.message,
+              data: null,
+              requestId: 'e2e-mock',
+              errors: null
+            });
+          }
+          return json(route, 404, { code: 4021, message: '文件不存在（PRJ_021）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (action === 'files/package' && method === 'GET') {
+          // tar.gz 二进制流（无 ApiResponse 信封）；文件名 provider 决定（Content-Disposition 透传）
+          const gzip = zlib.gzipSync(`e2e-mock-project-files-package-for-${id}`);
+          return route.fulfill({
+            status: 200,
+            headers: {
+              'content-type': 'application/gzip',
+              'content-disposition': `attachment; filename="${id}-source.tar.gz"`
+            },
+            body: gzip
+          });
         }
       }
     }

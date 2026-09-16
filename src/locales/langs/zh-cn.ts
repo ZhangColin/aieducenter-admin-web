@@ -956,7 +956,8 @@ const local: App.I18n.Schema = {
             basic: '基本信息',
             conversation: '对话史',
             prd: 'PRD',
-            versions: '版本'
+            versions: '版本',
+            files: '交付文件'
           },
           workspaceId: '工作区 ID',
           prdProducedAt: 'PRD 产出时间',
@@ -981,7 +982,14 @@ const local: App.I18n.Schema = {
           runNone: '无（回滚版本）',
           versionEmpty: '暂无版本（尚无收口）',
           closingCard: '收尾卡',
-          closingMissing: '收尾卡缺位（本轮无收口载荷）'
+          closingMissing: '收尾卡缺位（本轮无收口载荷）',
+          downloadPackage: '下载文件包',
+          filesEmpty: '暂无交付文件',
+          filesSelectHint: '在文件树中选择文件查看内容',
+          previewUnavailable: '无法预览'
+        },
+        success: {
+          downloaded: '文件包下载成功'
         }
       }
     }

@@ -19,12 +19,13 @@ node e2e/order.e2e.mjs
 ```
 e2e/
   order.e2e.mjs            订单域验收流（列表/筛选/分页/抽屉/三写/下载/错误 toast）
-  project.e2e.mjs          项目域验收流（列表/筛选/分页/抽屉四 tab：基本信息/对话史/PRD/版本）
+  project.e2e.mjs          项目域验收流（列表/筛选/分页/抽屉五 tab：基本信息/对话史/PRD/版本/交付文件）
   support/
     harness.mjs            断言台账 + /proxy-default/** mock 安装器（auth / menus.my / 各域端点全量；
                            installAiplatformMocks(page, { order?, project?, ... }) 域 fixtures 可选挂载）
     order-fixtures.mjs     订单 fixtures（AiplatformOrderSummaryResponse / DetailResponse 形状）
-    project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail / Conversation / Prd / Version 形状）
+    project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail / Conversation / Prd / Version /
+                           Files / FileContent 形状 + 文件拒读响应）
 ```
 
 ## 为新域加 E2E（T2–T6 照此扩展）

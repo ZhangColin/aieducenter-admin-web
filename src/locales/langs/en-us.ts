@@ -960,7 +960,8 @@ const local: App.I18n.Schema = {
             basic: 'Basic Info',
             conversation: 'Conversation',
             prd: 'PRD',
-            versions: 'Versions'
+            versions: 'Versions',
+            files: 'Delivered Files'
           },
           workspaceId: 'Workspace ID',
           prdProducedAt: 'PRD Produced At',
@@ -985,7 +986,14 @@ const local: App.I18n.Schema = {
           runNone: 'None (rollback)',
           versionEmpty: 'No versions yet',
           closingCard: 'Closing Card',
-          closingMissing: 'Closing card missing (no payload this run)'
+          closingMissing: 'Closing card missing (no payload this run)',
+          downloadPackage: 'Download Package',
+          filesEmpty: 'No delivered files',
+          filesSelectHint: 'Select a file in the tree to view its content',
+          previewUnavailable: 'Preview unavailable'
+        },
+        success: {
+          downloaded: 'Package downloaded'
         }
       }
     }

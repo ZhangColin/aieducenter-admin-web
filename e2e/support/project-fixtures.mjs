@@ -468,3 +468,59 @@ export const VERSION_DETAILS = {
     closing: { summary: '口算出题与判分落地', prdChanged: false, systemChanged: true, durationMs: 655000 }
   }
 };
+
+/**
+ * 交付文件树（按项目 id；#59）——形状派生自 `AiplatformProjectFilesResponse` /
+ * `FileEntry`：只列文件 [{path,size}]（目录由前端按路径段合成）、size Long（字节）→ **string**、
+ * path 按路径稳定排序。交付口径 = 剔 data/、.platform/、node_modules/ 与 .env（.env 不入树，
+ * 故机密拒读 4020 经树不可达——mock 只覆盖树内可达的 4022/4023 两类拒读，与契约一致）。
+ * 树含根级文件 + 三层目录（assets/docs/src×2），覆盖前端目录合成与默认展开。
+ */
+export const FILE_TREES = {
+  '7392120209100500010': {
+    projectId: '7392120209100500010',
+    files: [
+      { path: 'assets/hero.png', size: '5242880' },
+      { path: 'docs/PRD.md', size: '2048' },
+      { path: 'package.json', size: '512' },
+      { path: 'src/app/page.tsx', size: '10240' },
+      { path: 'src/components/Card.tsx', size: '4096' },
+      { path: 'src/lib/utils.ts', size: '2560' },
+      { path: 'src/sitemap.raw.map', size: '12582912' }
+    ]
+  }
+};
+
+/** 文本文件内容（按 `${projectId}:${path}`；path 原样回显 + content 工作区原样文本）。 */
+export const FILE_CONTENTS = {
+  '7392120209100500010:package.json': {
+    path: 'package.json',
+    content: '{\n  "name": "club-recruit-miniapp",\n  "version": "0.3.1",\n  "private": true\n}'
+  },
+  '7392120209100500010:docs/PRD.md': {
+    path: 'docs/PRD.md',
+    content: '# 社团招新小程序 PRD\n\n## 目标\n线上报名、社团审核、名单一键导出。'
+  },
+  '7392120209100500010:src/app/page.tsx': {
+    path: 'src/app/page.tsx',
+    content: 'export default function Page() {\n  return <main>社团招新报名入口</main>;\n}'
+  }
+};
+
+/**
+ * 拒读响应（按 `${projectId}:${path}`；AiplatformUpstreamErrorAdvice 形状——HTTP 状态照抄 provider、
+ * code=数字业务码、message 原文）。两类树内可达拒读：超 1MiB 上限 4022 / 非文本 4023——
+ * 前端统一「无法预览」一态兜底，两码同 UI 态正是 mock 要钉死的事实。
+ */
+export const FILE_REJECTIONS = {
+  '7392120209100500010:src/sitemap.raw.map': {
+    status: 400,
+    code: 4022,
+    message: '文件超过在线查看上限（1 MiB）（PRJ_022）'
+  },
+  '7392120209100500010:assets/hero.png': {
+    status: 400,
+    code: 4023,
+    message: '非文本文件，无法在线查看（PRJ_023）'
+  }
+};

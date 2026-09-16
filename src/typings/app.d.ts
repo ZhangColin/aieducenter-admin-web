@@ -1191,6 +1191,7 @@ declare namespace App {
                 conversation: string;
                 prd: string;
                 versions: string;
+                files: string;
               };
               workspaceId: string;
               prdProducedAt: string;
@@ -1216,6 +1217,13 @@ declare namespace App {
               versionEmpty: string;
               closingCard: string;
               closingMissing: string;
+              downloadPackage: string;
+              filesEmpty: string;
+              filesSelectHint: string;
+              previewUnavailable: string;
+            };
+            success: {
+              downloaded: string;
             };
           };
         };

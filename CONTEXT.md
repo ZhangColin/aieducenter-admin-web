@@ -165,6 +165,14 @@ mock E2E（order 31/31 回归绿 + project **51/51 两轮全绿**）。验收五
 - **坑与定案（E2E 踩出）**：① **动态路由模式下菜单点击与 addRoute 时序竞态**——点「项目管理」可能弹回 home（Vue Router 'No match for' 噪音，URL 瞬变后回落），waitForURL 捕获瞬态 through、后续断言全跑在旧页上是极难排查的假性失败——E2E 跨页一律 `page.goto` 直达（菜单渲染断言保留，菜单链路 #57 已证）；② NRadioButton 根类是 `.n-radio-button`（非 `.n-radio`）；③ 版本 tab 列表与详情同现同主题文本，getByText 断言会撞 strict mode——详情独有文本（全 hash / closing summary）作渲染信号；④ mock 失真警觉：fixtures 的 Long id 必须 string（对话条目 id 曾写 number，spec review 抓住）——**wire 形状钉子 = 类型注释自述**。
 - **code-review 修正（双轴 review，紧随本票）**：① harness `ownerMap` 两域两份收编单点 `filterByExternalId`；② `costSummary` 去 nullable（provider 文档「无用量＝空 cost＋false 明确空态」指针恒在）——null 兜底渲染「成本完整」是误述；③ conversation fixtures id 字符串化（Long 序列化口径）；④ kind 色注释勘误（收尾卡红非紫）。review 判断项不修记录在案：`.desc-table` CSS 同特性内第二份（全仓 4 份先例容忍，萃取共享样式留待 T3–T6）；`tsToIso` 第 7 份拷贝（先例容忍）；对话条目 runId chip 属 AC 外但为契约字段（运营排障叙事有用，保留）。
 
+### 2026-09-16 T3 交付：项目交付物文件区点亮 ✅（#59，六域之三——详情抽屉第五 tab）
+
+mock E2E（project **63/63 两轮全绿** + order 31/31 回归绿）。验收五条全过：文件树按 path 折叠行内显 size（[{path,size}] 只列文件契约 → 前端目录合成 + `formatFileSize` B/KB/MB 折算）/ 点文本文件内嵌只读（content `<pre>` 只读 + path 原样回显）/ 拒读一态兜底（统一「无法预览」+ 透传 message——4022 超限与 4023 非文本**两码同 UI 态** E2E 钉死「不按业务码分三态」）/ 下载文件包（tar.gz 二进制流无信封 + Content-Disposition 文件名）/ E2E 全覆盖。
+
+- **契约事实（api-docs）**：files 只列文件、目录由前端按路径段合成（目录 key 加 `dir:` 前缀防与文件 path 撞 key）、size Long（字节）→ JSON string；content 拒读全归 provider 裁决（4020 机密/4021 不存在/4022 超 1MiB/4023 非文本）——**4020 经树不可达**（.env 等非交付物不入清单），E2E 只 mock 树内可达的 4022/4023 两类（fixtures 头注释钉死此口径）；package 无信封、sealed=-archive/未封存=-source 文件名由 provider 经 Content-Disposition 决定（BFF 不判封存态）。
+- **交互定案**：树 `NTree` block-line + expand-on-click + selectable，根级目录默认展开（树随数据后挂载、default-expanded 生效于挂载时）；目录选中 = 回提示态（防旧内容/拒读态残留）；拒读 onError toast（全局兜底）与 pane 内锚定态**双显**是有意为之（toast 不抑止，先例 ADR-0001）。
+- **code-review 修正（双轴 review，紧随本票）**：① 点目录后查看器残留旧态 → 目录/取消选中回提示态；② 下载落盘动作（objectURL→anchor→revoke ~15 行）与订单源码包第 2 份逐字重复 → 萃取 `saveBlobFile` 收编 utils/common.ts、两调用点归一（订单回归 31/31 证无损）；③ `buildTree` 双遍历收敛单次递归铺平索引；④ 删仅为空态判断存在的 `files` ref；⑤ E2E 断言名与实断对齐（补 12 MB）。review 判断项不修记录在案：`error.response.data.message` 内联提取与 onError 重复（单一消费者，出现第二处再萃取）。
+
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 
 真后端（admin BFF :8081 + identity :10001 均 local profile）全链验证。**验收八条全过**（含两条语义校准，见下）：
