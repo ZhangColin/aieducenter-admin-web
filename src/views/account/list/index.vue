@@ -6,8 +6,7 @@
  * 并排，双轴叠加不丢信息）+ 行内「查看 + 操作下拉」（互斥/不可达操作不出现）；
  * 详情 = B 横幅抽屉（AccountDetailDrawer）。
  * 权限：写按钮组 hasAuth('admin:account:write') 门控；页面读权限由菜单/路由控制。
- * ⚠️ 分页：请求 page 0-based（identity 协议，onPaginationParamsChange -1 适配；响应 pageNum
- * 表格不消费，无影响）——REQ-18 归一后删 -1 即回归。
+ * 分页：全平台 1-based（REQ-18 已落地，#52 联调删去临时 -1 适配）。
  */
 import { ref } from 'vue';
 import { NButton, NDropdown, NTag } from 'naive-ui';
@@ -34,15 +33,15 @@ const appStore = useAppStore();
 const { hasAuth } = useAuth();
 const canWrite = hasAuth('admin:account:write');
 
-/** 搜索参数 = 分页 + 当前筛选（AccountSearch 清洗后并入）。请求 page 0-based。 */
-const searchParams = ref<Api.Account.AccountSearchParams>({ page: 0, size: 10 });
+/** 搜索参数 = 分页 + 当前筛选（AccountSearch 清洗后并入）。 */
+const searchParams = ref<Api.Account.AccountSearchParams>({ page: 1, size: 10 });
 
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
   useNaivePaginatedTable({
     api: () => fetchGetAccountList(searchParams.value),
     transform: response => defaultTransform(response),
     onPaginationParamsChange: params => {
-      searchParams.value.page = (params.page ?? 1) - 1;
+      searchParams.value.page = params.page ?? 1;
       searchParams.value.size = params.pageSize ?? 10;
     },
     columns: () => [

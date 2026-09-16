@@ -33,7 +33,7 @@ declare namespace Api {
     /** GET /accounts/{userId}/management 响应（与列表行同构）。 */
     type AccountManagementDetail = AccountSummary;
 
-    /** GET /accounts 查询参数。page 0-based（Spring Pageable）；⚠️ 响应 page 亦 0-based（REQ-18）。 */
+    /** GET /accounts 查询参数。分页全链 1-based（REQ-18 已落地）。 */
     interface AccountSearchParams {
       page: number;
       size: number;

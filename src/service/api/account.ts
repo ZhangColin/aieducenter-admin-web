@@ -2,14 +2,13 @@
  * 平台账号管理 API（#50）——admin BFF `/api/admin/accounts/**`（前端只调 admin 后端，不直连 identity）。
  *
  * 权限：读 `admin:account:read`（列表/详情）、写 `admin:account:write`（四操作，已定不拆）。
- * ⚠️ 分页：请求 page 0-based；**响应 page 亦 0-based**（BFF 透传 identity 协议，与全平台
- * 「响应 1-based」相反）——列表页用 accountTransform +1 临时适配，REQ-18 落地后删。
+ * 分页：全链 1-based（REQ-18 已落地，identity #78 起；#52 联调删去临时 +1 适配）。
  * 写操作响应均为 `data: null` 的成功 ack（不回读），前端成功后自行回读详情/刷新列表。
  * 操作者身份不进 body——经 X-User-Id/X-User-Name 出站 header 自动透传给 identity 审计。
  */
 import { request } from '../request';
 
-/** GET /accounts——分页搜索。响应 page 0-based（见文件头 ⚠️）。 */
+/** GET /accounts——分页搜索。 */
 export function fetchGetAccountList(params: Api.Account.AccountSearchParams) {
   return request<Api.Common.PageResponse<Api.Account.AccountSummary>>({ url: '/accounts', method: 'get', params });
 }
