@@ -26,7 +26,7 @@ declare namespace Api {
 
     /**
      * GET /users 搜索参数（后端 AdminUserQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      */
     interface UserSearchParams {
       username?: string | null;
@@ -38,7 +38,7 @@ declare namespace Api {
       phone?: string | null;
       /** 1=男 / 2=女；null/undefined = 不过滤。REQ-11 */
       gender?: number | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -108,7 +108,7 @@ declare namespace Api {
 
     /**
      * GET /roles 搜索参数（后端 AdminRoleQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      */
     interface RoleSearchParams {
       /** 角色名称模糊（后端 name INNER_LIKE） */
@@ -119,7 +119,7 @@ declare namespace Api {
       keyword?: string | null;
       /** 1=启用 / 0=禁用；null/undefined = 不过滤。REQ-10（后端 AdminRoleQuery.status） */
       status?: number | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -218,7 +218,7 @@ declare namespace Api {
 
     /**
      * GET /menus 搜索参数（后端 MenuQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      */
     interface MenuSearchParams {
       /** 菜单名称模糊（后端 menuName INNER_LIKE） */
@@ -229,7 +229,7 @@ declare namespace Api {
       status?: number | null;
       /** menuName/routeName/routePath 多列模糊（后端 keyword blurry） */
       keyword?: string | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -268,7 +268,7 @@ declare namespace Api {
     /**
      * 应用管理（admin 后端 /api/admin/apps）
      *
-     * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+     * 分页约定同用户/角色：请求 `page` **1-based**、响应 PageResponse{ items, total, page(1-based), size }。
      * status 整数 1=启用 / 0=禁用。
      */
 
@@ -278,7 +278,7 @@ declare namespace Api {
       keyword?: string | null;
       /** 1=启用 / 0=禁用；null/undefined = 不过滤 */
       status?: number | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }

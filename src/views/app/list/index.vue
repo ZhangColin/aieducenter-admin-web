@@ -20,11 +20,11 @@ const appStore = useAppStore();
 const searchParams = ref<Api.SystemManage.AppSearchParams>({
   keyword: null,
   status: null,
-  page: 0,
+  page: 1,
   size: 10
 });
 
-/** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 0-based */
+/** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 1-based */
 function buildParams(p: Api.SystemManage.AppSearchParams) {
   const { keyword, status, page, size } = p;
 
@@ -40,7 +40,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
   api: () => fetchGetAppList(buildParams(searchParams.value)),
   transform: response => defaultTransform(response),
   onPaginationParamsChange: params => {
-    searchParams.value.page = (params.page ?? 1) - 1;
+    searchParams.value.page = params.page ?? 1;
     searchParams.value.size = params.pageSize ?? 10;
   },
   columns: () => [

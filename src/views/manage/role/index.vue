@@ -31,11 +31,11 @@ const searchParams = ref<Api.SystemManage.RoleSearchParams>({
   code: null,
   keyword: null,
   status: null,
-  page: 0,
+  page: 1,
   size: 10
 });
 
-/** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 0-based */
+/** 清洗搜索参数：剔除空值、保留分页；请求 page 保持 1-based */
 function buildParams(p: Api.SystemManage.RoleSearchParams) {
   const { name, code, keyword, status, page, size } = p;
 
@@ -53,8 +53,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
   api: () => fetchGetRoleList(buildParams(searchParams.value)),
   transform: response => defaultTransform(response),
   onPaginationParamsChange: params => {
-    // 后端请求 page 为 0-based（响应 page 才是 1-based）
-    searchParams.value.page = (params.page ?? 1) - 1;
+    searchParams.value.page = params.page ?? 1;
     searchParams.value.size = params.pageSize ?? 10;
   },
   columns: () => [

@@ -5,7 +5,7 @@
  * 只读分页列表 + 7 字段筛选（NCollapse 折叠）；**无详情抽屉、无写按钮**（日志 append-only）。
  * TableHeaderOperation hideAdd + hideDelete；无 operate 列。
  *
- * 复用 T1 整套范式：useNaivePaginatedTable + defaultTransform + 0-based 请求 / 1-based 响应分页。
+ * 复用 T1 整套范式：useNaivePaginatedTable + defaultTransform + 请求 / 响应均 1-based 分页。
  */
 import { ref } from 'vue';
 import { NTag } from 'naive-ui';
@@ -21,9 +21,9 @@ defineOptions({ name: 'PaymentChannelLog' });
 
 const appStore = useAppStore();
 
-/** 搜索参数 = 分页 + 当前筛选（筛选由 LogSearch 清洗后并入）。page 0-based。 */
+/** 搜索参数 = 分页 + 当前筛选（筛选由 LogSearch 清洗后并入）。page 1-based。 */
 const searchParams = ref<Api.Payment.PaymentLogSearchParams>({
-  page: 0,
+  page: 1,
   size: 10
 });
 
@@ -69,7 +69,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     api: () => fetchGetPaymentLogList(searchParams.value),
     transform: response => defaultTransform(response),
     onPaginationParamsChange: params => {
-      searchParams.value.page = (params.page ?? 1) - 1;
+      searchParams.value.page = params.page ?? 1;
       searchParams.value.size = params.pageSize ?? 10;
     },
     columns: () => [

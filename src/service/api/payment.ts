@@ -4,7 +4,7 @@ import { request } from '../request';
  * 支付管理（admin 后端 `/api/admin/payment/**`，BFF 透传 payment 能力域）。
  *
  * 独立 API 模块（不并入 system-manage）：payment 是独立限界上下文、体量最大。
- * 分页约定同 SystemManage：请求 `page` **0-based**、响应 `PageResponse{ items, total, page(1-based), size }`。
+ * 分页约定同 SystemManage：请求 `page` **1-based**、响应 `PageResponse{ items, total, page(1-based), size }`。
  *
  * 端点面（北向 `/api/admin/payment`，权限码 `admin:payment:read` / `:refund:audit` / `:notification:resend` / `:bank:query`）：
  * - 读·列表：`/payments` / `/refunds` / `/payment-logs` / `/operation-logs`

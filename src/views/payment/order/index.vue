@@ -5,7 +5,7 @@
  * 只读分页列表 + ~10 字段筛选（NCollapse 折叠）+ 金额 ¥1,234.56 + 详情入口钩子（抽屉本体归 T2）。
  * payment 订单非 admin 创建——列表无新增/删除（TableHeaderOperation hideAdd + hideDelete）。
  *
- * 复用 SystemManage 整套范式：useNaivePaginatedTable + defaultTransform + 0-based 请求 / 1-based 响应分页。
+ * 复用 SystemManage 整套范式：useNaivePaginatedTable + defaultTransform + 请求 / 响应均 1-based 分页。
  */
 import { ref } from 'vue';
 import { NButton, NTag } from 'naive-ui';
@@ -30,9 +30,9 @@ defineOptions({ name: 'PaymentOrder' });
 
 const appStore = useAppStore();
 
-/** 搜索参数 = 分页 + 当前筛选（筛选由 OrderSearch 清洗后并入）。page 0-based。 */
+/** 搜索参数 = 分页 + 当前筛选（筛选由 OrderSearch 清洗后并入）。page 1-based。 */
 const searchParams = ref<Api.Payment.PaymentOrderSearchParams>({
-  page: 0,
+  page: 1,
   size: 10
 });
 
@@ -41,7 +41,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     api: () => fetchGetPaymentOrderList(searchParams.value),
     transform: response => defaultTransform(response),
     onPaginationParamsChange: params => {
-      searchParams.value.page = (params.page ?? 1) - 1;
+      searchParams.value.page = params.page ?? 1;
       searchParams.value.size = params.pageSize ?? 10;
     },
     columns: () => [

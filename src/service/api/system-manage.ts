@@ -3,7 +3,7 @@ import { request } from '../request';
 /**
  * 用户管理（admin 后端 /api/admin/users）
  *
- * 分页约定：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ * 分页约定：请求 `page` **1-based**、响应 PageResponse{ items, total, page(1-based), size }。
  * `defaultTransform` 已把响应映射为 useTable 所需的 PaginationData。
  */
 
@@ -84,7 +84,7 @@ export function fetchAssignUserRoles(id: string, body: Api.SystemManage.AssignUs
 /**
  * 角色管理（admin 后端 /api/admin/roles）
  *
- * 分页约定同用户：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ * 分页约定同用户：请求 `page` **1-based**、响应 PageResponse{ items, total, page(1-based), size }。
  * `RoleResponse` 自带 `menuIds`/`permissionCodes`，分配弹窗回显直接用列表项。
  */
 
@@ -186,7 +186,7 @@ export function fetchGetAllRoles() {
 /**
  * 菜单管理（admin 后端 /api/admin/menus；CRUD）。
  *
- * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ * 分页约定同用户/角色：请求 `page` **1-based**、响应 PageResponse{ items, total, page(1-based), size }。
  * menuType/iconType/status 整数（BaseEnum）；id/parentId 字符串（Long）；root = parentId null。
  *
  * ⚠️ 后端**无独立启停端点**（PUT /menus/{id}/status 不存在）——status 经全量 PUT 切换。
@@ -231,7 +231,7 @@ export function fetchDeleteMenu(id: string) {
 /**
  * 应用管理（admin 后端 /api/admin/apps）
  *
- * 分页约定同用户/角色：请求 `page` **0-based**、响应 PageResponse{ items, total, page(1-based), size }。
+ * 分页约定同用户/角色：请求 `page` **1-based**、响应 PageResponse{ items, total, page(1-based), size }。
  */
 
 /** 应用分页列表（GET /apps） */

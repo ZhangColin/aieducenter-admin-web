@@ -5,7 +5,7 @@ declare namespace Api {
    * backend api module: 支付管理（admin 后端 `/api/admin/payment/**`，BFF 透传 payment 能力域）。
    * 独立限界上下文（后端 `com.aieducenter.admin.payment` 子包），体量最大，不并入 SystemManage。
    *
-   * 分页约定同 SystemManage：请求 `page` **0-based**、响应 `PageResponse{ items, total, page(1-based), size }`。
+   * 分页约定同 SystemManage：请求 `page` **1-based**、响应 `PageResponse{ items, total, page(1-based), size }`。
    *
    * ⚠️ payment 枚举线上序列化（#54 对齐 admin ADR-0009/0011）：BaseEnum（PaymentStatus / PayMode / …）
    * 出口为 **Integer code → JSON number**（如 `status: 2`），配同名 `*Name` 中文名（`statusName` /
@@ -102,7 +102,7 @@ declare namespace Api {
 
     /**
      * GET /payments 搜索参数（后端 PaymentOrderQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      *
      * - `statuses` 多选（admin PaymentOrderQuery 绑 `List<Integer>`，前端提交字符串 code 可直接绑——
      *   axios qs 默认 indices 格式）；
@@ -130,7 +130,7 @@ declare namespace Api {
       paidAtFrom?: string | null;
       /** 支付时间止（ISO，含） */
       paidAtTo?: string | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -208,7 +208,7 @@ declare namespace Api {
 
     /**
      * GET /refunds 搜索参数（后端 RefundOrderQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      *
      * - `statuses` 多选（admin RefundOrderQuery 绑 `List<Integer>`，前端提交字符串 code 可直接绑——
      *   axios qs 默认 indices 格式）；
@@ -235,7 +235,7 @@ declare namespace Api {
       createdAtFrom?: string | null;
       /** 创建时间止（ISO，含） */
       createdAtTo?: string | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -325,7 +325,7 @@ declare namespace Api {
 
     /**
      * GET /payment-logs 搜索参数（后端 PaymentLogQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      *
      * - `logTypes` 多选（Spring 绑定 record List<String>，axios qs 默认 indices 格式可绑）；
      * - `success` 为 Boolean 单选；时间区间 `createdAtFrom/To`（ISO 串）均可空，空值由调用方剔除。
@@ -343,7 +343,7 @@ declare namespace Api {
       createdAtFrom?: string | null;
       /** 创建时间止（ISO，含） */
       createdAtTo?: string | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
@@ -388,7 +388,7 @@ declare namespace Api {
 
     /**
      * GET /operation-logs 搜索参数（后端 OperationLogQuery + Spring Pageable）。
-     * 请求 `page` 为 **0-based**（响应 PageResponse.page 才是 1-based）。
+     * 请求 `page` 为 **1-based**（响应 PageResponse.page 亦 1-based）。
      *
      * ⚠️ `operation` 为**单选**：payment 的 OperationLogQuery.operation 是单个 OperationType（EQUAL），
      * issue 文案的「operation 多选」以 payment 实现契约为准收敛为单值——向单值下游转发多值会静默丢过滤条件。
@@ -409,7 +409,7 @@ declare namespace Api {
       createdAtFrom?: string | null;
       /** 创建时间止（ISO，含） */
       createdAtTo?: string | null;
-      /** 0-based */
+      /** 1-based */
       page: number;
       size: number;
     }
