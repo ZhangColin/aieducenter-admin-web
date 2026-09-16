@@ -1,4 +1,4 @@
-# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域）
+# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域）
 
 headless Chrome（`playwright-core` 系统 channel，**免下载浏览器**）+ `page.route` 全量 mock。
 mock fixtures 的字段形状**派生自 admin :8081 `/v3/api-docs`**（各域 `support/*-fixtures.mjs` 头注释标明
@@ -23,9 +23,13 @@ e2e/
   workspace.e2e.mjs        沙箱域验收流（列表/期望态·实态过滤（漂移组合）/抽屉全字段/四写门控/直填+失败 toast）
   cost.e2e.mjs             成本域验收流（时间窗必填/五档 tile/双柱状（「—」桶 tooltip 锚定）/unpriced 卡
                            高亮⇄收起/项目成本表分页/行点击下钻/清窗停查）
+  price-entry.e2e.mjs      单价表域验收流（清单契约字段（含历史行 + operator 两列）/provider·model 精确
+                           过滤/分页 1-based/原子改价（预填原串 REQ-20 + string→number + Instant UTC +
+                           回执 closed/opened 两行 + 刷新入列）/停用即时关行/失败透传 toast）
   support/
     harness.mjs            断言台账 + /proxy-default/** mock 安装器（auth / menus.my / 各域端点全量；
-                           installAiplatformMocks(page, { order?, project?, workspace?, cost?, ... }) 域 fixtures 可选挂载）
+                           installAiplatformMocks(page, { order?, project?, workspace?, cost?, priceEntry?, ... })
+                           域 fixtures 可选挂载）
     order-fixtures.mjs     订单 fixtures（AiplatformOrderSummaryResponse / DetailResponse 形状）
     project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail / Conversation / Prd / Version /
                            Files / FileContent 形状 + 文件拒读响应）
@@ -34,6 +38,9 @@ e2e/
     cost-fixtures.mjs      成本 fixtures（Overview / Unpriced / ProjectCost / Detail 形状——五档
                            primitive long 数字口径、cost{} 空对象（REQ-20）、agentKindName null、
                            unpriced 事件时点窗敏感（UNPRICED_EVENT_AT））
+    price-entry-fixtures.mjs 单价表 fixtures（AiplatformUnitPriceEntryResponse 形状——unitPrice BigDecimal
+                           string 明文小数（请求侧 number，REQ-20）、历史行 + 种子行 operator null、
+                           改价/停写变异由 harness 就地改行（刷新后清单如实呈现））
 ```
 
 ## 为新域加 E2E（T2–T6 照此扩展）

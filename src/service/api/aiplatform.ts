@@ -24,6 +24,10 @@
  * 成本域（T5，4 读端点）：时间窗 from/to 必填（ISO-8601 Instant UTC 带 Z，半开 [from,to)）——
  * BFF 不设默认窗口、缺参 400，前端显式传窗（默认最近 30 天、变更即重查）。五档 token 为
  * primitive long → JSON 数字（区别于金额 Long-string 口径）；cost{} 暂缓渲染（REQ-20 #75）。
+ *
+ * 单价表域（T6，3 端点）：清单（现行+历史行全量，provider/model 精确等值过滤）+ 原子改价（同事务
+ * 关当前行开新行，effectiveFrom 可未来时点=预发布）+ 停用（即时关行不接新行）。无「开行」端点——
+ * 种子脚本通道不暴露，web 改价只走原子 reprice。unitPrice 响应 string / 请求 number（REQ-20 #75）。
  */
 import { request } from '../request';
 
@@ -180,4 +184,25 @@ export function fetchGetAiplatformProjectCostList(params: Api.Aiplatform.CostPro
 /** GET /aiplatform/costs/projects/{projectId}——单项目成本下钻（byModel/byAgentKind 分解 + unpriced 档位清单；查无=全零空态非 404）。 */
 export function fetchGetAiplatformProjectCostDetail(projectId: string, params: Api.Aiplatform.CostWindowParams) {
   return request<Api.Aiplatform.ProjectCostDetail>({ url: `/aiplatform/costs/projects/${projectId}`, method: 'get', params });
+}
+
+/* ---- 单价表域（T6，3 端点；无「开行」端点——种子脚本通道不暴露，web 改价只走原子 reprice）。 */
+
+/** GET /aiplatform/price-entries——单价行清单（现行+历史全量=价史全貌；provider/model 精确等值过滤；排序服务端定死生效起点倒序）。 */
+export function fetchGetAiplatformPriceEntryList(params: Api.Aiplatform.PriceEntrySearchParams) {
+  return request<Api.Common.PageResponse<Api.Aiplatform.UnitPriceEntry>>({
+    url: '/aiplatform/price-entries',
+    method: 'get',
+    params
+  });
+}
+
+/** POST /aiplatform/price-entries/{id}/reprice——原子改价（同事务关当前行+开新行；effectiveFrom 未来时点=预发布，重叠校验 provider 裁决）。回执 closed/opened 两行库内事实。 */
+export function fetchRepriceAiplatformPriceEntry(id: string, data: Api.Aiplatform.RepriceCommand) {
+  return request<Api.Aiplatform.RepriceReceipt>({ url: `/aiplatform/price-entries/${id}/reprice`, method: 'post', data });
+}
+
+/** POST /aiplatform/price-entries/{id}/deactivate——停用（即时生效关行不接新行；此后该匹配键用量进成本 unpriced 警示）。 */
+export function fetchDeactivateAiplatformPriceEntry(id: string) {
+  return request<Api.Aiplatform.UnitPriceEntry>({ url: `/aiplatform/price-entries/${id}/deactivate`, method: 'post' });
 }

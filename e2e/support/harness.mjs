@@ -1,9 +1,9 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61 扩沙箱/成本域，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62 扩沙箱/成本/单价表域，六域共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -55,13 +55,13 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform 各域）。
  *
  * @param page playwright page
- * @param fixtures { order?, project?, workspace? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean}}}
- *          calls=拦截到的请求流水（断言查询参数用）；state.failNextWorkspaceWrite=下一次沙箱四写抛 409 WSP_015
+ * @param fixtures { order?, project?, workspace?, cost?, priceEntry? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean}}}
+ *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*=下一次对应写抛 409 业务码（透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
-  const state = { failNextQuote: false, failNextWorkspaceWrite: false };
+  const state = { failNextQuote: false, failNextWorkspaceWrite: false, failNextReprice: false };
 
   const json = (route, status, body) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -188,6 +188,47 @@ export async function installAiplatformMocks(page, fixtures) {
     return after;
   }
 
+  /** 单价表清单 mock：provider/model 精确等值过滤（缺省＝全量行），分页 1-based 切片回显。 */
+  function priceEntryListResponse(query) {
+    let rows = [...fixtures.priceEntry.PRICE_ENTRY_ROWS];
+    const provider = query.get('provider');
+    if (provider) rows = rows.filter(row => row.provider === provider);
+    const model = query.get('model');
+    if (model) rows = rows.filter(row => row.model === model);
+    return paginate(rows, query);
+  }
+
+  /**
+   * 原子改价（库内两步）——就地变异 fixture 行：被关行 effectiveTo=新起点（保留原开行操作者
+   * 不被改写），新行敞口生效、落写头痕、unshift 清单首（生效起点倒序，刷新后如实呈现）。
+   */
+  function applyReprice(row, command) {
+    row.effectiveTo = command.effectiveFrom;
+    const opened = {
+      id: fixtures.priceEntry.OPENED_ROW_ID,
+      provider: row.provider,
+      model: row.model,
+      tokenKind: row.tokenKind,
+      tokenKindName: row.tokenKindName,
+      unitPrice: String(command.unitPrice),
+      currency: command.currency,
+      effectiveFrom: command.effectiveFrom,
+      effectiveTo: null,
+      operatorId: '1',
+      operatorName: 'E2E Mock'
+    };
+    fixtures.priceEntry.PRICE_ENTRY_ROWS.unshift(opened);
+    return { closed: { ...row }, opened };
+  }
+
+  /** 停用（即时关行不接新行）——就地变异 fixture 行；被关行是操作者唯一落点。 */
+  function applyDeactivate(row) {
+    row.effectiveTo = fixtures.priceEntry.DEACTIVATED_AT;
+    row.operatorId = '1';
+    row.operatorName = 'E2E Mock';
+    return { ...row };
+  }
+
   await page.route('**/proxy-default/**', route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
@@ -222,7 +263,10 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:workspace:hibernate', name: 'AI 平台 / 沙箱休眠' },
             { code: 'admin:aiplatform:workspace:rebuild', name: 'AI 平台 / 沙箱重建' },
             { code: 'admin:aiplatform:workspace:seal', name: 'AI 平台 / 沙箱封存' },
-            { code: 'admin:aiplatform:cost:read', name: 'AI 平台 / 成本查看' }
+            { code: 'admin:aiplatform:cost:read', name: 'AI 平台 / 成本查看' },
+            { code: 'admin:aiplatform:price-entry:read', name: 'AI 平台 / 单价表查看' },
+            { code: 'admin:aiplatform:price-entry:reprice', name: 'AI 平台 / 单价表改价' },
+            { code: 'admin:aiplatform:price-entry:deactivate', name: 'AI 平台 / 单价表停用' }
           ],
           menus: []
         },
@@ -305,6 +349,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_cost',
                   parentId: '82',
                   sortOrder: 4,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '200',
+                  menuName: '单价表',
+                  routeName: 'aiplatform_price_entry',
+                  routePath: '/aiplatform/price-entry',
+                  component: 'view.aiplatform_price_entry',
+                  icon: 'carbon:currency',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_price_entry',
+                  parentId: '82',
+                  sortOrder: 5,
                   menuType: 2,
                   status: 1
                 }
@@ -485,6 +543,33 @@ export async function installAiplatformMocks(page, fixtures) {
         const detail = fixtures.cost.PROJECT_COST_DETAILS[costDetailMatch[1]];
         // 查无此号 = 全零 total + 空结构（明确空态非 404——provider 契约）
         return ok(detail ?? fixtures.cost.ZERO_DETAIL(costDetailMatch[1]));
+      }
+    }
+
+    // ---- 单价表域（#62）----
+    if (fixtures.priceEntry && path === '/aiplatform/price-entries' && method === 'GET') {
+      return json(route, 200, priceEntryListResponse(url.searchParams));
+    }
+    if (fixtures.priceEntry) {
+      const meter404 = () =>
+        json(route, 404, { code: 3006, message: '单价行不存在（METER_006）', data: null, requestId: 'e2e-mock', errors: null });
+      const repriceMatch = path.match(/^\/aiplatform\/price-entries\/([^/]+)\/reprice$/);
+      if (repriceMatch && method === 'POST') {
+        const row = fixtures.priceEntry.PRICE_ENTRY_ROWS.find(r => r.id === repriceMatch[1]);
+        if (!row) return meter404();
+        if (state.failNextReprice) {
+          state.failNextReprice = false;
+          // 区间重叠（同键既有行交叠）：HTTP 409 + 数字业务码 3008（MET 域）+ 原文 message
+          return json(route, 409, { code: 3008, message: '目标区间与既有单价行重叠（METER_008）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        const command = JSON.parse(route.request().postData() ?? '{}');
+        return json(route, 200, { code: 200, message: 'ok', data: applyReprice(row, command), requestId: 'e2e-mock', errors: null });
+      }
+      const deactivateMatch = path.match(/^\/aiplatform\/price-entries\/([^/]+)\/deactivate$/);
+      if (deactivateMatch && method === 'POST') {
+        const row = fixtures.priceEntry.PRICE_ENTRY_ROWS.find(r => r.id === deactivateMatch[1]);
+        if (!row) return meter404();
+        return json(route, 200, { code: 200, message: 'ok', data: applyDeactivate(row), requestId: 'e2e-mock', errors: null });
       }
     }
 

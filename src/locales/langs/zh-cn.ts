@@ -246,7 +246,9 @@ const local: App.I18n.Schema = {
     aiplatform_order: '订单管理',
     aiplatform_project: '项目管理',
     aiplatform_workspace: '沙箱管理',
-    aiplatform_cost: '成本中心'
+    aiplatform_cost: '成本中心',
+    aiplatform_price: '单价表',
+    aiplatform_price_entry: '单价表'
   },
   page: {
     login: {
@@ -1101,6 +1103,51 @@ const local: App.I18n.Schema = {
         states: {
           noData: '暂无数据',
           loadFailed: '加载失败'
+        }
+      },
+      priceEntry: {
+        title: '单价表',
+        id: '行 ID',
+        provider: 'Provider',
+        model: '模型',
+        tokenKind: '档位',
+        unitPrice: '单价（每 token）',
+        currency: '币种',
+        effectiveFrom: '生效起点',
+        effectiveTo: '生效止点',
+        operator: '操作者',
+        current: '当前',
+        /** 改价弹窗与停用确认共用的目标对账行（匹配键三件套插值）。 */
+        target: '目标：{provider} / {model} · {tokenKindName}',
+        action: {
+          reprice: '改价',
+          deactivate: '停用'
+        },
+        form: {
+          providerPlaceholder: '精确匹配，如 deepseek',
+          modelPlaceholder: '精确匹配，如 deepseek-v4-flash'
+        },
+        repriceModal: {
+          title: '原子改价',
+          unitPrice: '单价（每 token）',
+          unitPricePlaceholder: '明文小数，如 0.00000132',
+          currency: '币种（ISO 4217）',
+          effectiveFrom: '生效起点',
+          confirm: '确认改价',
+          receiptTitle: '改价回执（同事务关一行、开一行）',
+          receiptClosed: '已关行',
+          receiptOpened: '新开行',
+          receiptOpen: '敞口生效中',
+          receiptNote: '新行自生效起点计价；预发布行在起点前旧价仍生效',
+          done: '完成'
+        },
+        confirm: {
+          deactivate: '停用单价行',
+          deactivateTip: '即时关行不接新行——此后该匹配键用量进「未配价警示」'
+        },
+        success: {
+          repriced: '改价成功',
+          deactivated: '单价行已停用'
         }
       }
     }

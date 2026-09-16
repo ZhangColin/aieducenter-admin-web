@@ -87,6 +87,25 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'aiplatform_price',
+        path: '/aiplatform/price',
+        meta: {
+          title: 'aiplatform_price',
+          i18nKey: 'route.aiplatform_price'
+        },
+        children: [
+          {
+            name: 'aiplatform_price_entry',
+            path: '/aiplatform/price/entry',
+            component: 'view.aiplatform_price_entry',
+            meta: {
+              title: 'aiplatform_price_entry',
+              i18nKey: 'route.aiplatform_price_entry'
+            }
+          }
+        ]
+      },
+      {
         name: 'aiplatform_project',
         path: '/aiplatform/project',
         component: 'view.aiplatform_project',

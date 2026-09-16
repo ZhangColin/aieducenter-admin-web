@@ -1335,6 +1335,50 @@ declare namespace App {
               loadFailed: string;
             };
           };
+          priceEntry: {
+            title: string;
+            id: string;
+            provider: string;
+            model: string;
+            tokenKind: string;
+            unitPrice: string;
+            currency: string;
+            effectiveFrom: string;
+            effectiveTo: string;
+            operator: string;
+            current: string;
+            target: string;
+            action: {
+              reprice: string;
+              deactivate: string;
+            };
+            form: {
+              providerPlaceholder: string;
+              modelPlaceholder: string;
+            };
+            repriceModal: {
+              title: string;
+              unitPrice: string;
+              unitPricePlaceholder: string;
+              currency: string;
+              effectiveFrom: string;
+              confirm: string;
+              receiptTitle: string;
+              receiptClosed: string;
+              receiptOpened: string;
+              receiptOpen: string;
+              receiptNote: string;
+              done: string;
+            };
+            confirm: {
+              deactivate: string;
+              deactivateTip: string;
+            };
+            success: {
+              repriced: string;
+              deactivated: string;
+            };
+          };
         };
       };
       form: {

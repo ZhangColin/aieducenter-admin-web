@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61）——订单域 + 项目域 + 沙箱域 + 成本域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -142,4 +142,24 @@ export const tokenTierLabel: Record<TokenTierKey, App.I18n.I18nKey> = {
   cacheRead: 'page.aiplatform.cost.tier.cacheRead',
   cacheWrite: 'page.aiplatform.cost.tier.cacheWrite',
   reasoning: 'page.aiplatform.cost.tier.reasoning'
+};
+
+/* ---- 单价表域（#62）---- */
+
+/** token 档位标签色（语义：输入 info / 输出主色 / 缓存读成功 / 缓存写 warning / 推理红）。 */
+export const priceTokenKindTagColor: Record<Api.Aiplatform.PriceTokenKind, NaiveUI.ThemeColor> = {
+  1: 'info',
+  2: 'primary',
+  3: 'success',
+  4: 'warning',
+  5: 'error'
+};
+
+/** 单价表两写动作（改价/停用；权限码 Record 的键约束）。 */
+export type PriceEntryAction = 'reprice' | 'deactivate';
+
+/** 单价表两写权限码（hasAuth 门控用；与沙箱域 workspaceWriteAuth 同型单点）。 */
+export const priceEntryWriteAuth: Record<PriceEntryAction, string> = {
+  reprice: 'admin:aiplatform:price-entry:reprice',
+  deactivate: 'admin:aiplatform:price-entry:deactivate'
 };

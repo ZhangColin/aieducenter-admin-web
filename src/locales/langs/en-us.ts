@@ -250,7 +250,9 @@ const local: App.I18n.Schema = {
     aiplatform_order: 'Orders',
     aiplatform_project: 'Projects',
     aiplatform_workspace: 'Sandboxes',
-    aiplatform_cost: 'Cost Center'
+    aiplatform_cost: 'Cost Center',
+    aiplatform_price: 'Price Entries',
+    aiplatform_price_entry: 'Price Entries'
   },
   page: {
     login: {
@@ -1105,6 +1107,51 @@ const local: App.I18n.Schema = {
         states: {
           noData: 'No data',
           loadFailed: 'Load failed'
+        }
+      },
+      priceEntry: {
+        title: 'Price Entries',
+        id: 'Entry ID',
+        provider: 'Provider',
+        model: 'Model',
+        tokenKind: 'Tier',
+        unitPrice: 'Unit Price (per token)',
+        currency: 'Currency',
+        effectiveFrom: 'Effective From',
+        effectiveTo: 'Effective To',
+        operator: 'Operator',
+        current: 'Current',
+        /** Shared target reconciliation line for the reprice modal and deactivate confirm. */
+        target: 'Target: {provider} / {model} · {tokenKindName}',
+        action: {
+          reprice: 'Reprice',
+          deactivate: 'Deactivate'
+        },
+        form: {
+          providerPlaceholder: 'Exact match, e.g. deepseek',
+          modelPlaceholder: 'Exact match, e.g. deepseek-v4-flash'
+        },
+        repriceModal: {
+          title: 'Atomic Reprice',
+          unitPrice: 'Unit Price (per token)',
+          unitPricePlaceholder: 'Plain decimal, e.g. 0.00000132',
+          currency: 'Currency (ISO 4217)',
+          effectiveFrom: 'Effective From',
+          confirm: 'Confirm Reprice',
+          receiptTitle: 'Reprice Receipt (closes one row and opens another in one transaction)',
+          receiptClosed: 'Closed Row',
+          receiptOpened: 'Opened Row',
+          receiptOpen: 'Open-ended, effective',
+          receiptNote: 'The new row prices from its effective time; before a pre-published start, the old price stays in effect',
+          done: 'Done'
+        },
+        confirm: {
+          deactivate: 'Deactivate Price Entry',
+          deactivateTip: 'Closes the row immediately with no successor — subsequent usage of this key goes to the unpriced alert'
+        },
+        success: {
+          repriced: 'Repriced',
+          deactivated: 'Price entry deactivated'
         }
       }
     }

@@ -31,6 +31,10 @@
  *   ISO-8601 Instant UTC 带 Z）；五档 token 为 primitive long → JSON **数字**（非 Long-string）；
  *   `cost{}` 按币种分桶暂缓渲染（REQ-20 #75）；byAgentKind 的 agentKindName 为 null 落「—」桶
  *   （辅助标记）；项目成本清单排序服务端定死成本降序（全未配价排后 allUnpriced=true）。
+ * - 单价表域（#62，3 端点）：`unitPrice` BigDecimal → JSON **string** 明文小数、**请求侧为 number**
+ *   （REQ-20 #75——预填保响应原串勿经 Number() 往返，微小价位会落科学计数法形）；改价＝同事务
+ *   关当前行+开新行（closed 行保留原开行操作者不被改写，opened 行落 X-User 落痕）；`effectiveTo`
+ *   null 即当前行（改价/停用目标位，METER_007 目标非当前行 409）；无「开行」端点（种子脚本通道）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -475,6 +479,63 @@ declare namespace Api {
     interface CostProjectSearchParams extends CostWindowParams {
       page: number;
       size: number;
+    }
+
+    /* ---- 单价表域（#62）---- */
+
+    /** token 档位（单价表）：1=输入 2=输出 3=缓存读 4=缓存写 5=推理（tokenKindName 中文名随行直读）。 */
+    type PriceTokenKind = 1 | 2 | 3 | 4 | 5;
+
+    /**
+     * 单价行（清单行 = 改价回执 closed/opened 行 = 停用回执，同 schema `AiplatformUnitPriceEntryResponse`）。
+     * 清单含历史行全量（价史全貌），排序服务端定死＝生效起点倒序（新段在前，同起点 id 倒序稳定）；
+     * `effectiveTo` null 即当前行（改价/停用目标位，其余为已关历史行）。operator 两列为该行**最近
+     * 管理动作**留痕（开行或停用；种子行 null）。
+     */
+    interface UnitPriceEntry {
+      /** TSID → string */
+      id: string;
+      provider: string;
+      model: string;
+      tokenKind: PriceTokenKind;
+      tokenKindName: string;
+      /** BigDecimal 明文小数 → JSON string（请求侧 number——REQ-20 #75）；按 token 计价，非每千 token */
+      unitPrice: string;
+      /** ISO 4217 */
+      currency: string;
+      /** ISO-8601 Instant UTC 带 Z */
+      effectiveFrom: string;
+      /** null = 当前行 */
+      effectiveTo: string | null;
+      operatorId: string | null;
+      operatorName: string | null;
+    }
+
+    /** GET /price-entries 查询参数。provider/model 为匹配键成分＝精确等值过滤、均可缺省（缺省=全量行）。 */
+    interface PriceEntrySearchParams {
+      page: number;
+      size: number;
+      provider?: string;
+      model?: string;
+    }
+
+    type PriceEntryFilter = Omit<PriceEntrySearchParams, 'page' | 'size'>;
+
+    /**
+     * POST /price-entries/{id}/reprice body——unitPrice JSON **number**（BigDecimal 语义，区别于响应
+     * string）；currency ISO 4217（非 ISO 400 METER_010）；effectiveFrom ISO-8601 Instant UTC 带 Z
+     * （未来时点=预发布，重叠校验 provider 裁决 409 METER_008）。
+     */
+    interface RepriceCommand {
+      unitPrice: number;
+      currency: string;
+      effectiveFrom: string;
+    }
+
+    /** 原子改价回执（同事务两步=库内事实）：closed 保留原开行操作者、effectiveTo=新起点；opened 敞口生效。 */
+    interface RepriceReceipt {
+      closed: UnitPriceEntry;
+      opened: UnitPriceEntry;
     }
   }
 }
