@@ -1,9 +1,9 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60 扩沙箱域，六域共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -55,12 +55,13 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform 各域）。
  *
  * @param page playwright page
- * @param fixtures { order?, project? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean}} calls=拦截到的请求流水（断言查询参数用）
+ * @param fixtures { order?, project?, workspace? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean}}}
+ *          calls=拦截到的请求流水（断言查询参数用）；state.failNextWorkspaceWrite=下一次沙箱四写抛 409 WSP_015
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
-  const state = { failNextQuote: false };
+  const state = { failNextQuote: false, failNextWorkspaceWrite: false };
 
   const json = (route, status, body) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -134,6 +135,59 @@ export async function installAiplatformMocks(page, fixtures) {
     return paginate(rows, query);
   }
 
+  /** 沙箱清单 mock：desired/actual 单选可组合（缺省＝全量），分页 1-based 切片回显。 */
+  function workspaceListResponse(query) {
+    let rows = [...fixtures.workspace.WORKSPACE_ROWS];
+    const desired = query.get('desired');
+    if (desired) rows = rows.filter(row => row.desiredState === Number(desired));
+    const actual = query.get('actual');
+    if (actual) rows = rows.filter(row => row.containerState === Number(actual));
+    return paginate(rows, query);
+  }
+
+  /**
+   * 四写响应＝动作后的观测详情（provider 契约：响应即新事实）——按 action 变异基档：
+   * 唤醒→运行/运行中/就绪（封存深度唤醒清封存字段）；休眠→休眠/无容器（卷保留）；
+   * 重建→运行中/就绪；封存→封存＋包元数据＋卷容缺。
+   */
+  function applyWorkspaceAction(base, action) {
+    const after = JSON.parse(JSON.stringify(base));
+    after.lastTouchAt = '2026-09-16T12:00:00';
+    after.updatedAt = '2026-09-16T12:00:00';
+    if (action === 'wake') {
+      after.desiredState = 1;
+      after.desiredStateName = '运行';
+      after.containerState = 1;
+      after.containerStateName = '运行中';
+      after.status = 2;
+      after.statusName = '就绪';
+      after.sealedAt = null;
+      after.archivePath = null;
+      after.archiveSizeBytes = null;
+      after.volumeSizeBytes = after.volumeSizeBytes ?? '2147483648';
+    } else if (action === 'hibernate') {
+      after.desiredState = 2;
+      after.desiredStateName = '休眠';
+      after.containerState = 3;
+      after.containerStateName = '无容器';
+    } else if (action === 'rebuild') {
+      after.containerState = 1;
+      after.containerStateName = '运行中';
+      after.status = 2;
+      after.statusName = '就绪';
+    } else if (action === 'seal') {
+      after.desiredState = 3;
+      after.desiredStateName = '封存';
+      after.containerState = 3;
+      after.containerStateName = '无容器';
+      after.sealedAt = '2026-09-16T12:00:00';
+      after.archivePath = `workspace-sealed/${after.workspaceId}.tar.gz`;
+      after.archiveSizeBytes = '52428800';
+      after.volumeSizeBytes = null;
+    }
+    return after;
+  }
+
   await page.route('**/proxy-default/**', route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
@@ -162,7 +216,12 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:order:quote', name: 'AI 平台 / 订单报价' },
             { code: 'admin:aiplatform:order:cancel', name: 'AI 平台 / 订单取消' },
             { code: 'admin:aiplatform:order:retry-archive', name: 'AI 平台 / 订单重试归档' },
-            { code: 'admin:aiplatform:project:read', name: 'AI 平台 / 项目查看' }
+            { code: 'admin:aiplatform:project:read', name: 'AI 平台 / 项目查看' },
+            { code: 'admin:aiplatform:workspace:read', name: 'AI 平台 / 沙箱查看' },
+            { code: 'admin:aiplatform:workspace:wake', name: 'AI 平台 / 沙箱唤醒' },
+            { code: 'admin:aiplatform:workspace:hibernate', name: 'AI 平台 / 沙箱休眠' },
+            { code: 'admin:aiplatform:workspace:rebuild', name: 'AI 平台 / 沙箱重建' },
+            { code: 'admin:aiplatform:workspace:seal', name: 'AI 平台 / 沙箱封存' }
           ],
           menus: []
         },
@@ -217,6 +276,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_project',
                   parentId: '82',
                   sortOrder: 2,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '162',
+                  menuName: '沙箱管理',
+                  routeName: 'aiplatform_workspace',
+                  routePath: '/aiplatform/workspace',
+                  component: 'view.aiplatform_workspace',
+                  icon: 'carbon:virtual-machine',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_workspace',
+                  parentId: '82',
+                  sortOrder: 3,
                   menuType: 2,
                   status: 1
                 }
@@ -341,6 +414,33 @@ export async function installAiplatformMocks(page, fixtures) {
             body: gzip
           });
         }
+      }
+    }
+
+    // ---- 沙箱域（#60）----
+    if (fixtures.workspace && path === '/aiplatform/workspaces' && method === 'GET') {
+      return json(route, 200, workspaceListResponse(url.searchParams));
+    }
+    if (fixtures.workspace) {
+      const writeMatch = path.match(/^\/aiplatform\/workspaces\/([^/]+)\/(wake|hibernate|rebuild|seal)$/);
+      if (writeMatch && method === 'POST') {
+        const [, id, action] = writeMatch;
+        const base = fixtures.workspace.WORKSPACE_DETAILS[id];
+        if (!base) {
+          return json(route, 404, { code: 1001, message: '工作区不存在（WSP_001）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (state.failNextWorkspaceWrite) {
+          state.failNextWorkspaceWrite = false;
+          // run 在途拒（守卫链 WSP_015）：HTTP 409 + 数字业务码 1015 + 原文 message
+          return json(route, 409, { code: 1015, message: '沙箱有正在进行的生成任务，暂不能执行该操作（WSP_015）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: applyWorkspaceAction(base, action), requestId: 'e2e-mock', errors: null });
+      }
+      const detailMatch = path.match(/^\/aiplatform\/workspaces\/([^/]+)$/);
+      if (detailMatch && method === 'GET') {
+        const detail = fixtures.workspace.WORKSPACE_DETAILS[detailMatch[1]];
+        if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+        return json(route, 404, { code: 1001, message: '工作区不存在（WSP_001）', data: null, requestId: 'e2e-mock', errors: null });
       }
     }
 

@@ -248,7 +248,8 @@ const local: App.I18n.Schema = {
     account_list: 'Account List',
     aiplatform: 'AI Platform',
     aiplatform_order: 'Orders',
-    aiplatform_project: 'Projects'
+    aiplatform_project: 'Projects',
+    aiplatform_workspace: 'Sandboxes'
   },
   page: {
     login: {
@@ -994,6 +995,76 @@ const local: App.I18n.Schema = {
         },
         success: {
           downloaded: 'Package downloaded'
+        }
+      },
+      workspace: {
+        title: 'Sandbox Management',
+        detailTitle: 'Sandbox Detail',
+        workspaceId: 'Workspace ID',
+        containerName: 'Container',
+        networkName: 'Preview Network',
+        kind: 'Env Type',
+        status: 'Provisioning',
+        provisionError: 'Provision Error',
+        desiredState: 'Desired State',
+        containerState: 'Container State',
+        lastTouchAt: 'Last Touch',
+        volumeSize: 'Volume Size',
+        sealedAt: 'Sealed At',
+        archivePath: 'Archive Path',
+        archiveSize: 'Archive Size',
+        createdAt: 'Created At',
+        updatedAt: 'Updated At',
+        detail: 'Detail',
+        more: 'Actions',
+        form: {
+          desiredPlaceholder: 'Desired state (all by default)',
+          actualPlaceholder: 'Container state (all by default)'
+        },
+        desiredEnum: {
+          running: 'Running',
+          hibernated: 'Hibernated',
+          sealed: 'Sealed'
+        },
+        actualEnum: {
+          running: 'Running',
+          stopped: 'Stopped',
+          absent: 'No container',
+          unknown: 'Unknown'
+        },
+        drawer: {
+          project: 'Project',
+          projectId: 'Project ID',
+          projectName: 'Project Name',
+          projectArchived: 'Archived',
+          projectArchivedYes: 'Yes',
+          projectArchivedNo: 'No',
+          noProject: 'No owning project (workspace predates project)',
+          resources: 'Middleware Resources',
+          resourcesEmpty: 'No middleware resources'
+        },
+        action: {
+          wake: 'Wake',
+          hibernate: 'Hibernate',
+          rebuild: 'Rebuild',
+          seal: 'Seal'
+        },
+        confirm: {
+          wake: 'Wake Sandbox',
+          wakeTip: 'Waits for readiness (sealed workspaces go through deep wake, may take minutes)',
+          hibernate: 'Force Hibernate',
+          hibernateTip: 'Deletes the container immediately, keeps the volume, sets desired state to hibernated',
+          rebuild: 'Force Rebuild',
+          rebuildTip: 'Kills the container and rebuilds idempotently (volume kept, data intact)',
+          seal: 'Seal Sandbox',
+          sealTip: 'Deletes container, archives the volume, then deletes it; wake to restore',
+          target: 'Container {containerName}'
+        },
+        success: {
+          wake: 'Workspace woken',
+          hibernate: 'Workspace hibernated',
+          rebuild: 'Workspace rebuilt',
+          seal: 'Workspace sealed'
         }
       }
     }

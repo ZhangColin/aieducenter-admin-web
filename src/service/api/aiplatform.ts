@@ -16,6 +16,10 @@
  * 项目交付物文件区（T3，3 端点）：文件树只列文件（目录由前端按路径段合成）、内容点读、
  * 文件包 tar.gz 二进制流（同订单源码包——无信封 `responseType: 'blob'`）。文件区挂项目不挂订单：
  * 未下单项目可浏览、归档项目照读。
+ *
+ * 沙箱域（T4，6 端点）：期望态/实态两列如实分示（漂移=期望运行而实态无容器，actual=3 即捞漂移清单）；
+ * 四写均无 body、响应＝动作后的观测详情（WorkspaceDetail）——区别于订单 OrderWriteAck，
+ * 响应即新事实，前端直接回填抽屉免二次回读 + 刷列表。实态/卷大小逐行现场探查（docker 子进程）。
  */
 import { request } from '../request';
 
@@ -110,4 +114,40 @@ export function fetchGetAiplatformProjectFileContent(id: string, path: string) {
 /** GET /aiplatform/projects/{id}/files/package——文件包 tar.gz 二进制流（无信封，成功返回 Blob；sealed=-archive/未封存=-source 文件名由 provider 经 Content-Disposition 透传）。 */
 export function fetchDownloadProjectFilesPackage(id: string) {
   return request<Blob, 'blob'>({ url: `/aiplatform/projects/${id}/files/package`, method: 'get', responseType: 'blob' });
+}
+
+/** GET /aiplatform/workspaces——沙箱清单（desired/actual 单选可组合；分页 1-based，size 上界 100——实态逐行探查，观测页不必贪大）。 */
+export function fetchGetAiplatformWorkspaceList(params: Api.Aiplatform.WorkspaceSearchParams) {
+  return request<Api.Common.PageResponse<Api.Aiplatform.WorkspaceSummary>>({
+    url: '/aiplatform/workspaces',
+    method: 'get',
+    params
+  });
+}
+
+/** GET /aiplatform/workspaces/{id}——沙箱详情（清单行超集：网络名/置备失败原因/封存包寻址键/审计列/中间件资源）。 */
+export function fetchGetAiplatformWorkspace(id: string) {
+  return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}`, method: 'get' });
+}
+
+/* 四写（均无 body；响应＝动作后的观测详情——前端回填抽屉 + 刷列表，不二次回读）。 */
+
+/** POST /aiplatform/workspaces/{id}/wake——唤醒（等就绪；封存态走深度唤醒，漂移行幂等重建）。 */
+export function fetchWakeAiplatformWorkspace(id: string) {
+  return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}/wake`, method: 'post' });
+}
+
+/** POST /aiplatform/workspaces/{id}/hibernate——强制休眠（立即删容器保卷；已休眠幂等成功）。 */
+export function fetchHibernateAiplatformWorkspace(id: string) {
+  return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}/hibernate`, method: 'post' });
+}
+
+/** POST /aiplatform/workspaces/{id}/rebuild——强制重建（rm＋幂等重建，卷保留数据不动）。 */
+export function fetchRebuildAiplatformWorkspace(id: string) {
+  return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}/rebuild`, method: 'post' });
+}
+
+/** POST /aiplatform/workspaces/{id}/seal——封存（产物同自动封存：打包落存储＋删卷）。 */
+export function fetchSealAiplatformWorkspace(id: string) {
+  return request<Api.Aiplatform.WorkspaceDetail>({ url: `/aiplatform/workspaces/${id}/seal`, method: 'post' });
 }

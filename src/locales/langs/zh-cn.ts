@@ -244,7 +244,8 @@ const local: App.I18n.Schema = {
     account_list: '账号列表',
     aiplatform: 'AI 平台',
     aiplatform_order: '订单管理',
-    aiplatform_project: '项目管理'
+    aiplatform_project: '项目管理',
+    aiplatform_workspace: '沙箱管理'
   },
   page: {
     login: {
@@ -990,6 +991,76 @@ const local: App.I18n.Schema = {
         },
         success: {
           downloaded: '文件包下载成功'
+        }
+      },
+      workspace: {
+        title: '沙箱管理',
+        detailTitle: '沙箱详情',
+        workspaceId: '工作区 ID',
+        containerName: '容器名',
+        networkName: '预览网络名',
+        kind: '环境类型',
+        status: '置备状态',
+        provisionError: '置备失败原因',
+        desiredState: '期望态',
+        containerState: '容器实态',
+        lastTouchAt: '最近触碰',
+        volumeSize: '卷大小',
+        sealedAt: '封存时刻',
+        archivePath: '封存包寻址键',
+        archiveSize: '封存包大小',
+        createdAt: '创建时间',
+        updatedAt: '更新时间',
+        detail: '详情',
+        more: '操作',
+        form: {
+          desiredPlaceholder: '期望态（缺省全部）',
+          actualPlaceholder: '容器实态（缺省全部）'
+        },
+        desiredEnum: {
+          running: '运行',
+          hibernated: '休眠',
+          sealed: '封存'
+        },
+        actualEnum: {
+          running: '运行中',
+          stopped: '已停止',
+          absent: '无容器',
+          unknown: '未知'
+        },
+        drawer: {
+          project: '所属项目',
+          projectId: '项目 ID',
+          projectName: '项目名称',
+          projectArchived: '已归档',
+          projectArchivedYes: '是',
+          projectArchivedNo: '否',
+          noProject: '无所属项目（工作区先于项目存在）',
+          resources: '中间件资源',
+          resourcesEmpty: '无中间件资源'
+        },
+        action: {
+          wake: '唤醒',
+          hibernate: '休眠',
+          rebuild: '重建',
+          seal: '封存'
+        },
+        confirm: {
+          wake: '唤醒沙箱',
+          wakeTip: '等待就绪后返回（封存态走深度唤醒，分钟级）',
+          hibernate: '强制休眠',
+          hibernateTip: '立即删除容器、保留卷，期望态置为休眠',
+          rebuild: '强制重建',
+          rebuildTip: '杀掉现有容器并幂等重建（卷保留、数据不动），收敛回就绪',
+          seal: '封存沙箱',
+          sealTip: '删容器 → 整卷打包落存储 → 删卷；恢复走「唤醒」',
+          target: '容器 {containerName}'
+        },
+        success: {
+          wake: '沙箱已唤醒',
+          hibernate: '沙箱已休眠',
+          rebuild: '沙箱已重建',
+          seal: '沙箱已封存'
         }
       }
     }

@@ -1,5 +1,5 @@
 /**
- * AI 平台（aiplatform，#56/#57/#58）——类型契约。
+ * AI 平台（aiplatform，#56/#57/#58/#60）——类型契约。
  *
  * 消费 admin BFF `/api/admin/aiplatform/**`（admin#62 定稿、#63–#73 落地；契约正本 =
  * admin :8081 `/v3/api-docs`，逐字镜像 aiplatform provider `/api/backoffice/**`）。
@@ -20,6 +20,13 @@
  * - 价目史 `priceEntries` append-only 全量、新→旧，每条带操作者（存量行操作者为 null）。
  * - 分页全链 1-based（ADR-0012），请求 `page` 直传零 ±1。
  * - `status` 多选筛选项（订单域）：逗号分隔单值（`status=1,5`，BFF 拼串透传 provider 签名协议）。
+ * - 沙箱域（#60，provider 枚举印证）：期望态 1=运行 2=休眠 3=封存（DB 意图侧）/实态 1=运行中
+ *   2=已停止 3=无容器 4=未知（docker 探查一瞥，不落库）两列如实分示——「期望运行而实态无容器」
+ *   即漂移行；置备状态 1=置备中 2=就绪 3=失败；环境类型 1=开发 2=测试 3=生产（v1 仅 DEV）。
+ *   四写守卫链 WSP_001→007(非 DEV)→015(run 在途)→009(置备在途/封存态)→017：唤醒无状态限制
+ *   （封存走深度唤醒、漂移行幂等重建），休眠/重建/封存同拒置备中(1)/封存态(3)。
+ *   四写响应＝动作后的观测详情（WorkspaceDetail，区别于订单 OrderWriteAck——响应即新事实，
+ *   前端直接回填抽屉免二次回读）；错误码数字形＝域码 1×1000＋序号（1001/1009/1015/1016/1017）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -283,5 +290,83 @@ declare namespace Api {
     }
 
     type ProjectFilter = Omit<ProjectSearchParams, 'page' | 'size'>;
+
+    /** 沙箱环境类型：1=开发 2=测试 3=生产（v1 仅 DEV；四写非 DEV 拒 WSP_007——TEST/PROD 纯运行不开放干预）。 */
+    type WorkspaceEnvKind = 1 | 2 | 3;
+
+    /** 沙箱置备状态：1=置备中 2=就绪 3=失败（置备中＝重活三写的 WSP_009 拒绝位）。 */
+    type WorkspaceProvisioningStatus = 1 | 2 | 3;
+
+    /** 期望态（DB 意图侧，ADR-0016）：1=运行 2=休眠 3=封存。 */
+    type WorkspaceDesiredState = 1 | 2 | 3;
+
+    /** 容器实态（docker 探查一瞥，不落库）：1=运行中 2=已停止 3=无容器 4=未知（探查失败的诚实位）。 */
+    type WorkspaceContainerState = 1 | 2 | 3 | 4;
+
+    /** 沙箱四写动作（wake/hibernate/rebuild/seal，均无 body）。 */
+    type WorkspaceAction = 'wake' | 'hibernate' | 'rebuild' | 'seal';
+
+    /** 中间件资源观测（详情 resources 元素）。kind 无 *Name 字段（契约如此）——专有名词端侧小映射（constants）。 */
+    interface WorkspaceMiddlewareResource {
+      /** 1=PostgreSQL 2=Redis（provider MiddlewareKind） */
+      kind: 1 | 2;
+      containerName: string;
+      /** 连接串原文（容器内回环形态，排障用） */
+      internalUrl: string;
+    }
+
+    /** 所属项目引用（软引用可空——工作区先于项目存在）。 */
+    interface WorkspaceProjectRef {
+      projectId: string;
+      name: string;
+      archived: boolean;
+    }
+
+    /** 沙箱列表行（GET /workspaces items 元素；新沙箱在前＝TSID 倒序，服务端定死）。 */
+    interface WorkspaceSummary {
+      /** TSID → string */
+      workspaceId: string;
+      containerName: string;
+      kind: WorkspaceEnvKind;
+      kindName: string;
+      status: WorkspaceProvisioningStatus;
+      statusName: string;
+      desiredState: WorkspaceDesiredState;
+      desiredStateName: string;
+      containerState: WorkspaceContainerState;
+      containerStateName: string;
+      lastTouchAt: string;
+      /** Long（字节）→ JSON string；封存容缺（卷已删）/探查失败为 null */
+      volumeSizeBytes: string | null;
+      sealedAt: string | null;
+      /** Long（字节）→ JSON string；未封存为 null */
+      archiveSizeBytes: string | null;
+      /** 所属项目引用（无所属项目为 null） */
+      project: WorkspaceProjectRef | null;
+    }
+
+    /** 沙箱详情（GET /workspaces/{id}；清单行超集——另带网络名/置备失败原因/封存包寻址键/审计列/中间件资源）。 */
+    interface WorkspaceDetail extends WorkspaceSummary {
+      networkName: string;
+      /** 置备失败原因（FAILED 态非 null，其余 null） */
+      provisionError: string | null;
+      /** 封存包寻址键（未封存为 null） */
+      archivePath: string | null;
+      createdAt: string;
+      updatedAt: string;
+      resources: WorkspaceMiddlewareResource[];
+    }
+
+    /** GET /workspaces 查询参数。分页 1-based 直传；desired/actual 单选单值、可组合、均可缺省（缺省=全量）。 */
+    interface WorkspaceSearchParams {
+      page: number;
+      size: number;
+      /** 期望态单选（1=运行 2=休眠 3=封存） */
+      desired?: WorkspaceDesiredState;
+      /** 容器实态单选（1=运行中 2=已停止 3=无容器 4=未知）——漂移清单=desired 1+actual 3 组合 */
+      actual?: WorkspaceContainerState;
+    }
+
+    type WorkspaceFilter = Omit<WorkspaceSearchParams, 'page' | 'size'>;
   }
 }

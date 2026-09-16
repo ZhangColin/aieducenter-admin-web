@@ -25,6 +25,7 @@ declare module "@elegant-router/types" {
     "aiplatform": "/aiplatform";
     "aiplatform_order": "/aiplatform/order";
     "aiplatform_project": "/aiplatform/project";
+    "aiplatform_workspace": "/aiplatform/workspace";
     "app": "/app";
     "app_list": "/app/list";
     "home": "/home";
@@ -107,6 +108,7 @@ declare module "@elegant-router/types" {
     | "account_list"
     | "aiplatform_order"
     | "aiplatform_project"
+    | "aiplatform_workspace"
     | "app_list"
     | "home"
     | "manage_menu"

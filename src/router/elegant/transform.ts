@@ -171,6 +171,7 @@ const routeMap: RouteMap = {
   "aiplatform": "/aiplatform",
   "aiplatform_order": "/aiplatform/order",
   "aiplatform_project": "/aiplatform/project",
+  "aiplatform_workspace": "/aiplatform/workspace",
   "app": "/app",
   "app_list": "/app/list",
   "home": "/home",

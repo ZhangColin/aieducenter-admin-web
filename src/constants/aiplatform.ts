@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58）——订单域 + 项目域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60）——订单域 + 项目域 + 沙箱域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -50,4 +50,80 @@ export const conversationKindTagColor: Record<Api.Aiplatform.ConversationEntryKi
   4: 'info',
   5: 'error',
   6: 'default'
+};
+
+/* ---- 沙箱域（#60）---- */
+
+/** 期望态筛选下拉（单选；手写 number options，组件内渲染时翻译；漂移清单=运行(1)+无容器(3) 组合）。 */
+export const desiredStateOptions: CommonType.Option<Api.Aiplatform.WorkspaceDesiredState, App.I18n.I18nKey>[] = [
+  { value: 1, label: 'page.aiplatform.workspace.desiredEnum.running' },
+  { value: 2, label: 'page.aiplatform.workspace.desiredEnum.hibernated' },
+  { value: 3, label: 'page.aiplatform.workspace.desiredEnum.sealed' }
+];
+
+/** 实态筛选下拉（单选；探查一瞥不落库——UNKNOWN 是诚实位，探查失败≠容器不在）。 */
+export const containerStateOptions: CommonType.Option<Api.Aiplatform.WorkspaceContainerState, App.I18n.I18nKey>[] = [
+  { value: 1, label: 'page.aiplatform.workspace.actualEnum.running' },
+  { value: 2, label: 'page.aiplatform.workspace.actualEnum.stopped' },
+  { value: 3, label: 'page.aiplatform.workspace.actualEnum.absent' },
+  { value: 4, label: 'page.aiplatform.workspace.actualEnum.unknown' }
+];
+
+/** 置备状态标签色（语义：置备中 warning / 就绪成功 / 失败红）。 */
+export const provisioningStatusTagColor: Record<Api.Aiplatform.WorkspaceProvisioningStatus, NaiveUI.ThemeColor> = {
+  1: 'warning',
+  2: 'success',
+  3: 'error'
+};
+
+/** 期望态标签色（语义：运行主色 / 休眠 info / 封存终态灰——意图侧）。 */
+export const desiredStateTagColor: Record<Api.Aiplatform.WorkspaceDesiredState, NaiveUI.ThemeColor> = {
+  1: 'primary',
+  2: 'info',
+  3: 'default'
+};
+
+/** 实态标签色（语义：运行中成功 / 已停止 warning / 无容器红（期望运行时即漂移）/ 未知灰）。 */
+export const containerStateTagColor: Record<Api.Aiplatform.WorkspaceContainerState, NaiveUI.ThemeColor> = {
+  1: 'success',
+  2: 'warning',
+  3: 'error',
+  4: 'default'
+};
+
+/**
+ * 中间件资源 kind 端侧映射（1=PostgreSQL 2=Redis）——resources[].kind 契约**无 *Name 字段**
+ * （区别于其余枚举 ADR-0009 直读）；两值是语言无关专有名词，端侧小映射不构成 i18n 负担。
+ */
+export const middlewareKindLabel: Record<1 | 2, string> = {
+  1: 'PostgreSQL',
+  2: 'Redis'
+};
+
+/**
+ * 沙箱四写可用性（列表行下拉与详情抽屉共用单点，防两处门控漂移）。
+ * 契约守卫链 WSP_001→007→015→009→017 的**可前置观测子集**（kind/status/desiredState 三要素）：
+ * - 非 DEV（WSP_007）：四写全拒（v1 仅 DEV；TEST/PROD 纯运行不开放干预）——不可达操作不出现。
+ * - 唤醒：无状态限制——封存态走深度唤醒、漂移/已死容器走幂等重建、run 在途不受限（不动数据面）。
+ * - 休眠/重建/封存（重活三写同守卫 WSP_009）：置备中(1)/封存态(3) 拒——封存态卷已删（先唤醒）、
+ *   置备在途不可打断。休眠对「已休眠」幂等成功（补删残留容器），照常给——期望休眠而实态运行
+ *   的残留容器行正需要它。
+ * run 在途(WSP_015)/收敛任务在途(WSP_017) 不在本函数可见字段内，留给服务端裁决走透传 toast。
+ */
+export function availableWorkspaceActions(meta: {
+  kind: Api.Aiplatform.WorkspaceEnvKind;
+  status: Api.Aiplatform.WorkspaceProvisioningStatus;
+  desiredState: Api.Aiplatform.WorkspaceDesiredState;
+}): Api.Aiplatform.WorkspaceAction[] {
+  if (meta.kind !== 1) return [];
+  const heavyAllowed = meta.status !== 1 && meta.desiredState !== 3;
+  return heavyAllowed ? ['wake', 'hibernate', 'rebuild', 'seal'] : ['wake'];
+}
+
+/** 沙箱四写权限码（hasAuth 门控用；与门控 helper 同居单点——列表页与抽屉共用）。 */
+export const workspaceWriteAuth: Record<Api.Aiplatform.WorkspaceAction, string> = {
+  wake: 'admin:aiplatform:workspace:wake',
+  hibernate: 'admin:aiplatform:workspace:hibernate',
+  rebuild: 'admin:aiplatform:workspace:rebuild',
+  seal: 'admin:aiplatform:workspace:seal'
 };

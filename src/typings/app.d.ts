@@ -1226,6 +1226,76 @@ declare namespace App {
               downloaded: string;
             };
           };
+          workspace: {
+            title: string;
+            detailTitle: string;
+            workspaceId: string;
+            containerName: string;
+            networkName: string;
+            kind: string;
+            status: string;
+            provisionError: string;
+            desiredState: string;
+            containerState: string;
+            lastTouchAt: string;
+            volumeSize: string;
+            sealedAt: string;
+            archivePath: string;
+            archiveSize: string;
+            createdAt: string;
+            updatedAt: string;
+            detail: string;
+            more: string;
+            form: {
+              desiredPlaceholder: string;
+              actualPlaceholder: string;
+            };
+            desiredEnum: {
+              running: string;
+              hibernated: string;
+              sealed: string;
+            };
+            actualEnum: {
+              running: string;
+              stopped: string;
+              absent: string;
+              unknown: string;
+            };
+            drawer: {
+              project: string;
+              projectId: string;
+              projectName: string;
+              projectArchived: string;
+              projectArchivedYes: string;
+              projectArchivedNo: string;
+              noProject: string;
+              resources: string;
+              resourcesEmpty: string;
+            };
+            action: {
+              wake: string;
+              hibernate: string;
+              rebuild: string;
+              seal: string;
+            };
+            confirm: {
+              wake: string;
+              wakeTip: string;
+              hibernate: string;
+              hibernateTip: string;
+              rebuild: string;
+              rebuildTip: string;
+              seal: string;
+              sealTip: string;
+              target: string;
+            };
+            success: {
+              wake: string;
+              hibernate: string;
+              rebuild: string;
+              seal: string;
+            };
+          };
         };
       };
       form: {

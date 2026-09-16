@@ -173,6 +173,16 @@ mock E2E（project **63/63 两轮全绿** + order 31/31 回归绿）。验收五
 - **交互定案**：树 `NTree` block-line + expand-on-click + selectable，根级目录默认展开（树随数据后挂载、default-expanded 生效于挂载时）；目录选中 = 回提示态（防旧内容/拒读态残留）；拒读 onError toast（全局兜底）与 pane 内锚定态**双显**是有意为之（toast 不抑止，先例 ADR-0001）。
 - **code-review 修正（双轴 review，紧随本票）**：① 点目录后查看器残留旧态 → 目录/取消选中回提示态；② 下载落盘动作（objectURL→anchor→revoke ~15 行）与订单源码包第 2 份逐字重复 → 萃取 `saveBlobFile` 收编 utils/common.ts、两调用点归一（订单回归 31/31 证无损）；③ `buildTree` 双遍历收敛单次递归铺平索引；④ 删仅为空态判断存在的 `files` ref；⑤ E2E 断言名与实断对齐（补 12 MB）。review 判断项不修记录在案：`error.response.data.message` 内联提取与 onError 重复（单一消费者，出现第二处再萃取）。
 
+### 2026-09-16 T4 交付：沙箱域点亮 ✅（#60，六域之四——清单 + 详情 + 唤醒/休眠/重建/封存四写）
+
+mock E2E（workspace **48/48 两轮全绿** + order 31/31 / project 63/63 回归绿）。验收五条全过：清单契约字段（workspaceId/containerName/kind·kindName/status·statusName/期望态·实态两列分示/lastTouchAt/卷大小/封存时刻/封存包大小/项目引用）/ 期望态·实态过滤（desired=1&actual=3 组合即捞漂移清单）/ 详情抽屉全字段 + resources + project 引用 / 四写按态门控 + 触发正确端点 + 成功后回读+刷新 / 失败透传 message 统一 toast（409 WSP_015）。
+
+- **契约事实（api-docs + provider 枚举印证）**：期望态 1=运行 2=休眠 3=封存（DB 意图侧）/实态 1=运行中 2=已停止 3=无容器 4=未知（docker 探查一瞥不落库）两列如实分示——「期望运行而实态无容器」即漂移行；置备状态 1=置备中 2=就绪 3=失败；环境类型 1=开发 2=测试 3=生产（v1 仅 DEV）；volumeSizeBytes/archiveSizeBytes Long（字节）→ JSON **string**（封存容缺/探查失败 null）；project 软引用可空（工作区先于项目存在）；resources[].kind **无 `*Name` 字段**（契约如此，区别于其余枚举 ADR-0009 直读）——PostgreSQL/Redis 语言无关专有名词，端侧小映射 `middlewareKindLabel` 不构成 i18n 负担。
+- **四写门控（守卫链 WSP_001→007→015→009→017 的可前置观测子集）**：非 DEV（WSP_007）四写全拒（E2E TEST 行钉死「操作」下拉不渲染）；唤醒**无状态限制**（封存态走深度唤醒、漂移/已死容器走幂等重建、run 在途不受限——不动数据面）；休眠/重建/封存重活三写同守卫（WSP_009：置备中/封存态拒——封存态卷已删先唤醒）。run 在途（WSP_015）/收敛任务在途（WSP_017）不可前置观测，留给服务端裁决走透传 toast。门控收编 `availableWorkspaceActions` 单点（constants），列表行下拉与抽屉按钮共用防漂移；休眠对「已休眠」照常给（幂等补删残留容器——期望休眠而实态运行的泄漏行正需要它）。
+- **四写响应＝动作后的观测详情**（WorkspaceDetail，区别于订单 OrderWriteAck「不回读此体」）：响应即新事实，前端 `applyDetail` 直填抽屉**免二次回读**（E2E 以详情 GET 计数不增钉死）+ 列表刷新；抽屉 modal 遮罩下「开着即同目标」恒成立（订单域先例）。四写均无 body；确认弹窗按钮等请求（深度唤醒/封存分钟级，loading 态诚实）。错误码数字形＝域码 1×1000＋序号（1001/1009/1015/1016/1017）。
+- **E2E 单域挂载的 home 陷阱**：workspace E2E 初版只挂 workspace fixtures，但 menus mock 的 home=aiplatform_order——登录落订单页拉清单撞 benign 空成功（data:null）炸 defaultTransform（pageerror 噪音）→ 补挂 order fixtures 消除（project E2E 双挂先例）；订单/项目回归零 pageerror 佐证。fixtures 与项目域交叉一致（教研/校园/口算的 workspaceId 即 project-fixtures 详情字段，同批 TSID）。
+- **code-review 修正（双轴 review，紧随本票；修后 48/48 + 订单 31/31 + 项目 63/63 回归绿）**：① 四写权限码 Record 两份（index/drawer）收编 constants `workspaceWriteAuth`（与门控 helper 同居单点——改码一处编辑）；② 删 `middlewareKindLabel[r.kind] ?? String(r.kind)` 不可达兜底（kind 类型 1|2 Record 全覆盖，standing rule「门控可达不写防御性」）；③ `onDrawerAction` 纯转发删（emit 三元组与 handleAction 形参同序，模板直绑）；④ E2E `confirmDialog` 容器名参数化（§9 唤醒异目标行复用，删内联重写）；⑤ 两处「卷容缺」断言名实对齐（补 `'-'` 占位断言——T3 review ⑤ 同型复发）。review 判断项不修记录在案：AC3「回读+刷新」按契约以响应直填替代回读（响应即新事实，非偏差）；resources[].kind 无 *Name 系 provider 完整文档化设计（非 swagger 缺口，专有名词端侧映射已录上条）；`(action,id,containerName)` 三元组同行（Data Clump 仅记录，满足 confirm 插值需要）。
+
 ### 2026-09-16 T1 E2E 联调闭环：平台账号全流程点亮 ✅（#52 / spec #51）
 
 真后端（admin BFF :8081 + identity :10001 均 local profile）全链验证。**验收八条全过**（含两条语义校准，见下）：

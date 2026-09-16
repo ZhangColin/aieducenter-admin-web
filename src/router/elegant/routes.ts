@@ -85,6 +85,15 @@ export const generatedRoutes: GeneratedRoute[] = [
           title: 'aiplatform_project',
           i18nKey: 'route.aiplatform_project'
         }
+      },
+      {
+        name: 'aiplatform_workspace',
+        path: '/aiplatform/workspace',
+        component: 'view.aiplatform_workspace',
+        meta: {
+          title: 'aiplatform_workspace',
+          i18nKey: 'route.aiplatform_workspace'
+        }
       }
     ]
   },
