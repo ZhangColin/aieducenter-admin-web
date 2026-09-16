@@ -35,6 +35,13 @@
  *   （REQ-20 #75——预填保响应原串勿经 Number() 往返，微小价位会落科学计数法形）；改价＝同事务
  *   关当前行+开新行（closed 行保留原开行操作者不被改写，opened 行落 X-User 落痕）；`effectiveTo`
  *   null 即当前行（改价/停用目标位，METER_007 目标非当前行 409）；无「开行」端点（种子脚本通道）。
+ * - 素材域（#63，5 端点）：status 单选两态（1=启用 2=停用，缺省全部——与订单多选逗号串有意不同）；
+ *   `kind` 为 **string 裸值**（v1 业务口径恒 "PRD"，无 *Name 字段——专有名词直显，不映射）；
+ *   sunkFrom/sunkTo **闭区间含两端**、ISO-8601 Instant UTC 带 Z（同成本域时间窗口径，区别于
+ *   订单/项目创建区间的本地串）；排序服务端定死沉淀时间倒序（新在前）。停用⇄启用可逆且重复幂等、
+ *   删除不可逆（治理移除，不动来源项目；回执＝删除前终态 summary——确认移除了什么）。错误码数字形
+ *   ＝域码 2×1000＋序号（KNW_005→2005 查无 404 / KNW_006→2006 缺 X-User 头 400 / KNW_007→2007
+ *   未知 status 400）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -537,5 +544,53 @@ declare namespace Api {
       closed: UnitPriceEntry;
       opened: UnitPriceEntry;
     }
+
+    /* ---- 素材域（#63）---- */
+
+    /** 素材状态（两态）：1=启用 2=停用——停用可逆（enable 恢复命中），两写重复均幂等。 */
+    type MaterialStatus = 1 | 2;
+
+    /** 素材治理三写动作（disable/enable 可逆开关 + delete 不可逆移除；权限码 Record 的键约束）。 */
+    type MaterialAction = 'disable' | 'enable' | 'delete';
+
+    /**
+     * 素材列表行（GET /materials items 元素 = 三写回执，同 schema `AiplatformMaterialSummaryResponse`）。
+     * 排序服务端定死沉淀时间倒序（新沉淀在前）；operator 两列＝最近管理动作留痕（未治理过为 null）。
+     */
+    interface MaterialSummary {
+      /** TSID → string */
+      id: string;
+      /** 素材类别裸值（v1 恒 "PRD"——无 *Name 字段，专有名词直显） */
+      kind: string;
+      projectId: string;
+      projectName: string;
+      title: string;
+      status: MaterialStatus;
+      statusName: string;
+      /** 首沉淀时间（重沉淀与治理动作不改） */
+      sunkAt: string;
+      operatorId: string | null;
+      operatorName: string | null;
+    }
+
+    /** 素材详情（GET /materials/{id}；清单行超集——content＝块按 seq 空行拼接的素材全文）。 */
+    interface MaterialDetail extends MaterialSummary {
+      content: string;
+    }
+
+    /** GET /materials 查询参数。分页 1-based 直传；status 单选单值（缺省＝全部）。 */
+    interface MaterialSearchParams {
+      page: number;
+      size: number;
+      /** 状态单选（1=启用 2=停用；缺省＝全部） */
+      status?: MaterialStatus;
+      /** 沉淀时间区间（首沉淀，闭区间含两端）——ISO-8601 Instant UTC 带 Z */
+      sunkFrom?: string;
+      sunkTo?: string;
+      /** 来源项目 id 精确（登记面字符串，查无＝空清单 200） */
+      projectId?: string;
+    }
+
+    type MaterialFilter = Omit<MaterialSearchParams, 'page' | 'size'>;
   }
 }

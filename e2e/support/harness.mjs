@@ -1,9 +1,9 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62 扩沙箱/成本/单价表域，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，六域共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx / KNW→2xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -55,13 +55,14 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform 各域）。
  *
  * @param page playwright page
- * @param fixtures { order?, project?, workspace?, cost?, priceEntry? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean}}}
- *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*=下一次对应写抛 409 业务码（透传 toast 断言用）
+ * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean}}}
+ *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
+ *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404——透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
-  const state = { failNextQuote: false, failNextWorkspaceWrite: false, failNextReprice: false };
+  const state = { failNextQuote: false, failNextWorkspaceWrite: false, failNextReprice: false, failNextMaterialWrite: false };
 
   const json = (route, status, body) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -229,6 +230,48 @@ export async function installAiplatformMocks(page, fixtures) {
     return { ...row };
   }
 
+  /** 素材清单 mock：status 单选/沉淀时间闭区间（Instant UTC 字符串比较）/projectId 精确，三维可组合。 */
+  function materialListResponse(query) {
+    let rows = [...fixtures.material.MATERIAL_ROWS];
+    const status = query.get('status');
+    if (status) rows = rows.filter(row => row.status === Number(status));
+    const sunkFrom = query.get('sunkFrom');
+    const sunkTo = query.get('sunkTo');
+    if (sunkFrom) rows = rows.filter(row => row.sunkAt >= sunkFrom);
+    if (sunkTo) rows = rows.filter(row => row.sunkAt <= sunkTo);
+    const projectId = query.get('projectId');
+    if (projectId) rows = rows.filter(row => row.projectId === projectId);
+    return paginate(rows, query);
+  }
+
+  /**
+   * 素材启停（可逆开关、重复幂等）——行·详情同步就地变异（抽屉 reload 后拿到新事实）、
+   * 操作者留最近一次（X-User 头落痕的 mock 等价）。
+   */
+  function applyMaterialToggle(row, enabled) {
+    row.status = enabled ? 1 : 2;
+    row.statusName = enabled ? '启用' : '停用';
+    row.operatorId = '1';
+    row.operatorName = 'E2E Mock';
+    const detail = fixtures.material.MATERIAL_DETAILS[row.id];
+    if (detail) {
+      detail.status = row.status;
+      detail.statusName = row.statusName;
+      detail.operatorId = row.operatorId;
+      detail.operatorName = row.operatorName;
+    }
+    return { ...row };
+  }
+
+  /** 素材删除（治理移除不可逆）——回执＝删除前终态；行·详情双删（此后清单/详情均不可见）。 */
+  function applyMaterialDelete(row) {
+    const receipt = { ...row };
+    const idx = fixtures.material.MATERIAL_ROWS.indexOf(row);
+    if (idx >= 0) fixtures.material.MATERIAL_ROWS.splice(idx, 1);
+    delete fixtures.material.MATERIAL_DETAILS[row.id];
+    return receipt;
+  }
+
   await page.route('**/proxy-default/**', route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
@@ -266,7 +309,11 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:cost:read', name: 'AI 平台 / 成本查看' },
             { code: 'admin:aiplatform:price-entry:read', name: 'AI 平台 / 单价表查看' },
             { code: 'admin:aiplatform:price-entry:reprice', name: 'AI 平台 / 单价表改价' },
-            { code: 'admin:aiplatform:price-entry:deactivate', name: 'AI 平台 / 单价表停用' }
+            { code: 'admin:aiplatform:price-entry:deactivate', name: 'AI 平台 / 单价表停用' },
+            { code: 'admin:aiplatform:material:read', name: 'AI 平台 / 素材查看' },
+            { code: 'admin:aiplatform:material:disable', name: 'AI 平台 / 素材停用' },
+            { code: 'admin:aiplatform:material:enable', name: 'AI 平台 / 素材启用' },
+            { code: 'admin:aiplatform:material:delete', name: 'AI 平台 / 素材删除' }
           ],
           menus: []
         },
@@ -363,6 +410,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_price_entry',
                   parentId: '82',
                   sortOrder: 5,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '201',
+                  menuName: '知识素材',
+                  routeName: 'aiplatform_material',
+                  routePath: '/aiplatform/material',
+                  component: 'view.aiplatform_material',
+                  icon: 'carbon:knowledge-base',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_material',
+                  parentId: '82',
+                  sortOrder: 6,
                   menuType: 2,
                   status: 1
                 }
@@ -570,6 +631,42 @@ export async function installAiplatformMocks(page, fixtures) {
         const row = fixtures.priceEntry.PRICE_ENTRY_ROWS.find(r => r.id === deactivateMatch[1]);
         if (!row) return meter404();
         return json(route, 200, { code: 200, message: 'ok', data: applyDeactivate(row), requestId: 'e2e-mock', errors: null });
+      }
+    }
+
+    // ---- 素材域（#63）----
+    if (fixtures.material && path === '/aiplatform/materials' && method === 'GET') {
+      return json(route, 200, materialListResponse(url.searchParams));
+    }
+    if (fixtures.material) {
+      const knw404 = () =>
+        json(route, 404, { code: 2005, message: '素材不存在（KNW_005）', data: null, requestId: 'e2e-mock', errors: null });
+      const writeMatch = path.match(/^\/aiplatform\/materials\/([^/]+)\/(disable|enable)$/);
+      if (writeMatch && method === 'POST') {
+        const [, id, action] = writeMatch;
+        const row = fixtures.material.MATERIAL_ROWS.find(r => r.id === id);
+        if (!row) return knw404();
+        if (state.failNextMaterialWrite) {
+          state.failNextMaterialWrite = false;
+          // 治理动作缺留痕头口径（KNW_006）：HTTP 400 + 数字业务码 2006 + 原文 message
+          return json(route, 400, { code: 2006, message: '知识治理动作必须留痕（KNW_006）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: applyMaterialToggle(row, action === 'enable'), requestId: 'e2e-mock', errors: null });
+      }
+      const deleteMatch = path.match(/^\/aiplatform\/materials\/([^/]+)$/);
+      if (deleteMatch && method === 'DELETE') {
+        const row = fixtures.material.MATERIAL_ROWS.find(r => r.id === deleteMatch[1]);
+        if (!row) return knw404();
+        if (state.failNextMaterialWrite) {
+          state.failNextMaterialWrite = false;
+          return knw404();
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: applyMaterialDelete(row), requestId: 'e2e-mock', errors: null });
+      }
+      if (deleteMatch && method === 'GET') {
+        const detail = fixtures.material.MATERIAL_DETAILS[deleteMatch[1]];
+        if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+        return knw404();
       }
     }
 

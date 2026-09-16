@@ -1,4 +1,4 @@
-# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域）
+# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域）
 
 headless Chrome（`playwright-core` 系统 channel，**免下载浏览器**）+ `page.route` 全量 mock。
 mock fixtures 的字段形状**派生自 admin :8081 `/v3/api-docs`**（各域 `support/*-fixtures.mjs` 头注释标明
@@ -41,9 +41,16 @@ e2e/
     price-entry-fixtures.mjs 单价表 fixtures（AiplatformUnitPriceEntryResponse 形状——unitPrice BigDecimal
                            string 明文小数（请求侧 number，REQ-20）、历史行 + 种子行 operator null、
                            改价/停写变异由 harness 就地改行（刷新后清单如实呈现））
+    material-fixtures.mjs  素材 fixtures（AiplatformMaterialSummary/DetailResponse 形状——kind string
+                           裸值恒 "PRD"、status 1/2 两态矩阵、沉淀时间 9 月 ×10 vs 8 月 ×2（闭区间
+                           过滤靶）、启停/删除变异由 harness 行·详情同步就地改）
+  material.e2e.mjs        素材域验收流（清单契约字段（kind 裸值 + operator 两列）/status 单选·沉淀
+                           时间闭区间（Instant UTC）·projectId 精确过滤/分页 1-based/详情抽屉（元数据 +
+                           content 全文）/停用⇄启用按状态门控切换（抽屉 reload 二次回读——回执 summary
+                           无 content）/删除（抽屉随行关闭 + 刷新后不可见）/失败透传 toast）
 ```
 
-## 为新域加 E2E（T2–T6 照此扩展）
+## 为新域加 E2E（T2–T7 照此扩展）
 
 1. `support/<domain>-fixtures.mjs`：fixtures 字段对照 api-docs 对应 `*Response` schema 逐个核对。
 2. `harness.mjs` 的 mock 安装器加该域端点分支（参照订单域 `listResponse` 的筛选/分页切片）。

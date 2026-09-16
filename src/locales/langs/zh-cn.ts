@@ -248,7 +248,8 @@ const local: App.I18n.Schema = {
     aiplatform_workspace: '沙箱管理',
     aiplatform_cost: '成本中心',
     aiplatform_price: '单价表',
-    aiplatform_price_entry: '单价表'
+    aiplatform_price_entry: '单价表',
+    aiplatform_material: '知识素材'
   },
   page: {
     login: {
@@ -1148,6 +1149,52 @@ const local: App.I18n.Schema = {
         success: {
           repriced: '改价成功',
           deactivated: '单价行已停用'
+        }
+      },
+      material: {
+        title: '知识素材',
+        detailTitle: '素材详情',
+        id: '素材 ID',
+        kind: '类别',
+        materialTitle: '标题',
+        project: '来源项目',
+        projectId: '来源项目 ID',
+        projectName: '来源项目名',
+        status: '状态',
+        sunkAt: '沉淀时间',
+        operator: '操作者',
+        detail: '详情',
+        statusEnum: {
+          enabled: '启用',
+          disabled: '停用'
+        },
+        action: {
+          disable: '停用',
+          enable: '启用',
+          delete: '删除'
+        },
+        form: {
+          statusPlaceholder: '状态（缺省全部）',
+          sunkRange: '沉淀时间区间',
+          projectIdPlaceholder: '来源项目 ID 精确'
+        },
+        drawer: {
+          content: '素材全文（PRD）'
+        },
+        confirm: {
+          /** 三写确认框共用的目标对账行（素材标题插值）。 */
+          target: '目标：{title}',
+          disable: '停用素材',
+          disableTip: '全部块退出生成命中（可逆——可经「启用」恢复；重沉淀不复活）',
+          enable: '启用素材',
+          enableTip: '全部块恢复参与生成命中',
+          delete: '删除素材',
+          deleteTip: '治理移除登记行与全部块、不动来源项目，不可逆'
+        },
+        success: {
+          disable: '素材已停用',
+          enable: '素材已启用',
+          delete: '素材已删除'
         }
       }
     }

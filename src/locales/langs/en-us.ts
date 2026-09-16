@@ -252,7 +252,8 @@ const local: App.I18n.Schema = {
     aiplatform_workspace: 'Sandboxes',
     aiplatform_cost: 'Cost Center',
     aiplatform_price: 'Price Entries',
-    aiplatform_price_entry: 'Price Entries'
+    aiplatform_price_entry: 'Price Entries',
+    aiplatform_material: 'Knowledge Materials'
   },
   page: {
     login: {
@@ -1152,6 +1153,51 @@ const local: App.I18n.Schema = {
         success: {
           repriced: 'Repriced',
           deactivated: 'Price entry deactivated'
+        }
+      },
+      material: {
+        title: 'Knowledge Materials',
+        detailTitle: 'Material Detail',
+        id: 'Material ID',
+        kind: 'Kind',
+        materialTitle: 'Title',
+        project: 'Source Project',
+        projectId: 'Source Project ID',
+        projectName: 'Source Project Name',
+        status: 'Status',
+        sunkAt: 'Sunk At',
+        operator: 'Operator',
+        detail: 'Detail',
+        statusEnum: {
+          enabled: 'Enabled',
+          disabled: 'Disabled'
+        },
+        action: {
+          disable: 'Disable',
+          enable: 'Enable',
+          delete: 'Delete'
+        },
+        form: {
+          statusPlaceholder: 'Status (all by default)',
+          sunkRange: 'Sunk Time Range',
+          projectIdPlaceholder: 'Exact source project ID'
+        },
+        drawer: {
+          content: 'Full Text (PRD)'
+        },
+        confirm: {
+          target: 'Target: {title}',
+          disable: 'Disable Material',
+          disableTip: 'All chunks leave generation matching (reversible via Enable; re-sinking does not revive)',
+          enable: 'Enable Material',
+          enableTip: 'All chunks rejoin generation matching',
+          delete: 'Delete Material',
+          deleteTip: 'Governance removal of the registry row and all chunks; source project untouched, irreversible'
+        },
+        success: {
+          disable: 'Material disabled',
+          enable: 'Material enabled',
+          delete: 'Material deleted'
         }
       }
     }

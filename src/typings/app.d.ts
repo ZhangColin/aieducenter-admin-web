@@ -1379,6 +1379,51 @@ declare namespace App {
               deactivated: string;
             };
           };
+          material: {
+            title: string;
+            detailTitle: string;
+            id: string;
+            kind: string;
+            materialTitle: string;
+            project: string;
+            projectId: string;
+            projectName: string;
+            status: string;
+            sunkAt: string;
+            operator: string;
+            detail: string;
+            statusEnum: {
+              enabled: string;
+              disabled: string;
+            };
+            action: {
+              disable: string;
+              enable: string;
+              delete: string;
+            };
+            form: {
+              statusPlaceholder: string;
+              sunkRange: string;
+              projectIdPlaceholder: string;
+            };
+            drawer: {
+              content: string;
+            };
+            confirm: {
+              target: string;
+              disable: string;
+              disableTip: string;
+              enable: string;
+              enableTip: string;
+              delete: string;
+              deleteTip: string;
+            };
+            success: {
+              disable: string;
+              enable: string;
+              delete: string;
+            };
+          };
         };
       };
       form: {

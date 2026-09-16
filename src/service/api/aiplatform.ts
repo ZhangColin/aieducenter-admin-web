@@ -28,6 +28,11 @@
  * 单价表域（T6，3 端点）：清单（现行+历史行全量，provider/model 精确等值过滤）+ 原子改价（同事务
  * 关当前行开新行，effectiveFrom 可未来时点=预发布）+ 停用（即时关行不接新行）。无「开行」端点——
  * 种子脚本通道不暴露，web 改价只走原子 reprice。unitPrice 响应 string / 请求 number（REQ-20 #75）。
+ *
+ * 素材域（T7，5 端点）：知识治理面——清单（status 单选/沉淀时间闭区间 Instant UTC/来源项目 id 精确）
+ * + 详情（元数据 + content＝块按 seq 空行拼接全文）+ 停用⇄启用（可逆开关、重复幂等）+ 删除
+ * （不可逆治理移除、不动来源项目；回执＝删除前终态）。三写回执是 summary（区别于沙箱域回执＝
+ * 观测详情——summary 无 content，抽屉开着须二次回读详情）。kind 为 string 裸值（v1 恒 "PRD"）。
  */
 import { request } from '../request';
 
@@ -205,4 +210,35 @@ export function fetchRepriceAiplatformPriceEntry(id: string, data: Api.Aiplatfor
 /** POST /aiplatform/price-entries/{id}/deactivate——停用（即时生效关行不接新行；此后该匹配键用量进成本 unpriced 警示）。 */
 export function fetchDeactivateAiplatformPriceEntry(id: string) {
   return request<Api.Aiplatform.UnitPriceEntry>({ url: `/aiplatform/price-entries/${id}/deactivate`, method: 'post' });
+}
+
+/* ---- 素材域（T7，5 端点；三写回执＝summary——无 content，抽屉开着须二次回读详情）。 */
+
+/** GET /aiplatform/materials——知识素材清单（三维过滤：status 单选/沉淀时间闭区间 Instant UTC/来源项目 id 精确；排序沉淀倒序服务端定死）。 */
+export function fetchGetAiplatformMaterialList(params: Api.Aiplatform.MaterialSearchParams) {
+  return request<Api.Common.PageResponse<Api.Aiplatform.MaterialSummary>>({
+    url: '/aiplatform/materials',
+    method: 'get',
+    params
+  });
+}
+
+/** GET /aiplatform/materials/{id}——素材详情（元数据 + content＝块按 seq 空行拼接的素材全文；查无 404 KNW_005）。 */
+export function fetchGetAiplatformMaterial(id: string) {
+  return request<Api.Aiplatform.MaterialDetail>({ url: `/aiplatform/materials/${id}`, method: 'get' });
+}
+
+/** POST /aiplatform/materials/{id}/disable——停用素材（可逆开关：全部块退出生成命中；重复停用幂等、操作者留最近一次）。 */
+export function fetchDisableAiplatformMaterial(id: string) {
+  return request<Api.Aiplatform.MaterialSummary>({ url: `/aiplatform/materials/${id}/disable`, method: 'post' });
+}
+
+/** POST /aiplatform/materials/{id}/enable——启用素材（停用的可逆侧：全部块恢复参与生成命中；重复启用幂等）。 */
+export function fetchEnableAiplatformMaterial(id: string) {
+  return request<Api.Aiplatform.MaterialSummary>({ url: `/aiplatform/materials/${id}/enable`, method: 'post' });
+}
+
+/** DELETE /aiplatform/materials/{id}——删除素材（治理移除登记行与全部块、不动来源项目、不可逆；回执＝删除前终态 summary）。 */
+export function fetchDeleteAiplatformMaterial(id: string) {
+  return request<Api.Aiplatform.MaterialSummary>({ url: `/aiplatform/materials/${id}`, method: 'delete' });
 }

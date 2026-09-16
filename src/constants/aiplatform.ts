@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -162,4 +162,25 @@ export type PriceEntryAction = 'reprice' | 'deactivate';
 export const priceEntryWriteAuth: Record<PriceEntryAction, string> = {
   reprice: 'admin:aiplatform:price-entry:reprice',
   deactivate: 'admin:aiplatform:price-entry:deactivate'
+};
+
+/* ---- 素材域（#63）---- */
+
+/** 素材状态标签色（语义：启用成功（命中中）/ 停用终态灰（已退出命中））。 */
+export const materialStatusTagColor: Record<Api.Aiplatform.MaterialStatus, NaiveUI.ThemeColor> = {
+  1: 'success',
+  2: 'default'
+};
+
+/** 素材状态筛选下拉（单选；手写 number options，组件内渲染时翻译；缺省＝全部）。 */
+export const materialStatusOptions: CommonType.Option<Api.Aiplatform.MaterialStatus, App.I18n.I18nKey>[] = [
+  { value: 1, label: 'page.aiplatform.material.statusEnum.enabled' },
+  { value: 2, label: 'page.aiplatform.material.statusEnum.disabled' }
+];
+
+/** 素材三写权限码（hasAuth 门控用；与前两域同型单点——列表页与抽屉共用）。 */
+export const materialWriteAuth: Record<Api.Aiplatform.MaterialAction, string> = {
+  disable: 'admin:aiplatform:material:disable',
+  enable: 'admin:aiplatform:material:enable',
+  delete: 'admin:aiplatform:material:delete'
 };
