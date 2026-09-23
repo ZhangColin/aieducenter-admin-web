@@ -2,10 +2,11 @@
  * AI 平台成本中心 E2E（#61 验收）——headless Chrome（playwright-core 系统 channel，免下载浏览器）
  * + page.route 全量 mock（fixtures 派生自 /v3/api-docs，见 support/cost-fixtures.mjs）。
  *
- * 覆盖验收（#61 七条）：时间窗必填（缺任一不发起请求 + 变更即重查）/ token 五档 stat tile 数值 /
- * byModel·byAgentKind 双柱状渲染（agentKindName null 落「—」桶——echarts tooltip DOM 锚定）/
- * unpriced 警示卡（有则高亮、窄窗避开即收起）/ 项目成本表（成本降序行序 + 分页 1-based）/
- * 行点击下钻抽屉（五档 + 双柱状 + 未配价档位复用）/ 「按币种成本」不渲染不报错（cost{} 空对象）。
+ * 覆盖验收（#61 七条 + #64 币种桶）：时间窗必填（缺任一不发起请求 + 变更即重查）/ token 五档
+ * stat tile 数值 / byModel·byAgentKind 双柱状渲染（agentKindName null 落「—」桶——echarts tooltip
+ * DOM 锚定）/ unpriced 警示卡（有则高亮、窄窗避开即收起）/ 项目成本表（成本降序行序 + 分页
+ * 1-based）/ 行点击下钻抽屉（五档 + 双柱状 + 未配价档位复用）/ 按币种成本四面渲染
+ * （#64：总览 chips + 表列 + 下钻 chips + 零用量空对象空态——金额直读不折算、不伪装 0）。
  *
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/cost.e2e.mjs`。
  */
@@ -101,6 +102,8 @@ async function main() {
   h.check('五档 tile 数值（输入 1,234,567 / 输出 987,654）', (await overviewCard.getByText('1,234,567').count()) > 0 && (await overviewCard.getByText('987,654').count()) > 0);
   h.check('五档 tile 数值（缓存读 456,789 / 缓存写 123,456 / 推理 234,567）', (await overviewCard.getByText('456,789').count()) > 0 && (await overviewCard.getByText('123,456').count()) > 0 && (await overviewCard.getByText('234,567').count()) > 0);
   h.check('五档档位名渲染（缓存读/缓存写/推理）', (await overviewCard.getByText('缓存读', { exact: true }).count()) > 0 && (await overviewCard.getByText('推理', { exact: true }).count()) > 0);
+  // #64 币种桶（总览承载面①）：双币种 chips 直读不折算（CNY 89.5 / USD 12.34——金额降序 CNY 在前）
+  h.check('总览按币种成本 chips（CNY 89.5 / USD 12.34 直读不折算）', (await overviewCard.getByText('按币种成本').count()) > 0 && (await overviewCard.getByText('CNY 89.5').count()) > 0 && (await overviewCard.getByText('USD 12.34').count()) > 0);
 
   /* ================= 4. 双柱状：两卡渲染 canvas；byAgentKind null 落「—」桶（tooltip 锚定） ================= */
   const modelCard = page.locator('.n-card').filter({ hasText: '按模型分解' }).first();
@@ -129,6 +132,10 @@ async function main() {
   h.check('首行=成本最高项目（教研备课知识库 TSID）', (await firstRow.getByText(RICH_PROJECT).count()) > 0);
   h.check('行五档数值（600,000 / 500,000）', (await firstRow.getByText('600,000').count()) > 0 && (await firstRow.getByText('500,000').count()) > 0);
   h.check('已配价行标注', (await firstRow.getByText('已配价').count()) > 0);
+  // #64 币种桶（表列承载面②）：单桶直读 + 多桶行纵向堆叠（智能排课 CNY 208.5 / USD 1.05）
+  h.check('成本列：首行单桶（USD 12.34）', (await firstRow.getByText('USD 12.34').count()) > 0);
+  const multiBucketRow = page.locator(ROW).filter({ hasText: '7392120209101200012' });
+  h.check('成本列：多桶行双币种（CNY 208.5 / USD 1.05）', (await multiBucketRow.getByText('CNY 208.5').count()) > 0 && (await multiBucketRow.getByText('USD 1.05').count()) > 0);
 
   /* ================= 7. 分页：翻第 2 页 → page=2（1-based）；全未配价行排后 ================= */
   await page.locator('.n-pagination .n-pagination-item', { hasText: /^2$/ }).click();
@@ -137,6 +144,8 @@ async function main() {
   const page2Rows = page.locator(ROW);
   h.check('第 2 页 2 行（共 12 条）', (await page2Rows.count()) === 2);
   h.check('全未配价行排后 + allUnpriced 标注（末行）', (await page2Rows.last().getByText('全未配价').count()) > 0 && (await page2Rows.last().getByText('7392120209089500001').count()) > 0);
+  // #64 币种桶：全未配价行 cost={} 空对象——表列「—」空态，不伪装 0
+  h.check('成本列：空对象行「—」（不伪装 0）', (await page2Rows.last().getByText('—', { exact: true }).count()) > 0 && (await page2Rows.last().getByText('0', { exact: true }).count()) === 0);
   await page.locator('.n-pagination .n-pagination-item', { hasText: /^1$/ }).click();
   await sleep(600);
 
@@ -154,7 +163,8 @@ async function main() {
   await drawer.locator('canvas').nth(1).waitFor({ timeout: 10000 });
   h.check('抽屉双柱状渲染（两 canvas）', (await drawer.locator('canvas').count()) === 2);
   h.check('抽屉未配价档位 tag（anthropic/claude-opus-5 + 档位名；无 tokens 列）', (await drawer.getByText('anthropic/claude-opus-5').count()) > 0 && (await drawer.locator('.n-tag', { hasText: '推理' }).count()) > 0);
-  h.check('抽屉不渲染「按币种成本」区块（REQ-20 留位）', (await drawer.getByText('按币种').count()) === 0);
+  // #64 币种桶（下钻承载面③）：与总览同款 chips（教研 USD 12.34——与清单行同值锚定）
+  h.check('抽屉按币种成本 chips（USD 12.34）', (await drawer.getByText('按币种成本').count()) > 0 && (await drawer.getByText('USD 12.34').count()) > 0);
 
   /* ================= 9. 零用量项目下钻：全零 total + 空结构（明确空态非 404） ================= */
   await page.keyboard.press('Escape');
@@ -165,6 +175,8 @@ async function main() {
   await zeroDrawer.getByText('成本构成完整（无未配价档位）').waitFor({ timeout: 10000 });
   h.check('零用量下钻：五档 0 tile', (await zeroDrawer.getByText('0', { exact: true }).count()) > 0);
   h.check('零用量下钻：未配价空态文案 + 双柱状空态', (await zeroDrawer.getByText('成本构成完整（无未配价档位）').count()) > 0 && (await zeroDrawer.getByText('暂无数据').count()) > 0);
+  // #64 币种桶：零用量 cost={} 空对象——空态文案（不伪装 0）
+  h.check('零用量下钻：币种桶空态文案（不伪装 0）', (await zeroDrawer.getByText('暂无已计价成本（无用量或全部未配价）').count()) > 0);
   await page.keyboard.press('Escape');
   await sleep(600);
 

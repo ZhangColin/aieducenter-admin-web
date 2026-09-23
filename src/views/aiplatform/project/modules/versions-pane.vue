@@ -1,19 +1,19 @@
 <script setup lang="ts">
 /**
- * 项目详情抽屉·版本 pane（#58）——版本列表（容器 git log 新→旧）+ 版本详情锚定收尾卡。
+ * 项目详情抽屉·版本 pane（#58，#64 收尾卡升级）——版本列表（容器 git log 新→旧）+ 版本详情锚定收尾卡。
  *
  * 行点击切换详情（首行自动锚定）；版本详情 = 元数据 desc-table + closing 收尾卡载荷。
- * closing 为 Map<String, Object>（api-docs 唯一文档化形状）——泛型键值渲染：
- * 原始键直出 + 值按类型格式化（string 原样 / number 千分位 / boolean 是|否 / 嵌套 JSON），
- * 不对 key 做端侧映射（#56 grilling：不做 code→中文映射先例，键漂移零风险）；
- * closing=null（收尾卡缺位/回滚版本无 run）→ 统一兜底文案。
+ * closing 为 run-finish 收口扩载（admin#75 @Schema 已文档化，#88 与对话史 kind=5 同载荷）——
+ * ClosingCard 结构化呈现（摘要/PRD·系统变更/文件变更/耗时/自测/版本，可缺省键＝该轮无该事实）；
+ * closing=null（收尾卡缺位/回滚版本无 run）→ 组件内统一兜底文案。
  */
-import { computed, h, onMounted, ref } from 'vue';
+import { h, onMounted, ref } from 'vue';
 import { NDataTable, NEmpty, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { fetchGetAiplatformProjectVersions, fetchGetAiplatformProjectVersionDetail } from '@/service/api';
 import { $t } from '@/locales';
 import { formatDateTime } from '@/utils/common';
+import ClosingCard from './closing-card.vue';
 
 defineOptions({ name: 'ProjectVersionsPane' });
 
@@ -91,19 +91,6 @@ async function selectVersion(versionRef: string) {
   if (!error) detail.value = data;
 }
 
-/** 收尾卡载荷值格式化：string 原样 / number 千分位 / boolean 是|否 / 其余 JSON pretty。 */
-function formatClosingValue(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return value.toLocaleString();
-  if (typeof value === 'boolean') return value ? $t('page.aiplatform.project.archivedYes') : $t('page.aiplatform.project.archivedNo');
-  return JSON.stringify(value, null, 2);
-}
-
-/** 收尾卡载荷键值（detail 可空 → 空数组；模板内不做复杂表达式）。 */
-const closingEntries = computed<[string, unknown][]>(() =>
-  detail.value?.closing ? Object.entries(detail.value.closing) : []
-);
-
 onMounted(loadList);
 </script>
 
@@ -158,19 +145,10 @@ onMounted(loadList);
         </div>
       </div>
 
-      <!-- 收尾卡载荷：Map 泛型键值渲染；null（缺位/回滚）统一兜底 -->
+      <!-- 收尾卡载荷：结构化呈现（ClosingCard，与对话史 kind=5 共组件）；null（缺位/回滚）组件内兜底 -->
       <div>
         <div class="mb-8px font-600">{{ $t('page.aiplatform.project.drawer.closingCard') }}</div>
-        <NEmpty v-if="!detail.closing" :description="$t('page.aiplatform.project.drawer.closingMissing')" />
-        <div v-else class="desc-table">
-          <div v-for="[key, value] in closingEntries" :key="key" class="desc-row">
-            <div class="desc-label closing-key">{{ key }}</div>
-            <div class="desc-value">
-              <pre v-if="typeof value === 'object' && value !== null" class="m-0 font-mono text-12px">{{ formatClosingValue(value) }}</pre>
-              <span v-else class="text-13px">{{ formatClosingValue(value) }}</span>
-            </div>
-          </div>
-        </div>
+        <ClosingCard :closing="detail.closing" />
       </div>
     </template>
   </div>
@@ -196,10 +174,6 @@ onMounted(loadList);
   color: var(--n-text-color-3);
   background: var(--n-color-embedded);
   border-right: 1px solid var(--n-border-color);
-}
-.desc-label.closing-key {
-  width: 160px;
-  font-family: monospace;
 }
 .desc-value {
   flex: 1;

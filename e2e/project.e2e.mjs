@@ -2,10 +2,11 @@
  * AI 平台项目域 E2E（#58/#59 验收）——headless Chrome（playwright-core 系统 channel，免下载浏览器）
  * + page.route 全量 mock（fixtures 派生自 /v3/api-docs，见 support/project-fixtures.mjs）。
  *
- * 覆盖验收（#58 五条）：列表渲染契约字段（含归档照读）/ 四维筛选绑定查询参数（status 三档单选——
- * 与订单多选逗号串有意不同 / 1-based 分页）/ 详情抽屉基本信息含订单引用+成本指针+工作区引用 /
- * 对话史 text·kind·answered·at 且 question·closing·attachments 载荷跳过 / PRD 全文 /
- * 版本列表新→旧 + 版本详情锚定收尾卡含 closing 缺位兜底。
+ * 覆盖验收（#58 五条 + #64 载荷点亮）：列表渲染契约字段（含归档照读）/ 四维筛选绑定查询参数
+ * （status 三档单选——与订单多选逗号串有意不同 / 1-based 分页）/ 详情抽屉基本信息含订单引用+
+ * 成本指针（币种桶 chips）+工作区引用 / 对话史四载荷渲染（question 投影 / closing 结构化卡 /
+ * 圈注附件 chip / kind=7 报价卡——不含金额 + orderId 可复制）/ PRD 全文 /
+ * 版本列表新→旧 + 版本详情锚定收尾卡（ClosingCard 结构化）含 closing 缺位兜底。
  *
  * 覆盖验收（#59 交付文件）：文件树按 path 折叠（目录合成 + 行内 size）/ 点文本文件内嵌只读
  * （files/content）/ 拒读一态兜底（4022 超限与 4023 非文本两码同 UI 态——钉死「不按业务码分三态」）/
@@ -42,7 +43,8 @@ async function main() {
   }
 
   browser = await chromium.launch({ channel: 'chrome', headless: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  // clipboard 权限：对话史报价卡 orderId 复制按钮走 navigator.clipboard（localhost 属安全上下文）
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
   page.on('pageerror', err => console.log('  [pageerror]', err.message.split('\n')[0]));
 
   const { calls } = await installAiplatformMocks(page, { order: orderFixtures, project: projectFixtures });
@@ -139,22 +141,52 @@ async function main() {
   h.check('基本信息：工作区引用 workspaceId', (await drawer.getByText('7394120209100200099').count()) > 0);
   h.check('基本信息：activeOrder 未终结订单引用（已报价）', (await drawer.getByText('7393120209100200009').count()) > 0 && (await drawer.getByText('已报价').count()) > 0);
   h.check('基本信息：成本指针 unpriced=false 完整态', (await drawer.getByText('成本完整', { exact: false }).count()) > 0);
+  h.check('基本信息：成本指针币种桶（USD 12.34 直读不折算）', (await drawer.getByText('USD 12.34').count()) > 0);
   h.check('基本信息：归档标记（否）', (await drawer.getByText('否', { exact: true }).count()) > 0);
   h.check('基本信息：PRD 产出/生成时点', (await drawer.getByText('2026-09-10 15:20:00').count()) > 0 && (await drawer.getByText('2026-09-10 18:46:00').count()) > 0);
 
-  /* ================= 6. 对话史 tab：text/kind/answered/at，载荷跳过 ================= */
+  /* ================= 6. 对话史 tab：四载荷按 admin#75 文档化结构渲染（#64） ================= */
   await drawer.locator('.n-tabs-tab', { hasText: '对话史' }).click();
   await drawer.getByText('我们想做一个教研备课知识库').waitFor({ timeout: 10000 });
   h.check('对话史：用户发言渲染', (await drawer.getByText('我们想做一个教研备课知识库').count()) > 0);
   h.check('对话史：智能体回复渲染', (await drawer.getByText('收到。我先梳理需求').count()) > 0);
   h.check('对话史：作答条目渲染', (await drawer.getByText('检索优先，批注可以放到下一轮。').count()) > 0);
-  for (const k of ['用户', '智能体', '问答', '作答', '收尾卡', '平台引导']) {
+  for (const k of ['用户', '智能体', '问答', '作答', '收尾卡', '平台引导', '报价卡']) {
     const n = await drawer.locator('.n-tag', { hasText: k }).count();
     if (n === 0) h.check(`对话史 kind 标签「${k}」存在`, false, '未渲染');
   }
   h.check('对话史：已答/待答双态', (await drawer.getByText('已答', { exact: true }).count()) > 0 && (await drawer.getByText('待答', { exact: true }).count()) > 0);
-  h.check('对话史：question/closing 载荷跳过（sentinel 不入 DOM）', (await drawer.locator(':text("QUESTION_PAYLOAD_SENTINEL")').count()) === 0);
-  h.check('对话史：全量 8 条同序', (await drawer.locator('.conversation-entry').count()) === 8);
+
+  // 6a. question 载荷（kind=3 呈现投影 data.questions）：summary + header/question + options chip
+  h.check('问答卡：summary 渲染', (await drawer.getByText('需要确认首版迭代优先级').count()) > 0);
+  h.check('问答卡：问题 header + question 渲染', (await drawer.getByText('迭代优先级', { exact: true }).count()) > 0 && (await drawer.getByText('优先级最高的是哪个方向？').count()) > 0);
+  h.check('问答卡：选项 chip（检索优化/协同批注）', (await drawer.locator('.n-tag', { hasText: '检索优化' }).count()) > 0 && (await drawer.locator('.n-tag', { hasText: '协同批注' }).count()) > 0);
+  h.check('问答卡：multiple=true 可多选标记（挂起卡）', (await drawer.getByText('可多选', { exact: true }).count()) > 0);
+
+  // 6b. closing 载荷（kind=5 结构化卡）：摘要/双变更/文件行/耗时/自测
+  h.check('收尾卡：summary 渲染', (await drawer.getByText('首版知识库骨架落地：教案入库 + 学科年级检索').count()) > 0);
+  h.check('收尾卡：prdChanged 是 + prdNote', (await drawer.getByText('补充第二轮批注范围').count()) > 0);
+  h.check('收尾卡：systemChanged 是 + systemNote', (await drawer.getByText('起服了检索服务').count()) > 0);
+  h.check('收尾卡：文件变更行（path + +40/-0）', (await drawer.getByText('src/search/Index.ts').count()) > 0 && (await drawer.getByText('+40').count()) > 0);
+  h.check('收尾卡：耗时人性化（1043000ms → 17 分 23 秒）', (await drawer.getByText('17 分 23 秒').count()) > 0);
+  h.check('收尾卡：自测项数（3 项）', (await drawer.getByText('3 项', { exact: true }).count()) > 0);
+
+  // 6c. quote 载荷（kind=7 报价卡）：事件双态 + orderId 可复制——不含金额（无 ¥/元 字样）
+  h.check('报价卡：quoted=首次报价事件', (await drawer.getByText('首次报价', { exact: true }).count()) > 0);
+  h.check('报价卡：repriced=改价事件 + 运营提示（改价即刻对用户可见）', (await drawer.getByText('改价', { exact: true }).count()) > 0 && (await drawer.getByText('改价即刻对用户可见').count()) > 0);
+  h.check('报价卡：orderId 渲染（两卡同单）', (await drawer.getByText('3897654321098765432').count()) >= 2);
+  await drawer.getByRole('button', { name: '复制订单号' }).first().click();
+  const copyToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('订单号已复制')));
+  h.check('报价卡：orderId 复制成功 toast', Boolean(copyToast), JSON.stringify(copyToast));
+  h.check('报价卡：不含金额（无 ¥ 前缀字样）', (await drawer.locator('.conversation-entry').getByText('¥').count()) === 0);
+
+  // 6d. attachments 载荷（kind=1 圈注 chip）：select/circle 双 kind + 锚定/备注
+  h.check('圈注附件：select/circle kind 标签', (await drawer.getByText('点选', { exact: true }).count()) > 0 && (await drawer.getByText('圈选', { exact: true }).count()) > 0);
+  h.check('圈注附件：锚定文本 + 拖框备注', (await drawer.getByText('教案结构化沉淀').count()) > 0 && (await drawer.getByText('这一段要保留').count()) > 0);
+
+  // 6e. 载荷条目 text=null 不再 '-' 占位（全量 10 条 = 六 kind + 报价卡×2）
+  h.check('对话史：text=null 载荷条目无「-」占位', (await drawer.locator('.conversation-entry pre', { hasText: /^-$/ }).count()) === 0);
+  h.check('对话史：全量 10 条同序', (await drawer.locator('.conversation-entry').count()) === 10);
 
   /* ================= 7. PRD tab：全文 + updatedAt ================= */
   await drawer.locator('.n-tabs-tab', { hasText: 'PRD' }).click();
@@ -174,6 +206,8 @@ async function main() {
   h.check('版本详情：commitHash 渲染（全 hash，详情独有）', (await drawer.getByText('9f31c02a7d4e8b6a0c1f23456789abcdef01234').count()) > 0);
   h.check('版本详情：runId 渲染', (await drawer.getByText('run-20260912-b2').count()) > 0);
   h.check('版本详情：收尾卡 summary 渲染', (await drawer.getByText(/协同批注落地：教案页内批注/).count()) > 0);
+  // #64 ClosingCard 结构化：文件变更行（path + added/removed 双色计数）
+  h.check('版本详情：收尾卡文件变更行（src/annotation/Editor.tsx +86）', (await drawer.getByText('src/annotation/Editor.tsx').count()) > 0 && (await drawer.getByText('+86').count()) > 0);
   // 点首版行 → prdNote 载荷渲染
   await versionRows.nth(1).click();
   await drawer.getByText('补充第二轮批注范围').waitFor({ timeout: 10000 });
@@ -212,6 +246,8 @@ async function main() {
   await paidDrawer.getByText('工作区 ID').waitFor({ timeout: 10000 });
   h.check('已支付项目：activeOrder 转空占位', (await paidDrawer.getByText('无未终结订单', { exact: false }).count()) > 0);
   h.check('已支付项目：成本指针 unpriced=true 警示', (await paidDrawer.getByText('存在未计价用量').count()) > 0);
+  // #64 币种桶（第四承载面）：空对象 cost={}——空态文案不伪装 0
+  h.check('已支付项目：成本指针空桶空态文案', (await paidDrawer.getByText('暂无已计价成本（无用量或全部未配价）').count()) > 0);
   await paidDrawer.locator('.n-tabs-tab', { hasText: 'PRD' }).click();
   const prdToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('PRJ_015')));
   h.check('PRD 未产出 toast 透传 provider message（PRJ_015）', Boolean(prdToast), JSON.stringify(prdToast));

@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63/#64）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -42,14 +42,18 @@ export const projectStatusRadioOptions: { value: 'all' | Api.Aiplatform.ProjectS
   { value: 3, label: 'page.aiplatform.project.statusEnum.archived' }
 ];
 
-/** 对话史 kind 标签色（语义：用户主色 / 智能体成功 / 问答卡 warning / 作答 info / 收尾卡红 / 平台引导灰）。 */
+/**
+ * 对话史 kind 标签色（语义：用户主色 / 智能体成功 / 问答卡 warning / 作答 info / 收尾卡红 /
+ * 平台引导灰 / 报价卡主色——订单语义事件，与用户发言共用 primary 作金额类高亮）。
+ */
 export const conversationKindTagColor: Record<Api.Aiplatform.ConversationEntryKind, NaiveUI.ThemeColor> = {
   1: 'primary',
   2: 'success',
   3: 'warning',
   4: 'info',
   5: 'error',
-  6: 'default'
+  6: 'default',
+  7: 'primary'
 };
 
 /* ---- 沙箱域（#60）---- */

@@ -112,6 +112,24 @@ export function formatCount(count?: number | string | null): string {
 }
 
 /**
+ * Format a by-currency cost bucket amount for display (`USD 12.34` / `1,234.5`).
+ *
+ * aiplatform 成本域 `cost` 桶值为 swagger **number 直读**（BigDecimal 聚合和，可能带多位小数）——
+ * 与订单金额的 Long 分口径**有意不同**：**不做 ÷100 换算**（勿套 formatMoney）。
+ * 千分位 + 去尾零（`toLocaleString` 自带），小数上限 8 位（单价表微小价位聚合后仍有意义的最小粒度，
+ * 超出部分呈现价值趋零——容忍四舍五入）。
+ *
+ * `null` / 非数 → `'-'`（沿用占位约定）。
+ *
+ * @param amount 币种桶金额（number 直读），可空
+ */
+export function formatCostAmount(amount?: number | null): string {
+  if (amount === null || amount === undefined) return '-';
+  if (Number.isNaN(amount)) return '-';
+  return amount.toLocaleString('zh-CN', { maximumFractionDigits: 8 });
+}
+
+/**
  * Trigger a browser download for an in-memory blob.
  *
  * 二进制流端点（订单源码包 / 项目文件包 tar.gz，无 ApiResponse 信封）取回 Blob 后的统一

@@ -1,17 +1,18 @@
 /**
- * 成本域 E2E mock fixtures（#61）——字段形状派生自 admin :8081 `/v3/api-docs`：
- * - `AiplatformCostOverviewResponse`（from/to 回显 + total 五档 + cost{} + byModel + byAgentKind）
+ * 成本域 E2E mock fixtures（#61，#64 币种桶点亮）——字段形状派生自 admin :8081 `/v3/api-docs`：
+ * - `AiplatformCostOverviewResponse`（from/to 回显 + total 五档 + cost 币种桶 + byModel + byAgentKind）
  * - `AiplatformUnpricedUsageResponse`（items 元素 `UnpricedTier`：provider/model/tokenKind·
  *   tokenKindName/tokens）
- * - `AiplatformProjectCostResponse`（清单行：projectId/total 五档/cost{}/allUnpriced）
+ * - `AiplatformProjectCostResponse`（清单行：projectId/total 五档/cost 币种桶/allUnpriced）
  * - `AiplatformProjectCostDetailResponse`（下钻：+ unpriced 档位清单【无 tokens——bySubject 口径】
  *   + byModel + byAgentKind）
  *
- * 契约要点（api-docs 实测，2026-09-16）：五档 token 为 **primitive long → JSON 数字**（区别于
- * 金额 Long-string 口径）；`cost{}` 按币种分桶为 swagger 空对象（REQ-20 #75 暂缓渲染——fixtures
- * 带 `{}` 空对象钉死「不因 cost{} 报错」）；byAgentKind 的 agentKindName 可为 null（辅助标记——
- * 前端落「—」桶）；项目清单排序服务端定死成本降序（fixtures 行序即服务端序）；时间窗 from/to
- * 必填（ISO-8601 Instant UTC 带 Z，半开 [from,to)）。
+ * 契约要点（api-docs 实测 + admin#75 @Schema 文档化）：五档 token 为 **primitive long → JSON 数字**
+ * （区别于金额 Long-string 口径）；`cost` 按币种分桶——键 = ISO 4217 币种码、值 = 金额 **swagger
+ * number 直读不折算**（非订单 Long 分口径，勿 ÷100）；**空对象 = 无用量或全未配价**（fixtures 带
+ * `{}` 钉死「空态文案、不伪装 0」——下钻零档与全未配价行两处）；byAgentKind 的 agentKindName 可为
+ * null（辅助标记——前端落「—」桶）；项目清单排序服务端定死成本降序（fixtures 行序即服务端序）；
+ * 时间窗 from/to 必填（ISO-8601 Instant UTC 带 Z，半开 [from,to)）。
  *
  * 与订单/项目/沙箱域 fixtures 交叉一致：projectId 复用 project-fixtures 同批 TSID
  * （教研备课知识库/校园社团招新小程序/口算天天练……），跨域排查叙事连贯。
@@ -22,7 +23,8 @@ export const OVERVIEW = {
   from: '2026-08-18T00:00:00Z',
   to: '2026-09-17T00:00:00Z',
   total: { input: 1234567, output: 987654, cacheRead: 456789, cacheWrite: 123456, reasoning: 234567 },
-  cost: {},
+  // 双币种桶（直读不折算断言锚点：CNY 89.5 / USD 12.34——金额降序 CNY 在前）
+  cost: { CNY: 89.5, USD: 12.34 },
   byModel: [
     {
       provider: 'anthropic',
@@ -57,12 +59,16 @@ export const UNPRICED_ROWS = [
   { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理', tokens: 12000 }
 ];
 
-/** 项目成本清单（12 行 = 两页 @size10；行序即服务端成本降序——全未配价排后）。 */
+/**
+ * 项目成本清单（12 行 = 两页 @size10；行序即服务端成本降序——全未配价排后）。
+ * cost 币种桶随行：教研 USD 12.34（下钻同值锚定）、智能排课双币种（多桶降序断言）、
+ * 校园 `{}`（零用量——与下钻 ZERO_DETAIL 叙事一致）、全未配价行 `{}`（空对象断言）。
+ */
 export const PROJECT_COST_ROWS = [
   {
     projectId: '7392120209100200009',
     total: { input: 600000, output: 500000, cacheRead: 250000, cacheWrite: 70000, reasoning: 150000 },
-    cost: {},
+    cost: { USD: 12.34 },
     allUnpriced: false
   },
   {
@@ -74,23 +80,23 @@ export const PROJECT_COST_ROWS = [
   {
     projectId: '7392120209101200012',
     total: { input: 150000, output: 120000, cacheRead: 40000, cacheWrite: 9000, reasoning: 20000 },
-    cost: {},
+    cost: { CNY: 208.5, USD: 1.05 },
     allUnpriced: false
   },
   {
     projectId: '7392120209100800011',
     total: { input: 50000, output: 30000, cacheRead: 12000, cacheWrite: 3000, reasoning: 6000 },
-    cost: {},
+    cost: { CNY: 30.4 },
     allUnpriced: false
   },
-  { projectId: '7392120209092800008', total: { input: 20000, output: 15000, cacheRead: 5000, cacheWrite: 1000, reasoning: 2000 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209092500007', total: { input: 18000, output: 14000, cacheRead: 4000, cacheWrite: 900, reasoning: 1800 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209092000006', total: { input: 12000, output: 9000, cacheRead: 3000, cacheWrite: 700, reasoning: 1200 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209091500005', total: { input: 9000, output: 6000, cacheRead: 2000, cacheWrite: 500, reasoning: 900 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209091000004', total: { input: 6000, output: 4000, cacheRead: 1500, cacheWrite: 300, reasoning: 600 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209090500003', total: { input: 4000, output: 2500, cacheRead: 800, cacheWrite: 200, reasoning: 400 }, cost: {}, allUnpriced: false },
-  { projectId: '7392120209090000002', total: { input: 2000, output: 1200, cacheRead: 400, cacheWrite: 100, reasoning: 200 }, cost: {}, allUnpriced: false },
-  // 全未配价行（有用量但无任何已配价分量——成本标量缺失排后 + allUnpriced=true 标注）
+  { projectId: '7392120209092800008', total: { input: 20000, output: 15000, cacheRead: 5000, cacheWrite: 1000, reasoning: 2000 }, cost: { CNY: 22.1 }, allUnpriced: false },
+  { projectId: '7392120209092500007', total: { input: 18000, output: 14000, cacheRead: 4000, cacheWrite: 900, reasoning: 1800 }, cost: { CNY: 18.9 }, allUnpriced: false },
+  { projectId: '7392120209092000006', total: { input: 12000, output: 9000, cacheRead: 3000, cacheWrite: 700, reasoning: 1200 }, cost: { CNY: 15.2 }, allUnpriced: false },
+  { projectId: '7392120209091500005', total: { input: 9000, output: 6000, cacheRead: 2000, cacheWrite: 500, reasoning: 900 }, cost: { CNY: 11.8 }, allUnpriced: false },
+  { projectId: '7392120209091000004', total: { input: 6000, output: 4000, cacheRead: 1500, cacheWrite: 300, reasoning: 600 }, cost: { CNY: 9.6 }, allUnpriced: false },
+  { projectId: '7392120209090500003', total: { input: 4000, output: 2500, cacheRead: 800, cacheWrite: 200, reasoning: 400 }, cost: { CNY: 7.3 }, allUnpriced: false },
+  { projectId: '7392120209090000002', total: { input: 2000, output: 1200, cacheRead: 400, cacheWrite: 100, reasoning: 200 }, cost: { CNY: 5.1 }, allUnpriced: false },
+  // 全未配价行（有用量但无任何已配价分量——成本标量缺失排后 + allUnpriced=true 标注 + cost 空对象）
   { projectId: '7392120209089500001', total: { input: 1000, output: 800, cacheRead: 300, cacheWrite: 80, reasoning: 150 }, cost: {}, allUnpriced: true }
 ];
 
@@ -117,7 +123,7 @@ export const PROJECT_COST_DETAILS = {
     from: '2026-08-18T00:00:00Z',
     to: '2026-09-17T00:00:00Z',
     total: { input: 500000, output: 420000, cacheRead: 210000, cacheWrite: 60000, reasoning: 130000 },
-    cost: {},
+    cost: { USD: 12.34 },
     unpriced: [
       { provider: 'anthropic', model: 'claude-opus-5', tokenKind: 2, tokenKindName: '输出' },
       { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理' }

@@ -1,17 +1,16 @@
 <script setup lang="ts">
 /**
- * 项目成本下钻抽屉（#61）——行点击打开，按当前时间窗拉单项目分解：
- * 五档 tile + byModel/byAgentKind 双柱状（复用总览同款组件）+ 未配价档位清单（无 token 计数——
- * bySubject 口径，档位用量汇总走全局 unpriced 端点）。查无此号/无用量 = 全零 total + 空结构
- * （明确空态非 404），如实渲染零值即「该窗口无此项目用量」。
- *
- * 「按币种成本」（cost{}）暂缓渲染（REQ-20 #75）——留位不建 UI，空对象不报错。
+ * 项目成本下钻抽屉（#61，#64 币种桶点亮）——行点击打开，按当前时间窗拉单项目分解：
+ * 五档 tile + 按币种成本 chips + byModel/byAgentKind 双柱状（复用总览同款组件）+ 未配价档位清单
+ * （无 token 计数——bySubject 口径，档位用量汇总走全局 unpriced 端点）。查无此号/无用量 =
+ * 全零 total + 空结构（明确空态非 404），如实渲染零值即「该窗口无此项目用量」。
  */
 import { computed, ref, watch } from 'vue';
 import { fetchGetAiplatformProjectCostDetail } from '@/service/api';
 import { $t } from '@/locales';
 import { formatDateTime } from '@/utils/common';
 import { agentKindUsageRows, modelUsageRows } from './breakdown';
+import CostBuckets from './cost-buckets.vue';
 import TokenUsageTiles from './token-usage-tiles.vue';
 import BreakdownChart from './breakdown-chart.vue';
 
@@ -66,6 +65,12 @@ const byAgentKindRows = computed(() => agentKindUsageRows(detail.value?.byAgentK
         <div>
           <div class="mb-8px font-600">{{ $t('page.aiplatform.cost.overview') }}</div>
           <TokenUsageTiles :total="detail?.total ?? null" :loading="loading" />
+        </div>
+
+        <!-- 按币种成本（admin#75 点亮：金额直读不折算；空对象＝空态不伪装 0） -->
+        <div>
+          <div class="mb-8px font-600">{{ $t('page.aiplatform.cost.costBuckets') }}</div>
+          <CostBuckets :cost="detail?.cost ?? null" />
         </div>
 
         <!-- 未配价档位（无 token 计数口径；空=构成完整） -->

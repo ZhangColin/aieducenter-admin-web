@@ -11,12 +11,12 @@
  * - 项目状态两档（provider 文档「1=进行中, 3=已归档」，码位 2 已注销不复用）：筛选三档单选 =
  *   全部(缺省)/进行中(1)/已归档(3)——与订单 status 多选逗号串有意不同（单值直传）。
  * - 项目类型 1=官网 2=电商（v1 单模板，分类仅展示，typeName 随行）。
- * - 对话史 kind 1=user 2=agent 3=question 4=answer 5=closing 6=guide；全量同序（id 升序=对话序）；
- *   question/closing/attachments 为事件载荷原样——REQ-20（admin#75）swagger 空对象未文档化，
- *   前端跳过不渲染（仅渲染 text/kind/answered/at）。
+ * - 对话史 kind 1=user 2=agent 3=question 4=answer 5=closing 6=guide 7=quote；全量同序（id 升序=对话序）；
+ *   question/closing/attachments/quote 为事件载荷原样（admin#75 已钉进 swagger @Schema——结构见
+ *   各 payload 接口注释；载荷缺失/形状不符走空态不报错）。kindName 中文名随行直读（7=报价卡）。
  * - 版本列表 = 容器 git log 新→旧；回滚版本 runId 空、rollbackFrom 锚定源版本；
- *   版本详情 closing 为收尾卡载荷（Map，可空——收尾卡缺位/回滚版本无收尾卡）。
- * - costSummary.cost 为 `{}`（REQ-20 暂缓渲染）；unpriced=true 成本不完整。
+ *   版本详情 closing 为收尾卡载荷（与对话史 kind=5 同载荷 #88，可空——收尾卡缺位/回滚版本无收尾卡）。
+ * - costSummary.cost 为按币种分桶（admin#75 已文档化）；unpriced=true 成本不完整。
  * - 价目史 `priceEntries` append-only 全量、新→旧，每条带操作者（存量行操作者为 null）。
  * - 分页全链 1-based（ADR-0012），请求 `page` 直传零 ±1。
  * - `status` 多选筛选项（订单域）：逗号分隔单值（`status=1,5`，BFF 拼串透传 provider 签名协议）。
@@ -29,7 +29,9 @@
  *   前端直接回填抽屉免二次回读）；错误码数字形＝域码 1×1000＋序号（1001/1009/1015/1016/1017）。
  * - 成本域（#61，4 读端点）：时间窗 from/to **必填**（BFF 不设默认窗口；半开 [from,to)、
  *   ISO-8601 Instant UTC 带 Z）；五档 token 为 primitive long → JSON **数字**（非 Long-string）；
- *   `cost{}` 按币种分桶暂缓渲染（REQ-20 #75）；byAgentKind 的 agentKindName 为 null 落「—」桶
+ *   `cost` 按币种分桶（admin#75 已文档化——键 = ISO 4217 币种码、值 = 金额直读不折算，
+ *   swagger number 可能带小数，**不做分→元换算**；空对象 = 无用量或全未配价不伪装 0）；
+ *   byAgentKind 的 agentKindName 为 null 落「—」桶
  *   （辅助标记）；项目成本清单排序服务端定死成本降序（全未配价排后 allUnpriced=true）。
  * - 单价表域（#62，3 端点）：`unitPrice` BigDecimal → JSON **string** 明文小数、**请求侧为 number**
  *   （REQ-20 #75——预填保响应原串勿经 Number() 往返，微小价位会落科学计数法形）；改价＝同事务
@@ -158,8 +160,97 @@ declare namespace Api {
     /** 项目类型：1=官网 2=电商（v1 单模板，分类仅展示）。 */
     type ProjectType = 1 | 2;
 
-    /** 对话史条目 kind：1=user 2=agent 3=question 4=answer 5=closing 6=guide。 */
-    type ConversationEntryKind = 1 | 2 | 3 | 4 | 5 | 6;
+    /** 对话史条目 kind：1=user 2=agent 3=question 4=answer 5=closing 6=guide 7=quote（aiplatform#203）。 */
+    type ConversationEntryKind = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+    /**
+     * 问答卡载荷（kind=3 携带，其余 kind 为 null）——question-raised 事件 payload 原样
+     * （admin#75 @Schema 文档化）。呈现投影 = `data.questions`；`data.toolCalls` 为答复续跑
+     * 重建所需的待确认工具最小面（服务侧语义，不呈现）。
+     */
+    interface QuestionCardPayload {
+      runId?: string;
+      sessionId?: string;
+      engine?: string;
+      /** 单句概括（多问并一卡时为首个问题的原文） */
+      summary?: string;
+      engineRef?: string;
+      data?: {
+        toolCalls?: { id?: string; name?: string; input?: Record<string, unknown> }[];
+        /** 问答卡投影（呈现主体）；custom 恒 true 可自由输入 */
+        questions?: {
+          header?: string;
+          question?: string;
+          multiple?: boolean;
+          custom?: boolean;
+          options?: { label?: string }[];
+        }[];
+      };
+    }
+
+    /** 收尾卡文件变更行（closing.files 元素）。 */
+    interface ClosingFileChange {
+      path: string;
+      added: number;
+      removed: number;
+    }
+
+    /**
+     * 收尾卡载荷（kind=5 携带 / 版本详情锚定，#88 同载荷两承载面）——run-finish 收口扩载
+     * 原样（admin#75 @Schema 文档化）。**可缺省键＝该轮无该事实**（全字段可选，按存在渲染）；
+     * durationBreakdown 为平台分析口径，呈现可忽略（文档明示，不渲染）。
+     */
+    interface ClosingCardPayload {
+      summary?: string;
+      prdChanged?: boolean;
+      prdNote?: string;
+      systemChanged?: boolean;
+      systemNote?: string;
+      files?: ClosingFileChange[];
+      durationMs?: number;
+      selfTest?: { total?: number };
+      /** 锚定版本 commit hash（全量 64 位十六进制） */
+      version?: string;
+      durationBreakdown?: {
+        llmMs?: number;
+        toolsMs?: number;
+        selfTestMs?: number;
+        closingMs?: number;
+        attempts?: number[];
+      };
+    }
+
+    /**
+     * 圈注附件（kind=1 用户发言可携带，#97）——结构化定位＋标注类型，据此重建圈注 chip
+     * （非截图）。annotation.kind 三值：select=点选锚定 / circle=拖框圈区域 / comment=历史兼容。
+     */
+    interface AnnotationAttachment {
+      /** 恒 "annotation"（v1 唯一附件类型） */
+      attachmentType?: string;
+      annotation?: {
+        kind?: string;
+        anchor?: {
+          /** CSS 选择器（select 点选） */
+          selector?: string;
+          /** 锚定文本（select 点选） */
+          text?: string;
+          /** 拖框区域（circle 圈选，页面坐标） */
+          region?: { x: number; y: number; width: number; height: number };
+        };
+        note?: string;
+      };
+    }
+
+    /**
+     * 报价卡载荷（kind=7 携带，其余 kind 为 null，aiplatform#203）——仅事件＋订单引用，
+     * **不含金额**（视镜非快照，aiplatform ADR-0017——金额/备注/状态呈现时取订单当前态）。
+     */
+    interface QuoteCardPayload {
+      /** Long → JSON string（防 JS 精度丢失） */
+      orderId: string;
+      /** quoted=报价已出 / repriced=报价已更新（改价即刻对用户可见） */
+      event: 'quoted' | 'repriced';
+    }
 
     /** 项目列表行（GET /projects items 元素；清单 TSID 倒序=新项目在前，服务端定死）。 */
     interface ProjectSummary {
@@ -185,9 +276,12 @@ declare namespace Api {
       statusName: string;
     }
 
-    /** 成本指针（cost:{} 为 REQ-20 缺口暂缓渲染；unpriced=true 成本不完整，无用量＝false 空态）。 */
+    /**
+     * 成本指针（cost 按币种分桶，admin#75 已文档化——键 = ISO 4217 币种码、值 = 金额直读不折算；
+     * 空对象 = 无用量或全未配价，空态文案不伪装 0。unpriced=true 成本不完整，无用量＝false 空态）。
+     */
     interface CostSummary {
-      /** 按币种分桶——swagger 空对象未文档化（REQ-20 #75），v1 不渲染 */
+      /** 按币种分桶（金额 swagger number 直读——非平台 Long 分口径，不做 ÷100 换算） */
       cost?: Record<string, number>;
       unpriced: boolean;
     }
@@ -224,14 +318,16 @@ declare namespace Api {
       kindName: string;
       /** 锚定构建 run（用户发言/平台引导为 null） */
       runId: string | null;
-      /** 话语正文——question/closing 条目为 null（载荷跳过，REQ-20） */
+      /** 话语正文——question/closing/quote 条目为 null（载荷入正文区渲染） */
       text: string | null;
-      /** 问答卡事件载荷原样——REQ-20 未文档化，跳过不渲染 */
-      question?: Record<string, unknown> | null;
-      /** 收尾卡载荷原样——REQ-20 未文档化，跳过不渲染（版本详情有锚定正口） */
-      closing?: Record<string, unknown> | null;
-      /** 圈注附件原样——REQ-20 未文档化，跳过不渲染 */
-      attachments?: unknown[] | null;
+      /** 问答卡载荷（kind=3 携带；缺失/形状不符走空态） */
+      question?: QuestionCardPayload | null;
+      /** 收尾卡载荷（kind=5 携带；与版本详情 #88 同载荷，ClosingCard 共组件渲染） */
+      closing?: ClosingCardPayload | null;
+      /** 圈注附件（kind=1 用户发言可携带；缺失/形状不符走空态） */
+      attachments?: AnnotationAttachment[] | null;
+      /** 报价卡载荷（kind=7 携带；视镜语义不含金额） */
+      quote?: QuoteCardPayload | null;
       /** 问答卡作答标记（kind=3 语义：false=挂起待答；其余 kind 恒 false 不渲染） */
       answered: boolean;
       at: string;
@@ -263,8 +359,8 @@ declare namespace Api {
       runId: string | null;
       rollbackFrom: string | null;
       committedAt: string;
-      /** 收尾卡载荷（Map）——收尾卡缺位/回滚版本为 null（兜底文案） */
-      closing: Record<string, unknown> | null;
+      /** 收尾卡载荷（#88 与对话史 kind=5 同载荷，ClosingCard 共组件）——收尾卡缺位/回滚版本为 null */
+      closing: ClosingCardPayload | null;
     }
 
     /** 文件树条目（GET /projects/{id}/files 的 files 元素）。只列文件——目录由前端按路径段合成；size Long（字节）→ JSON string。 */
@@ -417,7 +513,7 @@ declare namespace Api {
       from: string;
       to: string;
       total: TokenUsage;
-      /** 按币种分桶——swagger 空对象未文档化（REQ-20 #75），v1 不渲染 */
+      /** 按币种分桶（admin#75 已文档化——ISO 4217 码 → 金额直读不折算；空对象＝无用量或全未配价） */
       cost?: Record<string, number>;
       byModel: ModelUsage[];
       byAgentKind: AgentKindUsage[];
@@ -444,7 +540,7 @@ declare namespace Api {
       /** 计量 subject 原值（TSID 十进制串；已删项目照列——项目名归前端互查，不解释存在性） */
       projectId: string;
       total: TokenUsage;
-      /** 按币种分桶——REQ-20 #75 暂缓渲染 */
+      /** 按币种分桶（admin#75 已文档化——ISO 4217 码 → 金额直读不折算；空对象＝无用量或全未配价） */
       cost?: Record<string, number>;
       /** 全未配价标注（有用量但无任何已配价分量——true 时成本不完整） */
       allUnpriced: boolean;
@@ -468,7 +564,7 @@ declare namespace Api {
       from: string;
       to: string;
       total: TokenUsage;
-      /** 按币种分桶——REQ-20 #75 暂缓渲染 */
+      /** 按币种分桶（admin#75 已文档化——ISO 4217 码 → 金额直读不折算；空对象＝无用量或全未配价） */
       cost?: Record<string, number>;
       unpriced: UnpricedTierMark[];
       byModel: ModelUsage[];

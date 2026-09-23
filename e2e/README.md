@@ -1,9 +1,10 @@
-# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域）
+# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域、#64 契约增量）
 
 headless Chrome（`playwright-core` 系统 channel，**免下载浏览器**）+ `page.route` 全量 mock。
 mock fixtures 的字段形状**派生自 admin :8081 `/v3/api-docs`**（各域 `support/*-fixtures.mjs` 头注释标明
 对照的 schema 名）；错误信封按 BFF `AiplatformUpstreamErrorAdvice` 形状：HTTP 状态照抄 provider、
-`code`＝数字业务码（域码×1000＋序号）、`message` 原文透传。
+`code`＝数字业务码（域码×1000＋序号）、`message` 原文透传。#64 起消费 admin#75 文档化增量
+（cost 币种桶 / 对话条目四载荷 / kind=7 报价卡）。
 
 ## 运行
 
@@ -19,10 +20,11 @@ node e2e/order.e2e.mjs
 ```
 e2e/
   order.e2e.mjs            订单域验收流（列表/筛选/分页/抽屉/三写/下载/错误 toast）
-  project.e2e.mjs          项目域验收流（列表/筛选/分页/抽屉五 tab：基本信息/对话史/PRD/版本/交付文件）
+  project.e2e.mjs          项目域验收流（列表/筛选/分页/抽屉五 tab：基本信息/对话史（#64 四载荷 +
+                           报价卡 orderId 复制）/PRD/版本（#64 ClosingCard 结构化）/交付文件）
   workspace.e2e.mjs        沙箱域验收流（列表/期望态·实态过滤（漂移组合）/抽屉全字段/四写门控/直填+失败 toast）
   cost.e2e.mjs             成本域验收流（时间窗必填/五档 tile/双柱状（「—」桶 tooltip 锚定）/unpriced 卡
-                           高亮⇄收起/项目成本表分页/行点击下钻/清窗停查）
+                           高亮⇄收起/项目成本表分页/行点击下钻/清窗停查/#64 币种桶四面（含空对象空态））
   price-entry.e2e.mjs      单价表域验收流（清单契约字段（含历史行 + operator 两列）/provider·model 精确
                            过滤/分页 1-based/原子改价（预填原串 REQ-20 + string→number + Instant UTC +
                            回执 closed/opened 两行 + 刷新入列）/停用即时关行/失败透传 toast）
@@ -31,13 +33,13 @@ e2e/
                            installAiplatformMocks(page, { order?, project?, workspace?, cost?, priceEntry?, ... })
                            域 fixtures 可选挂载）
     order-fixtures.mjs     订单 fixtures（AiplatformOrderSummaryResponse / DetailResponse 形状）
-    project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail / Conversation / Prd / Version /
-                           Files / FileContent 形状 + 文件拒读响应）
+    project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail（costSummary 币种桶）/ Conversation
+                           （#64 四载荷 + kind=7）/ Prd / Version / Files / FileContent 形状 + 文件拒读响应）
     workspace-fixtures.mjs 沙箱 fixtures（WorkspaceSummary / Detail 形状——期望态/实态全状态矩阵；
                            harness applyWorkspaceAction 按 action 变异基档回「动作后观测详情」）
     cost-fixtures.mjs      成本 fixtures（Overview / Unpriced / ProjectCost / Detail 形状——五档
-                           primitive long 数字口径、cost{} 空对象（REQ-20）、agentKindName null、
-                           unpriced 事件时点窗敏感（UNPRICED_EVENT_AT））
+                           primitive long 数字口径、cost 币种桶（admin#75 文档化——直读不折算 +
+                           空对象空态）、agentKindName null、unpriced 事件时点窗敏感（UNPRICED_EVENT_AT））
     price-entry-fixtures.mjs 单价表 fixtures（AiplatformUnitPriceEntryResponse 形状——unitPrice BigDecimal
                            string 明文小数（请求侧 number，REQ-20）、历史行 + 种子行 operator null、
                            改价/停写变异由 harness 就地改行（刷新后清单如实呈现））

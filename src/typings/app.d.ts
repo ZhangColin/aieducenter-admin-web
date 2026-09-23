@@ -1206,6 +1206,16 @@ declare namespace App {
               answered: string;
               pendingAnswer: string;
               emptyConversation: string;
+              payloadMissing: string;
+              questionMultiple: string;
+              annotationSelect: string;
+              annotationCircle: string;
+              annotationComment: string;
+              quoteQuoted: string;
+              quoteRepriced: string;
+              quoteCopy: string;
+              quoteCopied: string;
+              quoteRepricedTip: string;
               prdUpdatedAt: string;
               prdEmpty: string;
               versionCommit: string;
@@ -1217,6 +1227,17 @@ declare namespace App {
               versionEmpty: string;
               closingCard: string;
               closingMissing: string;
+              closingSummary: string;
+              closingPrdChanged: string;
+              closingSystemChanged: string;
+              closingFiles: string;
+              closingDuration: string;
+              closingSelfTest: string;
+              closingSelfTestItems: string;
+              closingVersion: string;
+              durationH: string;
+              durationM: string;
+              durationS: string;
               downloadPackage: string;
               filesEmpty: string;
               filesSelectHint: string;
@@ -1303,6 +1324,8 @@ declare namespace App {
             overview: string;
             byModel: string;
             byAgentKind: string;
+            costBuckets: string;
+            costBucketsEmpty: string;
             tier: {
               input: string;
               output: string;
@@ -1321,6 +1344,7 @@ declare namespace App {
             projects: {
               title: string;
               projectId: string;
+              cost: string;
               pricing: string;
               allUnpriced: string;
               priced: string;

@@ -6,8 +6,9 @@
  * 时间窗契约（BFF #67 拍板）：from/to **必填**（半开 [from,to)、ISO-8601 Instant UTC 带 Z）、
  * BFF 不设默认窗口——前端显式传窗（默认最近 30 自然日，变更即重查）；缺任一侧不发起任何请求
  * （windowQuery 归 null，四段全部停查、整页出「请选择时间窗」提示）。
- * 五档 token 为 primitive long → JSON 数字（formatCount 千分位）；「按币种成本」（cost{}）
- * 暂缓渲染留位（REQ-20 #75），不因空对象报错。
+ * 五档 token 为 primitive long → JSON 数字（formatCount 千分位）；「按币种成本」admin#75 已文档化
+ * （#64 点亮：键 = ISO 4217 币种码、值 = 金额 **直读不折算**——非订单 Long 分口径勿套 formatMoney；
+ * 空对象 = 无用量或全未配价，空态文案不伪装 0；总览区 + 项目成本表列两承载面走 CostBuckets 单点）。
  * 项目成本表排序服务端定死成本降序（全未配价排后 allUnpriced=true 标注）——前端不重排、
  * 分页 1-based 直传零 ±1；行点击下钻与总览同窗。
  */
@@ -19,8 +20,9 @@ import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import { TOKEN_TIER_KEYS, tokenTierLabel } from '@/constants/aiplatform';
-import { formatCount, tsToUtcInstant } from '@/utils/common';
-import { agentKindUsageRows, modelUsageRows } from './modules/breakdown';
+import { formatCostAmount, formatCount, tsToUtcInstant } from '@/utils/common';
+import { agentKindUsageRows, costBucketEntries, modelUsageRows } from './modules/breakdown';
+import CostBuckets from './modules/cost-buckets.vue';
 import TokenUsageTiles from './modules/token-usage-tiles.vue';
 import BreakdownChart from './modules/breakdown-chart.vue';
 import UnpricedAlert from './modules/unpriced-alert.vue';
@@ -110,6 +112,13 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         render: (row: Api.Aiplatform.ProjectCost) => formatCount(row.total[key])
       })),
       {
+        key: 'cost',
+        title: $t('page.aiplatform.cost.projects.cost'),
+        align: 'right',
+        width: 140,
+        render: (row: Api.Aiplatform.ProjectCost) => renderCostCell(row.cost)
+      },
+      {
         key: 'allUnpriced',
         title: $t('page.aiplatform.cost.projects.pricing'),
         align: 'center',
@@ -130,6 +139,17 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
 
 function getRowKey(row: Api.Aiplatform.ProjectCost) {
   return row.projectId;
+}
+
+/** 行内币种桶（与 chips 同口径：直读不折算；多币种纵向堆叠，空对象「—」不伪装 0）。 */
+function renderCostCell(cost?: Record<string, number>) {
+  const buckets = costBucketEntries(cost);
+  if (!buckets.length) return <span class="text-#999">—</span>;
+  return buckets.map(([currency, amount]) => (
+    <div key={currency} class="font-mono">
+      {currency} {formatCostAmount(amount)}
+    </div>
+  ));
 }
 
 /** 行点击 → 下钻抽屉（整行可点；与总览同窗）。 */
@@ -203,7 +223,14 @@ const gap = computed(() => (appStore.isMobile ? 0 : 16));
         <div v-if="overviewError" class="flex-center h-80px">
           <NEmpty :description="$t('page.aiplatform.cost.states.loadFailed')" />
         </div>
-        <TokenUsageTiles v-else :total="overview?.total ?? null" :loading="overviewLoading" />
+        <template v-else>
+          <TokenUsageTiles :total="overview?.total ?? null" :loading="overviewLoading" />
+          <!-- 按币种成本（admin#75 点亮：金额直读不折算；空对象＝空态不伪装 0） -->
+          <div class="mt-12px">
+            <div class="mb-8px font-600">{{ $t('page.aiplatform.cost.costBuckets') }}</div>
+            <CostBuckets :cost="overview?.cost ?? null" />
+          </div>
+        </template>
       </NCard>
 
       <!-- 双柱状（byModel / byAgentKind） -->

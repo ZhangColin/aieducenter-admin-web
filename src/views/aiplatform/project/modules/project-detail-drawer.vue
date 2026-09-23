@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 项目详情抽屉（#58/#59）——五 tab：基本信息（订单引用双档/成本指针/工作区引用）/ 对话史 / PRD / 版本 / 交付文件。
+ * 项目详情抽屉（#58/#59，#64 成本指针币种桶点亮）——五 tab：基本信息（订单引用双档/成本指针/工作区引用）/ 对话史 / PRD / 版本 / 交付文件。
  *
  * 项目域纯读、各 tab 数据各自独立端点——除基本信息外均「v-if 按 tab 挂载即加载」
  * （切 tab 卸载重挂，天然重置；抽屉每次打开 activeTab 回 basic）。对话史/PRD/版本/交付文件
@@ -16,6 +16,7 @@ import ConversationPane from './conversation-pane.vue';
 import FilesPane from './files-pane.vue';
 import PrdPane from './prd-pane.vue';
 import VersionsPane from './versions-pane.vue';
+import CostBuckets from '../../cost/modules/cost-buckets.vue';
 
 defineOptions({ name: 'ProjectDetailDrawer' });
 
@@ -111,11 +112,14 @@ watch(visible, val => {
             <div class="desc-row">
               <div class="desc-label">{{ $t('page.aiplatform.project.drawer.costSummary') }}</div>
               <div class="desc-value">
-                <!-- cost 桶 REQ-20（admin#75）swagger 空对象暂缓渲染，只读 unpriced 完整性标记 -->
-                <NTag v-if="detail.costSummary.unpriced" type="warning" size="small">
-                  {{ $t('page.aiplatform.project.drawer.costUnpriced') }}
-                </NTag>
-                <NTag v-else type="success" size="small">{{ $t('page.aiplatform.project.drawer.costComplete') }}</NTag>
+                <!-- 币种桶（admin#75 点亮：金额直读不折算；空对象＝空态文案不伪装 0）+ unpriced 完整性标记 -->
+                <div class="flex flex-wrap items-center gap-6px">
+                  <CostBuckets :cost="detail.costSummary.cost" />
+                  <NTag v-if="detail.costSummary.unpriced" type="warning" size="small">
+                    {{ $t('page.aiplatform.project.drawer.costUnpriced') }}
+                  </NTag>
+                  <NTag v-else type="success" size="small">{{ $t('page.aiplatform.project.drawer.costComplete') }}</NTag>
+                </div>
               </div>
             </div>
             <div class="desc-row">
