@@ -1308,6 +1308,10 @@ const local: App.I18n.Schema = {
           executor: 'Run Executor',
           subagent: 'Sub-agent'
         },
+        empty: {
+          description: 'No skills to assign — options are skills installed in Skill Management (built-in skills are not assignable)',
+          action: 'Go to Skill Management'
+        },
         save: 'Save Assignments',
         saved: 'Assignments saved for {slot}'
       },

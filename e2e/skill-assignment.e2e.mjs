@@ -6,7 +6,8 @@
  * 响应无 slotName）＋切签/进入加载对应 GET 预填 / 选项表不列 builtin＋行上下文列取自技能清单＋
  * 停用行可勾与状态 warning tag（终态语义：停用不解除指派）/ 保存＝直接 PUT {skillIds[]}＋toast 无
  * 确认弹窗、空勾选＝清空、成功后回读刷新 / assign 权限码门控保存钮（全量权限下按钮在）/
- * 失败透传 message toast（400 SKL_011 注入代表样）。
+ * 失败透传 message toast（400 SKL_011 注入代表样）/ 空选项集引导（零安装行 → NEmpty＋跳技能管理，
+ * 无裸空表无保存钮——#68 空态实录：选项集空时「怎么指派」无从下手）。
  *
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/skill-assignment.e2e.mjs`。
  */
@@ -174,6 +175,27 @@ async function main() {
   h.check('失败 toast 透传 provider message（SKL_011）', Boolean(failToast), JSON.stringify(failToast));
   await sleep(600);
   h.check('失败后勾选态保留（未回读、可修正重试）', (await rowChecked(docRow)) === false);
+
+  /* ================= 9. 空选项集引导：零安装行 → NEmpty＋跳技能管理（无裸空表、无保存钮） ================= */
+  // 构造「从未安装过技能」实态：清单只余内置行（builtin 不列选项集，source 过滤后为空——真链
+  // #68 空态实录）。破坏性变异放最后（后续节不再依赖安装行）。
+  for (let i = skillFixtures.SKILL_ROWS.length - 1; i >= 0; i -= 1) {
+    if (skillFixtures.SKILL_ROWS[i].source === 2) skillFixtures.SKILL_ROWS.splice(i, 1);
+  }
+  await page.goto(`${BASE}/aiplatform/skill-assignment`);
+  await sleep(800);
+  h.check(
+    '空选项集：NEmpty 引导呈现（说明文案）',
+    (await page.locator('.n-empty').count()) === 1 && (await page.locator('.n-empty').innerText()).includes('暂无可指派技能')
+  );
+  h.check('空选项集：跳转入口「去技能管理安装」在', (await page.getByRole('button', { name: /去技能管理安装/ }).count()) === 1);
+  h.check(
+    '空选项集：无裸空表、无保存钮（无可指派＝保存无意义）',
+    (await page.locator('.n-data-table').count()) === 0 && (await page.getByRole('button', { name: /保\s*存/ }).count()) === 0
+  );
+  await page.getByRole('button', { name: /去技能管理安装/ }).click();
+  await page.waitForURL(/\/aiplatform\/skill$/, { timeout: 10000 });
+  h.check('引导入口跳达技能管理页', page.url().endsWith('/aiplatform/skill'));
 }
 
 main()

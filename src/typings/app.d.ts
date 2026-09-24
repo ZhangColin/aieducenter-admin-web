@@ -1528,6 +1528,10 @@ declare namespace App {
               executor: string;
               subagent: string;
             };
+            empty: {
+              description: string;
+              action: string;
+            };
             save: string;
             saved: string;
           };

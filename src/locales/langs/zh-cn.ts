@@ -1306,6 +1306,10 @@ const local: App.I18n.Schema = {
           executor: 'run 执行体',
           subagent: '子智能体'
         },
+        empty: {
+          description: '暂无可指派技能——指派选项为技能管理中已安装的技能（内置技能不参与指派）',
+          action: '去技能管理安装'
+        },
         save: '保存指派',
         saved: '已保存 {slot} 指派'
       },

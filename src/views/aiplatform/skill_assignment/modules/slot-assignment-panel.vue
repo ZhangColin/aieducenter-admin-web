@@ -15,6 +15,7 @@ import type { DataTableColumn, DataTableRowKey } from 'naive-ui';
 import { SKILL_ASSIGN_AUTH, skillAssignmentStatusTagColor, skillSlotLabel } from '@/constants/aiplatform';
 import { fetchAssignAiplatformSkills, fetchGetAiplatformSkillAssignments } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
+import { useRouterPush } from '@/hooks/common/router';
 import { $t } from '@/locales';
 
 defineOptions({ name: 'SlotAssignmentPanel' });
@@ -29,6 +30,7 @@ const props = defineProps<{
 }>();
 
 const { hasAuth } = useAuth();
+const { routerPushByKey } = useRouterPush();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -104,19 +106,37 @@ onMounted(loadAssignments);
 
 <template>
   <div class="flex-col-stretch gap-12px">
-    <NDataTable
-      v-model:checked-row-keys="checkedRowKeys"
-      :columns="columns"
-      :data="props.skills"
-      size="small"
-      :row-key="getRowKey"
-      :loading="loading || props.optionsLoading"
-    />
-    <!-- assign 权限码门控保存钮（无码不渲染——六域按钮门控范式） -->
-    <div v-if="hasAuth(SKILL_ASSIGN_AUTH)" class="flex justify-end">
-      <NButton type="primary" size="small" :loading="saving" @click="handleSave">
-        {{ $t('page.aiplatform.skillAssignment.save') }}
-      </NButton>
-    </div>
+    <!--
+ 选项集空引导：安装技能为 0 → 无行可勾（表内建技能不列、契约不可指派——空表只剩「暂无数据」
+         会让「怎么指派」无从下手，#68 空态实录）。指派了必先安装（卸载 409 先解绑）→ 此时保存无意义，
+         整签换 NEmpty＋跳技能管理安装入口。 
+-->
+    <NEmpty
+      v-if="!loading && !props.optionsLoading && props.skills.length === 0"
+      class="py-24px"
+      :description="$t('page.aiplatform.skillAssignment.empty.description')"
+    >
+      <template #extra>
+        <NButton size="small" @click="routerPushByKey('aiplatform_skill')">
+          {{ $t('page.aiplatform.skillAssignment.empty.action') }}
+        </NButton>
+      </template>
+    </NEmpty>
+    <template v-else>
+      <NDataTable
+        v-model:checked-row-keys="checkedRowKeys"
+        :columns="columns"
+        :data="props.skills"
+        size="small"
+        :row-key="getRowKey"
+        :loading="loading || props.optionsLoading"
+      />
+      <!-- assign 权限码门控保存钮（无码不渲染——六域按钮门控范式） -->
+      <div v-if="hasAuth(SKILL_ASSIGN_AUTH)" class="flex justify-end">
+        <NButton type="primary" size="small" :loading="saving" @click="handleSave">
+          {{ $t('page.aiplatform.skillAssignment.save') }}
+        </NButton>
+      </div>
+    </template>
   </div>
 </template>
