@@ -215,6 +215,14 @@ mock E2E（order **35/35** + project **87/87** 两轮全绿 + workspace 48/48 / 
 - **mock 单一事实源**：harness `ACCOUNT_PROFILES` 恒挂载（有码无页、无域 fixtures 参数），`externalIdOwnerMap` 改由它派生——订单/项目 externalId 筛选与档案端点同一批账号；嵌件用例挂订单/项目 e2e 尾部（无独立文件）。
 - **code-review 修正（双轴 review，紧随本票；修后 order 35/35 + project 87/87 复绿）**：① spec 轴指出筛选驱动系 REQ-21（admin#76）落地前的降级替代——组件/服务层/本条目补「过渡实现，detail 补 ownerExternalId 后迁锚点」注记防固化；② e2e 补档案昵称断言（`赵六` 双处渲染 count≥2——基本信息 ownerDisplayName + 档案 displayName 同名互证）。review 判断项不修记录在案：两域 e2e 嵌件段 ~15 行逐字同型（e2e 惯例每域自包含，第三例再提 helper）；externalId prop 经 index→drawer 两跳纯转发（Vue prop drilling 惯用 + 注释钉转发理由）；watch 异步无乱序防护（抽屉模态期间筛选不可变，不可达不防）；account:read 无码门控无 e2e（harness 恒授全码、无降权登录先例，hasAuth 门控与全站同型不单测）。
 
+### 2026-09-24 #56 联调收口：真实链全量走查通过 ✅（admin-web :3001 → admin :8081 → aiplatform :8888）
+
+**API 层 34/34 端点全触达 + UI 真链走查 9/9**（六域页面真数据渲染 + 登录/动态菜单 + 账号档案嵌件 live 点亮——externalId 筛选 → 抽屉真档案四字段）。收域标准对照：① 域内全端点 happy path ✅（读全 200；写经素材 disable⇄enable 触达）；② 写操作留痕落库 ✅（回执与详情回读 `operatorId=1 超级管理员`——X-User-Id/Name 出站注入 → provider operator 列）；③ 分页与过滤边界 ✅（1-based page=1/2、size clamp 500→100 回显、超总页空 items、orderId 查无空清单 200、externalId/status 过滤、成本缺窗 400）；④ 签名负例三连属 admin↔aiplatform 机机面（admin#61 自身验收项，admin 仓执行）——本联调全链经 admin 出站签名成功即签名机制正向证据。
+
+- **数据态非缺陷（透传路径如预期）**：休眠沙箱（desired=休眠、无容器）项目 versions/files、未备工作区订单源码包 → 500 WSP_002「环境后端操作失败」（git/打包需活工作区——运行中沙箱项目 versions 13 版/files 103/文件包 190KB gzip 全通）；PRD 未产出 → 404 PRJ_015。前端 onError 透传 toast 兜底正确。
+- **超管权限口径印证**：admin（超管）`/auth/current` permissions 为空——后端 bypass + 前端 `hasAuth` `isStaticSuper` 放行（auth.ts 在案注释），嵌件/写按钮正常显隐。
+- **环境数据留档**：单价表有一行 2026-09-24 生效的预发布改价（0.00000133）、订单价目史三行（9-23「#56 联调冒烟：改价验证」）——前轮后端冒烟留痕；素材域唯一数据「联调冒烟素材（#56 验证后删除）」经本联调 disable⇄enable 后**保留未删**（删光唯一素材令素材页空态，保留利于后续联调；其标题为前轮冒烟者备忘）。
+
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
 mock E2E（material **46/46 两轮全绿** + order 31/31 / project 63/63 / workspace 48/48 / cost 38/38 / price-entry 44/44 回归绿）。验收六条全过：清单渲染契约字段（id/kind/projectId·projectName/title/status·statusName/sunkAt/operatorId·operatorName——未治理行 '-'）/ status 单选 + 沉淀时间闭区间（Instant UTC 带 Z）+ projectId 精确筛选、分页 1-based / 详情抽屉（元数据 + content＝块按 seq 空行拼接全文 pre 呈现）/ 停用⇄启用按状态门控切换（行·抽屉双触发面）+ 删除 $dialog 确认（不可逆提示）、正确端点、成功后刷新 / 失败透传 message 统一 toast（400 KNW_006→2006）。
