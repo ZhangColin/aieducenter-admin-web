@@ -266,11 +266,12 @@ function handleWriteSuccess(successKey: 'quoted' | 'cancelled') {
       />
     </NCard>
 
-    <!-- 详情抽屉（价目史 + PRD 快照 + 按态写操作 + 源码包下载） -->
+    <!-- 详情抽屉（价目史 + PRD 快照 + 按态写操作 + 源码包下载 + 账号档案嵌件） -->
     <OrderDetailDrawer
       ref="drawerRef"
       v-model:visible="drawerVisible"
       :order-id="selectedOrderId"
+      :external-id="searchParams.externalId ?? null"
       @quote="openQuote"
       @cancel="openCancel"
       @retry="handleRetryArchive"

@@ -688,5 +688,17 @@ declare namespace Api {
     }
 
     type MaterialFilter = Omit<MaterialSearchParams, 'page' | 'size'>;
+
+    /**
+     * 账号档案（GET /accounts/{externalId}；有码无页——订单/项目详情抽屉嵌件按 externalId 查，
+     * 认交易对手）。externalId＝OIDC sub＝identity 账户 Id；未命中 404 IDN_004（业务码 6004）。
+     */
+    interface AccountProfile {
+      /** aiplatform 侧账号 TSID → 十进制 string */
+      id: string;
+      externalId: string;
+      displayName: string;
+      createdAt: string;
+    }
   }
 }

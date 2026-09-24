@@ -156,6 +156,10 @@ function openDetail(projectId: string) {
     </NCard>
 
     <!-- 详情抽屉：基本信息（订单引用/成本指针/工作区引用）+ 对话史 + PRD + 版本 -->
-    <ProjectDetailDrawer v-model:visible="drawerVisible" :project-id="selectedProjectId" />
+    <ProjectDetailDrawer
+      v-model:visible="drawerVisible"
+      :project-id="selectedProjectId"
+      :external-id="searchParams.externalId ?? null"
+    />
   </div>
 </template>

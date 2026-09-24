@@ -1223,6 +1223,14 @@ const local: App.I18n.Schema = {
           enable: 'Material enabled',
           delete: 'Material deleted'
         }
+      },
+      /** Account profile widget (#56 code-without-page — shared by order/project detail drawers, driven by externalId filter). */
+      account: {
+        title: 'Account Profile',
+        displayName: 'Display Name',
+        accountId: 'Account ID',
+        externalId: 'External ID',
+        createdAt: 'Registered At'
       }
     }
   },

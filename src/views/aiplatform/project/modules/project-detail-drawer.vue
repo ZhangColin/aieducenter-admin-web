@@ -17,11 +17,14 @@ import FilesPane from './files-pane.vue';
 import PrdPane from './prd-pane.vue';
 import VersionsPane from './versions-pane.vue';
 import CostBuckets from '../../cost/modules/cost-buckets.vue';
+import AccountProfile from '../../modules/account-profile.vue';
 
 defineOptions({ name: 'ProjectDetailDrawer' });
 
 const props = defineProps<{
   projectId: string;
+  /** 列表页 externalId 筛选值——账号档案嵌件查询锚（详情响应不带 externalId，契约如此）。 */
+  externalId?: string | null;
 }>();
 
 const visible = defineModel<boolean>('visible', { default: false });
@@ -139,7 +142,11 @@ watch(visible, val => {
               <div class="desc-value"><span class="text-14px">{{ formatDateTime(detail.updatedAt) }}</span></div>
             </div>
           </div>
+
           <NEmpty v-else :description="$t('common.noData')" />
+
+          <!-- 账号档案（externalId 筛选驱动；筛选缺省/无读码不渲染；加载/空态分支外恒可挂） -->
+          <AccountProfile v-if="detail" class="mt-16px" :external-id="externalId" />
         </NTabPane>
 
         <!-- 对话史（全量同序；v-if 挂载即加载） -->

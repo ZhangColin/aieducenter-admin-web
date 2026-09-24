@@ -144,6 +144,7 @@ async function main() {
   h.check('基本信息：成本指针币种桶（USD 12.34 直读不折算）', (await drawer.getByText('USD 12.34').count()) > 0);
   h.check('基本信息：归档标记（否）', (await drawer.getByText('否', { exact: true }).count()) > 0);
   h.check('基本信息：PRD 产出/生成时点', (await drawer.getByText('2026-09-10 15:20:00').count()) > 0 && (await drawer.getByText('2026-09-10 18:46:00').count()) > 0);
+  h.check('无 externalId 筛选：抽屉不出账号档案区', (await drawer.getByText('账号档案').count()) === 0);
 
   /* ================= 6. 对话史 tab：四载荷按 admin#75 文档化结构渲染（#64） ================= */
   await drawer.locator('.n-tabs-tab', { hasText: '对话史' }).click();
@@ -316,6 +317,27 @@ async function main() {
   );
   const pkgToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('文件包下载成功')));
   h.check('文件包下载成功 toast', Boolean(pkgToast), JSON.stringify(pkgToast));
+
+  /* ================= 12. 账号档案嵌件（#56 account:read 有码无页；externalId 筛选驱动） ================= */
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  // 按 externalId 检索（赵六）→ 开项目抽屉基本信息 tab → 嵌件点亮（详情响应不带 externalId，锚=筛选值）
+  await page.getByPlaceholder('账号 External ID').fill('ext-zhaoliu');
+  await page.getByRole('button', { name: /搜\s*索/ }).click();
+  await sleep(600);
+  h.check('externalId 筛选剩 1 行（校园社团招新小程序）', (await page.locator(ROW).count()) === 1);
+  await page.locator(ROW).first().getByRole('button', { name: /详\s*情/ }).click();
+  const zhaoDrawer = page.locator('.n-drawer');
+  await zhaoDrawer.getByText('账号档案').waitFor({ timeout: 10000 });
+  h.check(
+    '账号档案 GET /aiplatform/accounts/ext-zhaoliu',
+    calls.some(c => c.method === 'GET' && c.path === '/aiplatform/accounts/ext-zhaoliu')
+  );
+  h.check(
+    '档案渲染（aiplatform 账号 ID + 建档时间）',
+    (await zhaoDrawer.getByText('7395120209080100001').count()) > 0 &&
+      (await zhaoDrawer.getByText('2026-08-02 11:00:00').count()) > 0
+  );
 }
 
 main()

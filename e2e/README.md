@@ -31,7 +31,8 @@ e2e/
   support/
     harness.mjs            断言台账 + /proxy-default/** mock 安装器（auth / menus.my / 各域端点全量；
                            installAiplatformMocks(page, { order?, project?, workspace?, cost?, priceEntry?, ... })
-                           域 fixtures 可选挂载）
+                           域 fixtures 可选挂载；账号档案 ACCOUNT_PROFILES 恒挂载——有码无页嵌件，
+                           externalIdOwnerMap 由它派生＝订单/项目 externalId 筛选与档案端点同一批账号）
     order-fixtures.mjs     订单 fixtures（AiplatformOrderSummaryResponse / DetailResponse 形状）
     project-fixtures.mjs   项目 fixtures（ProjectSummary / Detail（costSummary 币种桶）/ Conversation
                            （#64 四载荷 + kind=7）/ Prd / Version / Files / FileContent 形状 + 文件拒读响应）
@@ -51,6 +52,9 @@ e2e/
                            content 全文）/停用⇄启用按状态门控切换（抽屉 reload 二次回读——回执 summary
                            无 content）/删除（抽屉随行关闭 + 刷新后不可见）/失败透传 toast）
 ```
+
+账号档案嵌件（#56 收口，account:read 有码无页）无独立 e2e 文件——用例挂在订单/项目域尾部：
+externalId 筛选在 ⇒ 抽屉嵌件点亮（GET `/aiplatform/accounts/{externalId}`），筛选缺省 ⇒ 不出档案区。
 
 ## 为新域加 E2E（T2–T7 照此扩展）
 

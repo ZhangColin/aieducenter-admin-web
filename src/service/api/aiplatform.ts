@@ -33,6 +33,9 @@
  * + 详情（元数据 + content＝块按 seq 空行拼接全文）+ 停用⇄启用（可逆开关、重复幂等）+ 删除
  * （不可逆治理移除、不动来源项目；回执＝删除前终态）。三写回执是 summary（区别于沙箱域回执＝
  * 观测详情——summary 无 content，抽屉开着须二次回读详情）。kind 为 string 裸值（v1 恒 "PRD"）。
+ *
+ * 账号域（#56 收口，1 端点）：有码无页——订单/项目详情抽屉嵌件按 externalId 查极简档案认交易对手。
+ * 详情响应不带 externalId（契约如此），嵌件由列表页 externalId 筛选值驱动。
  */
 import { request } from '../request';
 
@@ -241,4 +244,11 @@ export function fetchEnableAiplatformMaterial(id: string) {
 /** DELETE /aiplatform/materials/{id}——删除素材（治理移除登记行与全部块、不动来源项目、不可逆；回执＝删除前终态 summary）。 */
 export function fetchDeleteAiplatformMaterial(id: string) {
   return request<Api.Aiplatform.MaterialSummary>({ url: `/aiplatform/materials/${id}`, method: 'delete' });
+}
+
+/* ---- 账号域（#56 收口，1 端点；有码无页——嵌订单/项目详情抽屉，无独立页面）。 */
+
+/** GET /aiplatform/accounts/{externalId}——账号极简档案（id/externalId/displayName/createdAt；未命中 404 IDN_004→6004 走 onError 透传 toast）。 */
+export function fetchGetAiplatformAccountProfile(externalId: string) {
+  return request<Api.Aiplatform.AccountProfile>({ url: `/aiplatform/accounts/${externalId}`, method: 'get' });
 }

@@ -3,7 +3,7 @@
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx / KNW→2xxx）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx / KNW→2xxx / IDN→6xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -77,8 +77,15 @@ export async function installAiplatformMocks(page, fixtures) {
     return out;
   }
 
-  /** externalId 精确 → ownerDisplayName 映射（两域 fixtures 共用同一批账号档案）。 */
-  const externalIdOwnerMap = { 'ext-wangshi2': '王十二', 'ext-zhaoliu': '赵六' };
+  /** 账号档案 mock 数据（externalId＝OIDC sub；与订单/项目列表的 externalId 筛选同批账号——单一事实源）。 */
+  const ACCOUNT_PROFILES = {
+    'ext-wangshi2': { id: '7395120209080100002', externalId: 'ext-wangshi2', displayName: '王十二', createdAt: '2026-08-01T10:00:00' },
+    'ext-zhaoliu': { id: '7395120209080100001', externalId: 'ext-zhaoliu', displayName: '赵六', createdAt: '2026-08-02T11:00:00' }
+  };
+  /** externalId 精确 → ownerDisplayName 映射（派生自 ACCOUNT_PROFILES——两域 fixtures 共用同一批账号档案）。 */
+  const externalIdOwnerMap = Object.fromEntries(
+    Object.entries(ACCOUNT_PROFILES).map(([externalId, profile]) => [externalId, profile.displayName])
+  );
   function filterByExternalId(rows, query) {
     const externalId = query.get('externalId');
     if (!externalId) return rows;
@@ -313,7 +320,8 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:material:read', name: 'AI 平台 / 素材查看' },
             { code: 'admin:aiplatform:material:disable', name: 'AI 平台 / 素材停用' },
             { code: 'admin:aiplatform:material:enable', name: 'AI 平台 / 素材启用' },
-            { code: 'admin:aiplatform:material:delete', name: 'AI 平台 / 素材删除' }
+            { code: 'admin:aiplatform:material:delete', name: 'AI 平台 / 素材删除' },
+            { code: 'admin:aiplatform:account:read', name: 'AI 平台 / 账号档案查看' }
           ],
           menus: []
         },
@@ -668,6 +676,16 @@ export async function installAiplatformMocks(page, fixtures) {
         if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
         return knw404();
       }
+    }
+
+    // ---- 账号域（#56 收口：有码无页——嵌件端点，恒挂载不按域 fixtures 门控）----
+    const accountMatch = path.match(/^\/aiplatform\/accounts\/([^/]+)$/);
+    if (accountMatch && method === 'GET') {
+      const profile = ACCOUNT_PROFILES[accountMatch[1]];
+      if (!profile) {
+        return json(route, 404, { code: 6004, message: '账号不存在（IDN_004）', data: null, requestId: 'e2e-mock', errors: null });
+      }
+      return json(route, 200, { code: 200, message: 'ok', data: profile, requestId: 'e2e-mock', errors: null });
     }
 
     // 其余接口（本票范围外）benign 空成功，避免守卫/其他模块炸掉

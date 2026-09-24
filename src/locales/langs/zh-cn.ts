@@ -1220,6 +1220,14 @@ const local: App.I18n.Schema = {
           enable: '素材已启用',
           delete: '素材已删除'
         }
+      },
+      /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
+      account: {
+        title: '账号档案',
+        displayName: '昵称',
+        accountId: '账号 ID',
+        externalId: 'External ID',
+        createdAt: '建档时间'
       }
     }
   },

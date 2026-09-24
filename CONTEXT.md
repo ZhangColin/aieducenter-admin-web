@@ -206,6 +206,14 @@ mock E2E（cost **43/43** + project **83/83** 两轮全绿 + order 31/31 / works
 
 - **code-review 修正（双轴 review，紧随本票；修后 cost 43/43 + project 83/83 两轮 + 四域回归绿）**：① 币种桶「过滤+金额降序」逐字两份（cost-buckets computed / cost/index renderCostCell）→ 收编 `breakdown.ts` `costBucketEntries` 单点（T5 review ① 同型——cost 域数据形变居所本就在此）；② 报价卡 event 同判别式三元两联（tag 色 + 文案）→ `quoteEventMeta` Record 单点（annotationKindLabel 同口径）；③ repriced 提示措辞收敛「已收到→将收到」（对齐 admin#77 原文断言强度——SSE 推送 ≠ 已读回执）。review 判断项不修记录在案：`Number.isFinite` 滤脏值（与「形状不符走空态」载荷口径一致，随 ① 收编归一）；conversation-pane `annotationChips(entry)` 模板双调用（v-if 判长 + v-for 重算，量级小无 memo 需要）；project-detail-drawer 跨子域深路径导入 cost-buckets（首例跨子域复用，出现第二例再上提 aiplatform 共享层——`.desc-table` CSS 拷贝先例同款容忍）；总览面无空对象 E2E 用例（空对象已三面钉死 + 四面共用同组件单点，第 4 份断言收益低）；ClosingCard 在版本详情重复渲染 version 行（元数据已示 commitHash，冗余无害）；CostBuckets 键整体缺省（undefined 非 `{}`）不显空态（契约口径空对象才是「无用量」形）。spec 轴：七条 AC 全过、无缺失项；versions-pane 结构化升级系 spec 明文授权（「按文档化程度定」）非加戏。
 
+### 2026-09-24 #56 收口交付：账号档案嵌件（第 34 端点）点亮 ✅（account:read 有码无页——订单/项目抽屉共用）
+
+mock E2E（order **35/35** + project **87/87** 两轮全绿 + workspace 48/48 / cost 43/43 / price-entry 44/44 / material 46/46 回归绿）。至此 34 端点全消费（33→34）。
+
+- **externalId 锚点事实（api-docs 核实）**：订单/项目详情响应均不带 externalId——嵌件由**列表页 externalId 筛选值**驱动（admin#62 用户故事 7 字面流：identity 拿账号 id → 按 externalId 检索 → 抽屉认交易对手）。筛选在即查、缺省不渲染；「列表按 externalId 命中 ⇒ 账号必已建档」故 404（IDN_004→6004）仅筛选后删档竞态可达——onError 透传 toast 兜底、区不渲染，不设专属错误态（prd-pane「错误态不写防御性处理」先例）。
+- **aiplatform 共享层立层**（T8 review 在案「跨子域第二例上提」兑现）：`views/aiplatform/modules/` 首件 `account-profile.vue`（order/project 两抽屉共用 + account:read 读码门控）；cost-buckets **留居 cost 域不迁**——其数据形变居所在 `breakdown.ts`，上提反造共享层→域反向依赖。
+- **mock 单一事实源**：harness `ACCOUNT_PROFILES` 恒挂载（有码无页、无域 fixtures 参数），`externalIdOwnerMap` 改由它派生——订单/项目 externalId 筛选与档案端点同一批账号；嵌件用例挂订单/项目 e2e 尾部（无独立文件）。
+
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
 mock E2E（material **46/46 两轮全绿** + order 31/31 / project 63/63 / workspace 48/48 / cost 38/38 / price-entry 44/44 回归绿）。验收六条全过：清单渲染契约字段（id/kind/projectId·projectName/title/status·statusName/sunkAt/operatorId·operatorName——未治理行 '-'）/ status 单选 + 沉淀时间闭区间（Instant UTC 带 Z）+ projectId 精确筛选、分页 1-based / 详情抽屉（元数据 + content＝块按 seq 空行拼接全文 pre 呈现）/ 停用⇄启用按状态门控切换（行·抽屉双触发面）+ 删除 $dialog 确认（不可逆提示）、正确端点、成功后刷新 / 失败透传 message 统一 toast（400 KNW_006→2006）。

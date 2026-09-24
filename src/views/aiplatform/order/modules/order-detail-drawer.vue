@@ -14,11 +14,14 @@ import { useAuth } from '@/hooks/business/auth';
 import { $t } from '@/locales';
 import { orderStatusTagColor } from '@/constants/aiplatform';
 import { formatDateTime, formatMoney, saveBlobFile } from '@/utils/common';
+import AccountProfile from '../../modules/account-profile.vue';
 
 defineOptions({ name: 'OrderDetailDrawer' });
 
 const props = defineProps<{
   orderId: string;
+  /** 列表页 externalId 筛选值——账号档案嵌件查询锚（详情响应不带 externalId，契约如此）。 */
+  externalId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -172,6 +175,9 @@ defineExpose({ reload: loadDetail });
             </span>
           </template>
         </div>
+
+        <!-- 账号档案（externalId 筛选驱动；筛选缺省/无读码不渲染） -->
+        <AccountProfile :external-id="externalId" />
 
         <!-- 价目历史（append-only，新→旧） -->
         <div>

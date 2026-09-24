@@ -1448,6 +1448,14 @@ declare namespace App {
               delete: string;
             };
           };
+          /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
+          account: {
+            title: string;
+            displayName: string;
+            accountId: string;
+            externalId: string;
+            createdAt: string;
+          };
         };
       };
       form: {

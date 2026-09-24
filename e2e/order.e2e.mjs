@@ -193,6 +193,30 @@ async function main() {
   );
   const downloadToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('源码包下载成功')));
   h.check('下载成功 toast', Boolean(downloadToast), JSON.stringify(downloadToast));
+
+  /* ================= 11. 账号档案嵌件（#56 account:read 有码无页；externalId 筛选驱动） ================= */
+  // 11a. 无 externalId 筛选：同一抽屉（paidDrawer 仍开、当前无筛选）不出账号档案区
+  h.check('无 externalId 筛选：抽屉不出账号档案区', (await paidDrawer.getByText('账号档案').count()) === 0);
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  // 11b. 按 externalId 检索（赵六）→ 开同一单抽屉 → 嵌件点亮（详情响应不带 externalId，锚=筛选值）
+  await page.getByPlaceholder('账号 External ID').fill('ext-zhaoliu');
+  await page.getByRole('button', { name: /搜\s*索/ }).click();
+  await sleep(600);
+  h.check('externalId 筛选剩 1 行（校园社团招新小程序）', (await page.locator(ORDER_ROW).count()) === 1);
+  await page.locator(ORDER_ROW).first().getByRole('button', { name: /详\s*情/ }).click();
+  const zhaoDrawer = page.locator('.n-drawer');
+  await zhaoDrawer.getByText('账号档案').waitFor({ timeout: 10000 });
+  h.check(
+    '账号档案 GET /aiplatform/accounts/ext-zhaoliu',
+    calls.some(c => c.method === 'GET' && c.path === '/aiplatform/accounts/ext-zhaoliu')
+  );
+  h.check(
+    '档案渲染（aiplatform 账号 ID + External ID + 建档时间）',
+    (await zhaoDrawer.getByText('7395120209080100001').count()) > 0 &&
+      (await zhaoDrawer.getByText('ext-zhaoliu').count()) > 0 &&
+      (await zhaoDrawer.getByText('2026-08-02 11:00:00').count()) > 0
+  );
 }
 
 main()
