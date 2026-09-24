@@ -59,7 +59,7 @@
 | **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
 | **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
-| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件，共 34 端点） |
+| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 15 端点，共 49） |
 | **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
 | **AI 项目 (Project)** | aiplatform 的交付单元；带订单引用（active/latestOrder）、成本指针（costSummary）、工作区引用（workspaceId）；归档项目照读 |
 | **沙箱 / 工作区 (Workspace)** | **菜单词用「沙箱」**（`沙箱管理`），**领域实体用「工作区」**（`workspaceId`/`Workspace`）；期望态 `desiredState` 与实态 `containerState` 可漂移（清单按两者过滤找 desired≠actual） |
@@ -67,6 +67,13 @@
 | **单价表 / 价目行 (Unit price entry)** | **菜单词「单价表」**，**领域实体「价目行」**（`price-entry`）；成本换算用的单价数据，append-only（改价 = 关当前行 + 开新行，可预发布未来生效） |
 | **知识素材 (Material)** | aiplatform 沉淀的知识资产；停用⇄启用可逆、删除为治理移除（不动来源项目） |
 | **账号档案 (Account profile)** | aiplatform 侧极简账号档案（`id/externalId/displayName/createdAt`），嵌订单/项目详情抽屉按 `externalId` 查。_Avoid_: identity 域的「Account（终端用户账号）」——不同域 |
+| **技能 (Skill)** | aiplatform 智能体可装配的能力单元，来源两分同权（内置 1 / 安装 2）；寻址柄为 opaque 双形制字符串（`builtin:技能名` 前缀 / TSID 十进制串）。停用⇄启用可逆；卸载为移除（内置不可卸、有指派在身先解绑） |
+| **职能槽位 (slot)** | 技能**指派**的维度，三槽：main=主智能体 / executor=run 执行体 / subagent=子智能体。_Avoid_: 与「智能体配置座」混称——指派三槽、配置两座（main/executor） |
+| **来源包 (sourcePackage)** | 安装技能的 git 仓库标识；显式更新与更新留痕按**来源包**聚合（非按单个技能） |
+| **快照安装 (install)** | 从 git 仓库 HEAD 快照固化入库（版本=装时 commit；排除目录段不入库）。_Avoid_: 联想 ref/tag 选择——契约无此面 |
+| **智能体配置座 (agent config)** | 可编辑配置的智能体，两座（main/executor）：systemPrompt / 模型档位 / 两增强工具开关；覆盖态与默认分治（覆盖标记+默认预览），清空覆盖即回落默认。回滚＝旧值快照写回（一次新变更、留新痕） |
+| **增强工具 (enhancement tool)** | 平台级增强能力两件：web_search（联网搜索）/ fetch_url（网页抓取）——工具面唯一可开关的 kind；骨架/内建工具恒开 |
+| **更新留痕 (update trace)** | 按来源包 append-only 的版本变迁记录（from→to + 操作者），倒序、卸载不删痕 |
 
 ---
 
@@ -222,6 +229,18 @@ mock E2E（order **35/35** + project **87/87** 两轮全绿 + workspace 48/48 / 
 - **数据态非缺陷（透传路径如预期）**：休眠沙箱（desired=休眠、无容器）项目 versions/files、未备工作区订单源码包 → 500 WSP_002「环境后端操作失败」（git/打包需活工作区——运行中沙箱项目 versions 13 版/files 103/文件包 190KB gzip 全通）；PRD 未产出 → 404 PRJ_015。前端 onError 透传 toast 兜底正确。
 - **超管权限口径印证**：admin（超管）`/auth/current` permissions 为空——后端 bypass + 前端 `hasAuth` `isStaticSuper` 放行（auth.ts 在案注释），嵌件/写按钮正常显隐。
 - **环境数据留档**：单价表有一行 2026-09-24 生效的预发布改价（0.00000133）、订单价目史三行（9-23「#56 联调冒烟：改价验证」）——前轮后端冒烟留痕；素材域唯一数据「联调冒烟素材（#56 验证后删除）」经本联调 disable⇄enable 后**保留未删**（删光唯一素材令素材页空态，保留利于后续联调；其标题为前轮冒烟者备忘）。
+
+### 2026-09-24 #65 技能域三页 grilling（技能管理/指派配置/智能体配置，消费 admin BFF 技能线 15 端点；后端已就绪 admin#80–#86 收口）
+
+admin 技能线全量合入（`/api/admin/aiplatform/**` 49 端点 = 六域 34 + 技能线 15），三叶菜单 V17–V19 已种（220/230/240；icon `carbon:tools`/`list-checked`/`prompt-session` 已对锁定 @iconify/json@2.2.472 离线集核实全部存在）。本票 grill 拍三页 UI 形态，两轮 15 决策定稿（Q1–Q15 全按推荐）；实现 spec = [#66](https://github.com/ZhangColin/aieducenter-admin-web/issues/66)（ready-for-agent），拆票 [#67](https://github.com/ZhangColin/aieducenter-admin-web/issues/67) T1 技能管理（frontier）→ [#68](https://github.com/ZhangColin/aieducenter-admin-web/issues/68) T2 指派配置 / [#69](https://github.com/ZhangColin/aieducenter-admin-web/issues/69) T3 智能体配置（均 blocked by #67；原生 blocked-by API 对本仓 404，正文文字引用为权威边），真链联调收口归本票。
+
+- **契约正本 = admin :8081 `/v3/api-docs` 实读**（skills 10 / assignments 2 / agent-configs 3 / agent-tools 2）。关键事实：① 安装命令**无 tag/ref 字段**（`repoUrl`+`excludeDirs[]`，版本恒=装时 HEAD——票面「tag 手输」按契约收敛）；② 指派=**每槽位一个 PUT**（`/skills/assignments/{slot}`，`{skillIds[]}` 整包替换、空=清空、builtin 400 SKL_011）；③ **agent-config PUT 是「缺省即回落」全量终态**——工具两 flag 缺省=true（开）、prompt/modelId 缺省=清覆盖 → 保存必须**四字段全量回传**（工具 flag 以 GET 回显原值透传，防静默误开）；④ 状态枚举与素材同构（1=启用 2=停用；source 1=内置 2=安装）；⑤ 回执三形：install=装入条目 `SkillSummary[]`、uninstall/启停=单个 `SkillSummary`（uninstall=删除前终态）、update=`{from,to,removedSkillNames,operator*,skills[]}`（from==to=幂等未落痕）；⑥ 更新留痕按来源包 query `sourcePackage` 必传；⑦ 错误码 SKL=7xxx/PRJ=4xxx 数字透传（standing onError toast）。
+- **交付切片（Q1）**：T1 技能管理 → T2 指派配置 → T3 智能体配置（每片 mock E2E 两轮绿合入）；回执分型（Q7）：安装/更新=回执态 modal、卸载/启停/指派/配置 PUT=toast+刷新。
+- **技能管理页**：清单 NDataTable 无分页（有界目录、服务端排序内置在前）；列=名称/描述/来源 sourceName/来源包（安装行 mono、内置 '-'）/版本 mono/状态 tag/最近操作 operatorName（契约无时间字段）/可更新（true→「可更新」tag，**不门控更新动作**）。动作=「操作」下拉：停用⇄启用互斥（素材门控范式）＋更新/卸载/留痕仅安装行；启停对内置照给（无「内置不可停」码，provider 裁决透传）。详情抽屉 720 单栏三节（基本信息 desc-table / Frontmatter 泛型键值（自由 map，versions closing 先例）/ 正文全文 pre）。安装=单步 NModal（repoUrl NInput + excludeDirs NSelect multiple tag 手输），成功不关窗切回执态（reprice-modal 先例：「本次装入 N 项」表+完成即关+父页刷新），失败留窗。更新=$dialog.warning 确认（来源包对账+移除拒绝提示）→回执态 modal（from==to 显式「远端未前进未落痕」、removedSkillNames 空显「无移除」、终态行集表）。更新留痕=行级「留痕」动作 NDrawer 时间线（from→to/operator/时间倒序）——按**来源包**挂行级入口，不放技能详情（留痕主体是包）。
+- **指派配置页**：NTabs 三签（label 端侧三值映射 main=主智能体/executor=run 执行体/subagent=子智能体——响应无 slotName）；每签 NDataTable 行勾选＋当前指派预填；**选项集不列 builtin**（400 门控可达即排除）；已停用行照常勾选（终态语义）+状态 warning tag 行级呈现；每签直接 PUT+toast 无确认（清单即终态，分配先例）。
+- **智能体配置页**：NTabs 三签 main/executor/工具面；每座签内上半编辑卡（systemPrompt NTextarea+modelId **NInput 手输**（契约无白名单、错值靠留痕回滚兜底）；覆盖 tag「已覆盖/默认」+默认值灰字预览；**清空提交即回落**、不加「恢复默认」按钮）下半留痕时间线卡。工具面签=按槽位三块小表（工具名 mono/kind tag/enabled/描述）；kind 无 *Name → 端侧三值映射（SKELETON=骨架/ENHANCEMENT=增强/HARNESS_BUILTIN=内建，middlewareKindLabel 先例）；开关仅 ENHANCEMENT（骨架/内建 disabled 恒开）、受控 NSwitch 即时 PUT `/agent-tools/{toolName}`+失败回滚、无确认；**工具开关独走 tool 端点（agent-tool:toggle 码），config PUT 不动两 flag（原值透传）**。时间线=NTimeline 倒序**只渲染变化项**（old*/new* 四件对 old≠new；null 显「（默认）」）；条目「回滚」→$dialog.warning（写回旧值=一次新变更留新痕）→PUT old* 四值→刷新。
+- **落位注记**：目录下划线 `views/aiplatform/{skill,skill_assignment,agent_config}/`（price_entry 先例，否则 getViewName throw）；`aiplatform_skill_assignment`/`aiplatform_agent_config` 三段键产生中间父键——`route.aiplatform_agent` 补键「智能体」（T6 `aiplatform_price` 同款）；i18n 三处同步；权限码 11 枚（read 无页侧落点、assign/update/toggle 门控各保存面、五写码门控动作项）。
+- **术语**：glossary 补 7 条（技能/职能槽位/来源包/快照安装/智能体配置座/增强工具/更新留痕）；「AI 平台」条 34→49 端点。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
