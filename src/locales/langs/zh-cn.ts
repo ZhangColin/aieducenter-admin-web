@@ -251,7 +251,9 @@ const local: App.I18n.Schema = {
     aiplatform_price_entry: '单价表',
     aiplatform_material: '知识素材',
     aiplatform_skill: '技能管理',
-    aiplatform_skill_assignment: '指派配置'
+    aiplatform_skill_assignment: '指派配置',
+    aiplatform_agent: '智能体',
+    aiplatform_agent_config: '智能体配置'
   },
   page: {
     login: {
@@ -1306,6 +1308,62 @@ const local: App.I18n.Schema = {
         },
         save: '保存指派',
         saved: '已保存 {slot} 指派'
+      },
+      /** 智能体配置页（#69——技能线 agent-configs 3 + agent-tools 2 端点；两座编辑卡＋留痕时间线＋工具面）。 */
+      agentConfig: {
+        title: '智能体配置',
+        tab: {
+          tools: '工具面'
+        },
+        agent: {
+          main: '主智能体',
+          executor: 'run 执行体'
+        },
+        edit: {
+          systemPrompt: '系统提示词',
+          systemPromptPlaceholder: '留空＝回落默认（覆盖态清空）',
+          modelId: '模型档位',
+          modelIdPlaceholder: '模型档位裸名（如 deepseek-v4-pro；无白名单，错值靠留痕回滚兜底）',
+          overridden: '已覆盖',
+          defaultTag: '默认',
+          defaultPrompt: '默认系统提示词：',
+          defaultModelId: '默认模型档位：',
+          lastWrite: '最近写者：{name} · {time}',
+          save: '保存配置',
+          saved: '已保存「{agent}」配置'
+        },
+        traces: {
+          title: '变更留痕',
+          empty: '暂无变更留痕',
+          rollback: '回滚',
+          rollbackTitle: '回滚此变更',
+          rollbackTip: '将把该次变更前的旧值写回——等价于一次新变更，将留下新的留痕。',
+          rolledBack: '已回滚（旧值已写回）'
+        },
+        field: {
+          systemPrompt: '系统提示词',
+          modelId: '模型档位',
+          webSearch: '联网搜索',
+          fetchUrl: '网页抓取'
+        },
+        /** 留痕/时间线值面呈现：null＝缺省回落态、布尔两态。 */
+        defaultValue: '（默认）',
+        stateOn: '开',
+        stateOff: '关',
+        tool: {
+          name: '工具名',
+          kind: '类别',
+          enabled: '挂载',
+          description: '描述',
+          kindLabel: {
+            skeleton: '骨架',
+            enhancement: '增强',
+            builtin: '内建'
+          },
+          stateOn: '开启',
+          stateOff: '关闭',
+          toggled: '{tool} 已{state}'
+        }
       },
       /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
       account: {

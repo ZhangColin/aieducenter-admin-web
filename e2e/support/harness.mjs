@@ -1,5 +1,5 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域（#68 指派），共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域（#68 指派、#69 智能体配置），共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
@@ -56,9 +56,10 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  *
  * @param page playwright page
  * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material?, skill? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean}}}
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean, failNextAgentConfigUpdate: boolean, failNextAgentToolToggle: boolean}}}
  *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
- *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409/400——透传 toast 断言用）
+ *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409/400，
+ *          agentConfigUpdate 抛 400、agentToolToggle 抛 403——透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
@@ -71,7 +72,9 @@ export async function installAiplatformMocks(page, fixtures) {
     failNextSkillWrite: false,
     failNextSkillUninstall: false,
     failNextSkillUpdate: false,
-    failNextSkillAssign: false
+    failNextSkillAssign: false,
+    failNextAgentConfigUpdate: false,
+    failNextAgentToolToggle: false
   };
 
   const json = (route, status, body) =>
@@ -379,6 +382,78 @@ export async function installAiplatformMocks(page, fixtures) {
     };
   }
 
+  /* ---- 智能体配置域变异（#69；provider BackofficeAgentConfigAppService 镜像）---- */
+
+  /** 配置写归一（provider blankToNull 镜像）：null/纯空白 → null（清空回落；首尾空白去除）。 */
+  function blankToNull(value) {
+    return value == null || String(value).trim() === '' ? null : String(value).trim();
+  }
+
+  /** 现行值面（覆盖行 or 全回落缺省态）——留痕前态与比对基准（provider currentOf 镜像）。 */
+  function agentFacets(key) {
+    const row = fixtures.skill.AGENT_CONFIGS[key];
+    return {
+      systemPrompt: row.systemPromptOverridden ? row.systemPrompt : null,
+      modelId: row.modelIdOverridden ? row.modelId : null,
+      webSearchEnabled: row.webSearchEnabled,
+      fetchUrlEnabled: row.fetchUrlEnabled
+    };
+  }
+
+  /**
+   * 配置全量写（PUT，provider update 镜像）：命令归一（空白 null、flag 缺省 true）→ 值面比对，
+   * 无动＝幂等回执零写入；有动＝行 upsert＋留痕 unshift（变更前后全量值面快照＋操作者）。
+   */
+  function applyAgentConfigUpdate(key, command) {
+    const row = fixtures.skill.AGENT_CONFIGS[key];
+    const old = agentFacets(key);
+    const next = {
+      systemPrompt: blankToNull(command.systemPrompt),
+      modelId: blankToNull(command.modelId),
+      webSearchEnabled: command.webSearchEnabled ?? true,
+      fetchUrlEnabled: command.fetchUrlEnabled ?? true
+    };
+    if (JSON.stringify(old) === JSON.stringify(next)) return;
+    row.systemPrompt = next.systemPrompt ?? row.defaultSystemPrompt;
+    row.systemPromptOverridden = next.systemPrompt != null;
+    row.modelId = next.modelId ?? row.defaultModelId;
+    row.modelIdOverridden = next.modelId != null;
+    row.webSearchEnabled = next.webSearchEnabled;
+    row.fetchUrlEnabled = next.fetchUrlEnabled;
+    row.operatorId = '1';
+    row.operatorName = 'E2E Mock';
+    row.updatedAt = '2026-09-24T12:00:00Z';
+    (fixtures.skill.AGENT_TRACES[key] ??= []).unshift({
+      id: `7402240000000009${String(fixtures.skill.AGENT_TRACES[key].length).padStart(2, '0')}`,
+      oldSystemPrompt: old.systemPrompt,
+      oldModelId: old.modelId,
+      oldWebSearchEnabled: old.webSearchEnabled,
+      oldFetchUrlEnabled: old.fetchUrlEnabled,
+      newSystemPrompt: next.systemPrompt,
+      newModelId: next.modelId,
+      newWebSearchEnabled: next.webSearchEnabled,
+      newFetchUrlEnabled: next.fetchUrlEnabled,
+      operatorId: '1',
+      operatorName: 'E2E Mock',
+      operatedAt: '2026-09-24T12:00:00Z'
+    });
+  }
+
+  /**
+   * 工具面清单读面（provider inventory 镜像）：main 槽两增强件挂载态＝main 配置 flag 派生
+   * （同源不漂移——开关窄幅写口挂 main 行开关列）；骨架/harness 内建恒挂载。
+   */
+  function agentToolSlots() {
+    const main = fixtures.skill.AGENT_CONFIGS.main;
+    return fixtures.skill.AGENT_TOOL_SLOTS.map(block => ({
+      ...block,
+      tools: block.tools.map(tool => ({
+        ...tool,
+        enabled: tool.name === 'web_search' ? main.webSearchEnabled : tool.name === 'fetch_url' ? main.fetchUrlEnabled : tool.enabled
+      }))
+    }));
+  }
+
   await page.route('**/proxy-default/**', route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
@@ -428,6 +503,8 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:skill:uninstall', name: 'AI 平台 / 技能卸载' },
             { code: 'admin:aiplatform:skill:update', name: 'AI 平台 / 技能更新' },
             { code: 'admin:aiplatform:skill:assign', name: 'AI 平台 / 技能指派' },
+            { code: 'admin:aiplatform:agent-config:update', name: 'AI 平台 / 智能体配置更新' },
+            { code: 'admin:aiplatform:agent-tool:toggle', name: 'AI 平台 / 智能体工具开关' },
             { code: 'admin:aiplatform:account:read', name: 'AI 平台 / 账号档案查看' }
           ],
           menus: []
@@ -567,6 +644,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_skill_assignment',
                   parentId: '82',
                   sortOrder: 8,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '240',
+                  menuName: '智能体配置',
+                  routeName: 'aiplatform_agent_config',
+                  routePath: '/aiplatform/agent-config',
+                  component: 'view.aiplatform_agent_config',
+                  icon: 'carbon:prompt-session',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_agent_config',
+                  parentId: '82',
+                  sortOrder: 9,
                   menuType: 2,
                   status: 1
                 }
@@ -840,6 +931,61 @@ export async function installAiplatformMocks(page, fixtures) {
           .filter(Boolean)
           .map(row => ({ ...row }));
         return json(route, 200, { code: 200, message: 'ok', data: { slot, skills }, requestId: 'e2e-mock', errors: null });
+      }
+      // ---- 智能体配置域（#69；agent-configs 3 + agent-tools 2。GET/PUT 回执同形读面；
+      // 工具开关窄幅写口挂 main 行开关列——与配置全量写共表共留痕）----
+      const agentConfigMatch = path.match(/^\/aiplatform\/agent-configs\/([^/]+)(\/traces)?$/);
+      if (agentConfigMatch) {
+        const key = agentConfigMatch[1];
+        if (!fixtures.skill.AGENT_KEYS.includes(key)) {
+          // 未知键（PRJ_033＝4033）：前端两键固定不可达——防御语义
+          return json(route, 404, { code: 4033, message: '智能体不存在（PRJ_033）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (agentConfigMatch[2] === '/traces' && method === 'GET') {
+          const traces = fixtures.skill.AGENT_TRACES[key] ?? [];
+          return json(route, 200, { code: 200, message: 'ok', data: traces.map(t => ({ ...t })), requestId: 'e2e-mock', errors: null });
+        }
+        if (method === 'PUT') {
+          if (state.failNextAgentConfigUpdate) {
+            state.failNextAgentConfigUpdate = false;
+            // 操作者缺留痕头（PRJ_034）：HTTP 400 + 数字业务码 4034 + 原文 message（失败注入代表样）
+            return json(route, 400, { code: 4034, message: '操作者不能为空（PRJ_034）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          applyAgentConfigUpdate(key, JSON.parse(route.request().postData() ?? '{}'));
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: { ...fixtures.skill.AGENT_CONFIGS[key] }, requestId: 'e2e-mock', errors: null });
+      }
+      if (path === '/aiplatform/agent-tools' && method === 'GET') {
+        return json(route, 200, { code: 200, message: 'ok', data: agentToolSlots(), requestId: 'e2e-mock', errors: null });
+      }
+      const agentToolMatch = path.match(/^\/aiplatform\/agent-tools\/([^/]+)$/);
+      if (agentToolMatch && method === 'PUT') {
+        const toolName = agentToolMatch[1];
+        const known = fixtures.skill.AGENT_TOOL_SLOTS.flatMap(block => block.tools).find(tool => tool.name === toolName);
+        if (!known) {
+          // 平台工具与 harness 内建面之外（PRJ_035＝4035）——前端按清单寻址不可达，防御语义
+          return json(route, 404, { code: 4035, message: '工具不存在（PRJ_035）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        const command = JSON.parse(route.request().postData() ?? '{}');
+        if (known.kind !== 'ENHANCEMENT') {
+          // 骨架/harness 内建结构性锁死（PRJ_036＝4036）——前端对非增强行 disabled 恒开，不可达透传
+          return json(route, 403, { code: 4036, message: '该工具不开放开关（PRJ_036）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (command.enabled == null) {
+          // 目标态缺省无语义（PRJ_037＝4037）——前端必传，不可达透传
+          return json(route, 400, { code: 4037, message: '开关目标态必填（PRJ_037）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (state.failNextAgentToolToggle) {
+          state.failNextAgentToolToggle = false;
+          // 失败注入代表样（403 PRJ_036）——透传 toast＋受控开关视觉态回滚断言锚
+          return json(route, 403, { code: 4036, message: '该工具不开放开关（PRJ_036）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        // 窄幅写口挂 main 行开关列（provider toggleTool 镜像）：只动目标开关列、其余值面原样携带
+        applyAgentConfigUpdate('main', {
+          ...agentFacets('main'),
+          [toolName === 'web_search' ? 'webSearchEnabled' : 'fetchUrlEnabled']: command.enabled
+        });
+        return json(route, 200, { code: 200, message: 'ok', data: { ...known, enabled: command.enabled }, requestId: 'e2e-mock', errors: null });
       }
       if (path === '/aiplatform/skills' && method === 'GET') {
         return json(route, 200, { code: 200, message: 'ok', data: fixtures.skill.SKILL_ROWS.map(row => ({ ...row })), requestId: 'e2e-mock', errors: null });

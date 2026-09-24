@@ -51,7 +51,11 @@ e2e/
                            id opaque 串两形制（builtin: 前缀 / TSID 十进制串）、内置 3 + 安装三包
                            （可更新 true/false/null 包级统一）、frontmatter 四型值（string/number/
                            array/object）；安装/更新/启停/卸载变异由 harness 就地改；#68 指派态
-                           SKILL_ASSIGNMENTS 三槽初始指派——PUT 整包替换就地变异）
+                           SKILL_ASSIGNMENTS 三槽初始指派——PUT 整包替换就地变异；#69 智能体配置
+                           AGENT_CONFIGS 两座（main 双覆盖靶/executor 全默认靶）＋AGENT_TRACES
+                           （变化项过滤＋「（默认）」靶）＋AGENT_TOOL_SLOTS 三槽——工具开关窄幅写口
+                           挂 main 行开关列（provider toggleTool 镜像），main 槽增强件挂载态由
+                           harness 按 main 配置 flag 派生（同源不漂移））
   material.e2e.mjs        素材域验收流（清单契约字段（kind 裸值 + operator 两列）/status 单选·沉淀
                            时间闭区间（Instant UTC）·projectId 精确过滤/分页 1-based/详情抽屉（元数据 +
                            content 全文）/停用⇄启用按状态门控切换（抽屉 reload 二次回读——回执 summary
@@ -65,6 +69,12 @@ e2e/
   skill-assignment.e2e.mjs 指派配置验收流（#68：三签 label 端侧映射＋切签/进入加载 GET 预填/
                            选项表不列 builtin＋停用行可勾与警示色实态/增减保存 PUT 整包＋toast 无
                            确认＋回读刷新/空勾选＝清空/空→非空/失败注入 400 SKL_011 透传）
+  agent-config.e2e.mjs    智能体配置验收流（#69：两座编辑卡（覆盖标记＋默认预览＋生效值预填）/
+                           保存 PUT 四字段全量回传（两 flag 以 GET 原值透传防静默误开）＋清空回落
+                           ＋标记复位/留痕时间线（倒序＋只渲染变化项＋null 显「（默认）」）/回滚
+                           （$dialog 确认→old 四值 PUT 写回＝留新痕→双卡刷新）/工具面三槽位块
+                           （slotName 直读＋kind 三值映射＋骨架/内建 disabled 恒开）/增强工具受控
+                           开关即时 PUT＋失败回滚/失败透传 toast（400 PRJ_034＋403 PRJ_036））
 ```
 
 技能域 fixtures 一并承载指派态（`SKILL_ASSIGNMENTS` 三槽初始指派——PUT 由 harness 就地整包替换，

@@ -23,6 +23,8 @@ declare module "@elegant-router/types" {
     "account": "/account";
     "account_list": "/account/list";
     "aiplatform": "/aiplatform";
+    "aiplatform_agent": "/aiplatform/agent";
+    "aiplatform_agent_config": "/aiplatform/agent/config";
     "aiplatform_cost": "/aiplatform/cost";
     "aiplatform_material": "/aiplatform/material";
     "aiplatform_order": "/aiplatform/order";
@@ -112,6 +114,7 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "account_list"
+    | "aiplatform_agent_config"
     | "aiplatform_cost"
     | "aiplatform_material"
     | "aiplatform_order"

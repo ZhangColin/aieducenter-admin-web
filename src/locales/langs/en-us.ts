@@ -255,7 +255,9 @@ const local: App.I18n.Schema = {
     aiplatform_price_entry: 'Price Entries',
     aiplatform_material: 'Knowledge Materials',
     aiplatform_skill: 'Skill Management',
-    aiplatform_skill_assignment: 'Skill Assignment'
+    aiplatform_skill_assignment: 'Skill Assignment',
+    aiplatform_agent: 'Agent',
+    aiplatform_agent_config: 'Agent Config'
   },
   page: {
     login: {
@@ -1308,6 +1310,62 @@ const local: App.I18n.Schema = {
         },
         save: 'Save Assignments',
         saved: 'Assignments saved for {slot}'
+      },
+      /** Agent config page (#69 — skill-line agent-configs 3 + agent-tools 2 endpoints; two agent edit cards + trace timeline + tool inventory). */
+      agentConfig: {
+        title: 'Agent Config',
+        tab: {
+          tools: 'Tools'
+        },
+        agent: {
+          main: 'Main Agent',
+          executor: 'Run Executor'
+        },
+        edit: {
+          systemPrompt: 'System Prompt',
+          systemPromptPlaceholder: 'Empty = fall back to default (override cleared)',
+          modelId: 'Model Tier',
+          modelIdPlaceholder: 'Model tier name (e.g. deepseek-v4-pro; no whitelist — wrong values are rolled back via traces)',
+          overridden: 'Overridden',
+          defaultTag: 'Default',
+          defaultPrompt: 'Default system prompt: ',
+          defaultModelId: 'Default model tier: ',
+          lastWrite: 'Last write: {name} · {time}',
+          save: 'Save Config',
+          saved: 'Config saved for "{agent}"'
+        },
+        traces: {
+          title: 'Change History',
+          empty: 'No change history',
+          rollback: 'Rollback',
+          rollbackTitle: 'Roll back this change',
+          rollbackTip: 'Writes back the pre-change values — itself a new change that leaves a new trace.',
+          rolledBack: 'Rolled back (old values written back)'
+        },
+        field: {
+          systemPrompt: 'System Prompt',
+          modelId: 'Model Tier',
+          webSearch: 'Web Search',
+          fetchUrl: 'Fetch URL'
+        },
+        /** Trace value rendering: null = default-fallback state, booleans two-state. */
+        defaultValue: '(Default)',
+        stateOn: 'On',
+        stateOff: 'Off',
+        tool: {
+          name: 'Tool',
+          kind: 'Kind',
+          enabled: 'Mounted',
+          description: 'Description',
+          kindLabel: {
+            skeleton: 'Skeleton',
+            enhancement: 'Enhancement',
+            builtin: 'Built-in'
+          },
+          stateOn: 'enabled',
+          stateOff: 'disabled',
+          toggled: '{tool} {state}'
+        }
       },
       /** Account profile widget (#56 code-without-page — shared by order/project detail drawers, driven by externalId filter). */
       account: {

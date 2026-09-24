@@ -47,6 +47,12 @@
  * 指派域（#68 指派配置，技能线 assignments 2 端点）：每职能槽位一个 GET/PUT——PUT 整包替换
  * （清单即终态、空＝清空），回执＝替换后读面（含停用行，「指派了但已停用」实态）；前端 toast＋
  * 回读刷新。装配生效＝动态查库（变更后下一轮自然生效）。
+ *
+ * 智能体配置域（#69 智能体配置，技能线 agent-configs 3 + agent-tools 2 端点）：两座智能体
+ *   （main/executor）systemPrompt/模型档位覆盖态编辑＋变更留痕时间线（回滚＝old* 快照写回，
+ *   无专用端点）；工具面按三槽位列挂载工具。保存四字段全量回传（两工具 flag 以 GET 回显原值
+ *   透传——契约「缺省＝true 开」，防静默误开）；工具开关独走 tool 端点（agent-tool:toggle 码），
+ *   config 表单不动两 flag。
  */
 import { request } from '../request';
 
@@ -313,6 +319,34 @@ export function fetchGetAiplatformSkillAssignments(slot: Api.Aiplatform.SkillSlo
 /** PUT /aiplatform/skills/assignments/{slot}——槽位指派整包替换（清单即终态、空＝清空；builtin 柄 400 SKL_011）。回执＝替换后读面（前端 toast＋回读刷新，不消费此体）。 */
 export function fetchAssignAiplatformSkills(slot: Api.Aiplatform.SkillSlot, data: Api.Aiplatform.SkillAssignCommand) {
   return request<Api.Aiplatform.SlotAssignment>({ url: `/aiplatform/skills/assignments/${slot}`, method: 'put', data });
+}
+
+/* ---- 智能体配置域（#69，技能线 agent-configs 3 + agent-tools 2 端点；保存四字段全量回传——
+ * 两工具 flag 以 GET 回显原值透传（契约「缺省＝true 开」，防静默误开）。 ---- */
+
+/** GET /aiplatform/agent-configs/{agentKey}——配置读面（生效值＋覆盖标记＋默认预览＋两增强工具开关＋最近写者；未知键 404 PRJ_033＝4033）。 */
+export function fetchGetAiplatformAgentConfig(agentKey: Api.Aiplatform.AgentKey) {
+  return request<Api.Aiplatform.AgentConfig>({ url: `/aiplatform/agent-configs/${agentKey}`, method: 'get' });
+}
+
+/** PUT /aiplatform/agent-configs/{agentKey}——配置全量写（覆盖态终态＋变更留痕；systemPrompt/modelId null/缺省/纯空白＝清覆盖回落默认，值面无动＝幂等回执零写入）。回执与 GET 同形（前端 toast＋回读刷新，不消费此体）。 */
+export function fetchUpdateAiplatformAgentConfig(agentKey: Api.Aiplatform.AgentKey, data: Api.Aiplatform.AgentConfigUpdateCommand) {
+  return request<Api.Aiplatform.AgentConfig>({ url: `/aiplatform/agent-configs/${agentKey}`, method: 'put', data });
+}
+
+/** GET /aiplatform/agent-configs/{agentKey}/traces——配置变更留痕（operatedAt 倒序＝最近先，服务端定死；回滚依据）。 */
+export function fetchGetAiplatformAgentConfigTraces(agentKey: Api.Aiplatform.AgentKey) {
+  return request<Api.Aiplatform.AgentConfigTrace[]>({ url: `/aiplatform/agent-configs/${agentKey}/traces`, method: 'get' });
+}
+
+/** GET /aiplatform/agent-tools——工具面清单（按职能槽位列当前挂载工具；呈现序＝平台资产在前、harness 内建在后）。 */
+export function fetchGetAiplatformAgentTools() {
+  return request<Api.Aiplatform.AgentToolSlot[]>({ url: '/aiplatform/agent-tools', method: 'get' });
+}
+
+/** PUT /aiplatform/agent-tools/{toolName}——增强工具开关（窄幅写口：关即退出槽位装配面、开即回归；挂 main 行开关列与配置写共表共留痕）。骨架/内建 403 PRJ_036、enabled 缺省 400 PRJ_037。回执＝工具行新事实（前端 toast＋清单回读）。 */
+export function fetchToggleAiplatformAgentTool(toolName: string, data: Api.Aiplatform.AgentToolToggleCommand) {
+  return request<Api.Aiplatform.AgentTool>({ url: `/aiplatform/agent-tools/${toolName}`, method: 'put', data });
 }
 
 /* ---- 账号域（#56 收口，1 端点；有码无页——嵌订单/项目详情抽屉，无独立页面）。 */

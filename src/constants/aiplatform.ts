@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63/#64/#67）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域 + 技能域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63/#64/#67/#68/#69）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域 + 技能域 + 指派域 + 智能体配置域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -229,3 +229,34 @@ export const skillSlotLabel: Record<Api.Aiplatform.SkillSlot, App.I18n.I18nKey> 
 
 /** 指派保存权限码（hasAuth 门控每签保存钮）。 */
 export const SKILL_ASSIGN_AUTH = 'admin:aiplatform:skill:assign';
+
+/* ---- 智能体配置域（#69）---- */
+
+/** 配置座两键（NTabs 前两签顺序；路径段寻址，未知键 404 PRJ_033——前端两键固定不可达）。 */
+export const AGENT_KEYS: readonly Api.Aiplatform.AgentKey[] = ['main', 'executor'];
+
+/** 配置座签 label（端侧两值映射——签渲染先于读面到手；读面到手后编辑卡题直读 agentName）。 */
+export const agentKeyLabel: Record<Api.Aiplatform.AgentKey, App.I18n.I18nKey> = {
+  main: 'page.aiplatform.agentConfig.agent.main',
+  executor: 'page.aiplatform.agentConfig.agent.executor'
+};
+
+/** 工具面类别端侧三值映射（kind string 裸值无 *Name——skillSlotLabel 先例：i18n key 单点）。 */
+export const agentToolKindLabel: Record<Api.Aiplatform.AgentToolKind, App.I18n.I18nKey> = {
+  SKELETON: 'page.aiplatform.agentConfig.tool.kindLabel.skeleton',
+  ENHANCEMENT: 'page.aiplatform.agentConfig.tool.kindLabel.enhancement',
+  HARNESS_BUILTIN: 'page.aiplatform.agentConfig.tool.kindLabel.builtin'
+};
+
+/** 工具面类别标签色（语义：骨架 info（编排链路）/ 增强 warning（唯一可开关位）/ 内建终态灰）。 */
+export const agentToolKindTagColor: Record<Api.Aiplatform.AgentToolKind, NaiveUI.ThemeColor> = {
+  SKELETON: 'info',
+  ENHANCEMENT: 'warning',
+  HARNESS_BUILTIN: 'default'
+};
+
+/** 配置写权限码（门控编辑卡保存钮与留痕条目「回滚」——回滚＝PUT 配置写同码）。 */
+export const AGENT_CONFIG_UPDATE_AUTH = 'admin:aiplatform:agent-config:update';
+
+/** 工具开关权限码（门控增强工具 NSwitch 可操作；无码 disabled 呈现态）。 */
+export const AGENT_TOOL_TOGGLE_AUTH = 'admin:aiplatform:agent-tool:toggle';

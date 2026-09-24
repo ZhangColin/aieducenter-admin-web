@@ -1531,6 +1531,61 @@ declare namespace App {
             save: string;
             saved: string;
           };
+          /** 智能体配置页（#69——技能线 agent-configs 3 + agent-tools 2 端点；两座编辑卡＋留痕时间线＋工具面）。 */
+          agentConfig: {
+            title: string;
+            tab: {
+              tools: string;
+            };
+            agent: {
+              main: string;
+              executor: string;
+            };
+            edit: {
+              systemPrompt: string;
+              systemPromptPlaceholder: string;
+              modelId: string;
+              modelIdPlaceholder: string;
+              overridden: string;
+              defaultTag: string;
+              defaultPrompt: string;
+              defaultModelId: string;
+              lastWrite: string;
+              save: string;
+              saved: string;
+            };
+            traces: {
+              title: string;
+              empty: string;
+              rollback: string;
+              rollbackTitle: string;
+              rollbackTip: string;
+              rolledBack: string;
+            };
+            field: {
+              systemPrompt: string;
+              modelId: string;
+              webSearch: string;
+              fetchUrl: string;
+            };
+            defaultValue: string;
+            stateOn: string;
+            stateOff: string;
+            tool: {
+              name: string;
+              kind: string;
+              enabled: string;
+              description: string;
+              kindLabel: {
+                skeleton: string;
+                enhancement: string;
+                builtin: string;
+              };
+              stateOn: string;
+              stateOff: string;
+              toggled: string;
+            };
+          };
           /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
           account: {
             title: string;

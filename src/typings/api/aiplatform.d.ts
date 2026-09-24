@@ -55,6 +55,15 @@
  *   ——**不门控更新动作**（provider 不保证检查过）。留痕 append-only 倒序、卸载不删痕。
  *   错误码数字形＝域码 7×1000＋序号（SKL_001→7001 查无 404 / SKL_002–007 安装失败族 /
  *   SKL_008→7008 有指派在身 409 / SKL_013→7013 更新整体拒绝 409）。
+ *
+ * 智能体配置域（#69 智能体配置，技能线 agent-configs 3 + agent-tools 2 端点）：两座智能体
+ *   （main/executor）覆盖态读写——PUT 全量终态（null/缺省/纯空白＝清覆盖回落枚举默认；
+ *   webSearch/fetchUrl 两 flag **缺省＝true 开**→保存四字段全量回传防静默误开）；变更留痕
+ *   append-only 倒序（值面有动才落痕、幂等回执零写入）、回滚＝old* 快照写回（无专用端点）。
+ *   工具开关窄幅写口 PUT /agent-tools/{toolName} 仅增强两件（web_search/fetch_url——挂 main
+ *   行开关列，与配置写共表共留痕）；骨架/harness 内建 403 PRJ_036 锁死、enabled 缺省 400
+ *   PRJ_037。错误码数字形＝PRJ 4xxx（4033 查无 404 / 4034 操作者缺 400 / 4035 工具无 404 /
+ *   4036 锁死 403 / 4037 目标态缺 400）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -807,6 +816,106 @@ declare namespace Api {
      */
     interface SkillAssignCommand {
       skillIds: string[];
+    }
+
+    /* ---- 智能体配置域（#69 智能体配置，技能线 agent-configs 3 + agent-tools 2 端点）---- */
+
+    /** 配置座稳定键（两座，路径段寻址）：main=主智能体 / executor=run 执行体——未知键 404 PRJ_033（4033）。 */
+    type AgentKey = 'main' | 'executor';
+
+    /**
+     * 工具面类别（string 裸值三态，**无 *Name 字段**——端侧小映射）：SKELETON=骨架
+     * （编排链路＋项目事实只读件，结构性锁死）/ ENHANCEMENT=增强（联网搜索·网页抓取，
+     * 窄幅可开关）/ HARNESS_BUILTIN=harness 内建编码工具（呈现口径，不可开关）。
+     */
+    type AgentToolKind = 'SKELETON' | 'ENHANCEMENT' | 'HARNESS_BUILTIN';
+
+    /**
+     * 智能体配置读面（GET/PUT /agent-configs/{agentKey} 回执同形）：生效值（库覆盖值或枚举
+     * 默认）＋覆盖标记＋默认预览＋两增强工具开关＋最近写者。覆盖标记与生效值分治：false 时
+     * 生效值即 default* 原文；operator 两列 null＝从未配置。
+     */
+    interface AgentConfig {
+      agentKey: AgentKey;
+      /** 展示名（主智能体/run 执行体——契约直读） */
+      agentName: string;
+      /** 生效 systemPrompt（装配实取值；覆盖时非 default 原文） */
+      systemPrompt: string;
+      /** 生效模型档位裸名 */
+      modelId: string;
+      systemPromptOverridden: boolean;
+      modelIdOverridden: boolean;
+      /** 枚举默认 systemPrompt（预览：清空覆盖即落此值） */
+      defaultSystemPrompt: string;
+      /** 枚举默认模型档位（清空覆盖即落此值） */
+      defaultModelId: string;
+      /** 联网搜索开关生效态（关即退出槽位装配面） */
+      webSearchEnabled: boolean;
+      /** 网页抓取开关生效态 */
+      fetchUrlEnabled: boolean;
+      operatorId: string | null;
+      operatorName: string | null;
+      updatedAt: string | null;
+    }
+
+    /**
+     * PUT /agent-configs/{agentKey} body——全量终态：systemPrompt/modelId null/缺省/纯空白＝
+     * 清空覆盖回落枚举默认；webSearchEnabled/fetchUrlEnabled **缺省＝true（开）**——前端保存
+     * 时四字段全量回传（两 flag 以 GET 回显原值透传，防静默误开）。值面无动＝幂等回执
+     * （不落痕不写行）。
+     */
+    interface AgentConfigUpdateCommand {
+      systemPrompt: string | null;
+      modelId: string | null;
+      webSearchEnabled: boolean;
+      fetchUrlEnabled: boolean;
+    }
+
+    /**
+     * 配置变更留痕行（GET /agent-configs/{agentKey}/traces；服务端定死 operatedAt 倒序＝最近先）：
+     * old/new 四件对全量快照，null＝缺省回落态；**无专用回滚端点**——回滚＝old 四值快照
+     * PUT 写回（＝一次新变更、留新痕）。
+     */
+    interface AgentConfigTrace {
+      /** TSID 十进制串 */
+      id: string;
+      oldSystemPrompt: string | null;
+      oldModelId: string | null;
+      oldWebSearchEnabled: boolean;
+      oldFetchUrlEnabled: boolean;
+      newSystemPrompt: string | null;
+      newModelId: string | null;
+      newWebSearchEnabled: boolean;
+      newFetchUrlEnabled: boolean;
+      operatorId: string;
+      operatorName: string;
+      operatedAt: string;
+    }
+
+    /** 工具面行（GET /agent-tools tools 元素 = PUT /agent-tools/{toolName} 回执，同 schema）：骨架/harness 内建恒 true 锁死、增强按运营配置生效态。 */
+    interface AgentTool {
+      /** 工具注册名（模型可见名＝开关按名寻址键；清单读面即全集） */
+      name: string;
+      kind: AgentToolKind;
+      /** 挂载态（false＝在册但退出装配面——模型不可见） */
+      enabled: boolean;
+      description: string;
+    }
+
+    /**
+     * 工具面槽位块（GET /agent-tools 元素）：slot 与技能槽位同键、slotName 中文名随行直读；
+     * 呈现序＝平台资产在前、harness 内建在后。增强两件挂载态＝main 座配置 flag（开关窄幅写口
+     * 挂 main 行开关列）——读面两入口同源。
+     */
+    interface AgentToolSlot {
+      slot: SkillSlot;
+      slotName: string;
+      tools: AgentTool[];
+    }
+
+    /** PUT /agent-tools/{toolName} body——enabled 必填无缺省（缺省 null 400 PRJ_037）。 */
+    interface AgentToolToggleCommand {
+      enabled: boolean;
     }
 
     /**

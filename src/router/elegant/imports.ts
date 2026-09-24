@@ -21,6 +21,7 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   "iframe-page": () => import("@/views/_builtin/iframe-page/[url].vue"),
   login: () => import("@/views/_builtin/login/index.vue"),
   account_list: () => import("@/views/account/list/index.vue"),
+  aiplatform_agent_config: () => import("@/views/aiplatform/agent_config/index.vue"),
   aiplatform_cost: () => import("@/views/aiplatform/cost/index.vue"),
   aiplatform_material: () => import("@/views/aiplatform/material/index.vue"),
   aiplatform_order: () => import("@/views/aiplatform/order/index.vue"),

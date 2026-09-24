@@ -69,6 +69,25 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
+        name: 'aiplatform_agent',
+        path: '/aiplatform/agent',
+        meta: {
+          title: 'aiplatform_agent',
+          i18nKey: 'route.aiplatform_agent'
+        },
+        children: [
+          {
+            name: 'aiplatform_agent_config',
+            path: '/aiplatform/agent/config',
+            component: 'view.aiplatform_agent_config',
+            meta: {
+              title: 'aiplatform_agent_config',
+              i18nKey: 'route.aiplatform_agent_config'
+            }
+          }
+        ]
+      },
+      {
         name: 'aiplatform_cost',
         path: '/aiplatform/cost',
         component: 'view.aiplatform_cost',
