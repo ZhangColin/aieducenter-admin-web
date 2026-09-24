@@ -210,9 +210,10 @@ mock E2E（cost **43/43** + project **83/83** 两轮全绿 + order 31/31 / works
 
 mock E2E（order **35/35** + project **87/87** 两轮全绿 + workspace 48/48 / cost 43/43 / price-entry 44/44 / material 46/46 回归绿）。至此 34 端点全消费（33→34）。
 
-- **externalId 锚点事实（api-docs 核实）**：订单/项目详情响应均不带 externalId——嵌件由**列表页 externalId 筛选值**驱动（admin#62 用户故事 7 字面流：identity 拿账号 id → 按 externalId 检索 → 抽屉认交易对手）。筛选在即查、缺省不渲染；「列表按 externalId 命中 ⇒ 账号必已建档」故 404（IDN_004→6004）仅筛选后删档竞态可达——onError 透传 toast 兜底、区不渲染，不设专属错误态（prd-pane「错误态不写防御性处理」先例）。
+- **externalId 锚点事实（api-docs 核实）**：订单/项目详情响应均不带 externalId——嵌件由**列表页 externalId 筛选值**驱动（admin#62 用户故事 7 字面流：identity 拿账号 id → 按 externalId 检索 → 抽屉认交易对手）。**过渡实现**：REQ-21（admin#76，本仓 grill 时已提）落地 detail 补 `ownerExternalId` 后锚点迁至详情响应、任意抽屉常态点亮（组件/服务层注释已钉迁移注记，防 workaround 固化）。筛选在即查、缺省不渲染；「列表按 externalId 命中 ⇒ 账号必已建档」故 404（IDN_004→6004）仅筛选后删档竞态可达——onError 透传 toast 兜底、区不渲染，不设专属错误态（prd-pane「错误态不写防御性处理」先例）。
 - **aiplatform 共享层立层**（T8 review 在案「跨子域第二例上提」兑现）：`views/aiplatform/modules/` 首件 `account-profile.vue`（order/project 两抽屉共用 + account:read 读码门控）；cost-buckets **留居 cost 域不迁**——其数据形变居所在 `breakdown.ts`，上提反造共享层→域反向依赖。
 - **mock 单一事实源**：harness `ACCOUNT_PROFILES` 恒挂载（有码无页、无域 fixtures 参数），`externalIdOwnerMap` 改由它派生——订单/项目 externalId 筛选与档案端点同一批账号；嵌件用例挂订单/项目 e2e 尾部（无独立文件）。
+- **code-review 修正（双轴 review，紧随本票；修后 order 35/35 + project 87/87 复绿）**：① spec 轴指出筛选驱动系 REQ-21（admin#76）落地前的降级替代——组件/服务层/本条目补「过渡实现，detail 补 ownerExternalId 后迁锚点」注记防固化；② e2e 补档案昵称断言（`赵六` 双处渲染 count≥2——基本信息 ownerDisplayName + 档案 displayName 同名互证）。review 判断项不修记录在案：两域 e2e 嵌件段 ~15 行逐字同型（e2e 惯例每域自包含，第三例再提 helper）；externalId prop 经 index→drawer 两跳纯转发（Vue prop drilling 惯用 + 注释钉转发理由）；watch 异步无乱序防护（抽屉模态期间筛选不可变，不可达不防）；account:read 无码门控无 e2e（harness 恒授全码、无降权登录先例，hasAuth 门控与全站同型不单测）。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 

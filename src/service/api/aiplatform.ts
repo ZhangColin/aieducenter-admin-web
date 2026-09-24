@@ -35,7 +35,8 @@
  * 观测详情——summary 无 content，抽屉开着须二次回读详情）。kind 为 string 裸值（v1 恒 "PRD"）。
  *
  * 账号域（#56 收口，1 端点）：有码无页——订单/项目详情抽屉嵌件按 externalId 查极简档案认交易对手。
- * 详情响应不带 externalId（契约如此），嵌件由列表页 externalId 筛选值驱动。
+ * 详情响应不带 externalId（契约如此），嵌件由列表页 externalId 筛选值驱动（过渡——REQ-21/admin#76
+ * 落地 detail 补 ownerExternalId 后迁锚点至详情响应）。
  */
 import { request } from '../request';
 

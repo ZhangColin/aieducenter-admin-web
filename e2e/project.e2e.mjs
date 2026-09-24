@@ -334,9 +334,10 @@ async function main() {
     calls.some(c => c.method === 'GET' && c.path === '/aiplatform/accounts/ext-zhaoliu')
   );
   h.check(
-    '档案渲染（aiplatform 账号 ID + 建档时间）',
+    '档案渲染（aiplatform 账号 ID + 建档时间 + 昵称双处）',
     (await zhaoDrawer.getByText('7395120209080100001').count()) > 0 &&
-      (await zhaoDrawer.getByText('2026-08-02 11:00:00').count()) > 0
+      (await zhaoDrawer.getByText('2026-08-02 11:00:00').count()) > 0 &&
+      (await zhaoDrawer.getByText('赵六').count()) >= 2
   );
 }
 

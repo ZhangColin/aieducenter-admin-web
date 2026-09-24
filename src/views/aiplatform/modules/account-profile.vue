@@ -3,8 +3,10 @@
  * 账号档案嵌件（#56 收口，account:read 有码无页）——订单/项目详情抽屉共用，认交易对手。
  *
  * 详情响应不带 externalId（契约如此），嵌件由列表页 externalId 筛选值驱动：筛选在即查、
- * 缺省不渲染。列表按 externalId 命中 ⇒ 账号必已建档，404 仅「筛选后删档」竞态可达——
- * onError 透传 toast 兜底、区不渲染，不设专属错误态（prd-pane「错误态不写防御性处理」先例）。
+ * 缺省不渲染。**过渡实现**——REQ-21（admin#76）落地 detail 补 ownerExternalId 后，
+ * 锚点迁至详情响应本身（任意抽屉常态点亮，不再依赖操作路径是否筛选）。列表按 externalId
+ * 命中 ⇒ 账号必已建档，404 仅「筛选后删档」竞态可达——onError 透传 toast 兜底、区不渲染，
+ * 不设专属错误态（prd-pane「错误态不写防御性处理」先例）。
  * 无 account:read 权限码整体不渲染（读码门控同页面先例）。
  *
  * 首例 aiplatform 共享层组件（CONTEXT「跨子域复用第二例上提」——order/project 两抽屉共用；
