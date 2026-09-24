@@ -253,7 +253,8 @@ const local: App.I18n.Schema = {
     aiplatform_cost: 'Cost Center',
     aiplatform_price: 'Price Entries',
     aiplatform_price_entry: 'Price Entries',
-    aiplatform_material: 'Knowledge Materials'
+    aiplatform_material: 'Knowledge Materials',
+    aiplatform_skill: 'Skill Management'
   },
   page: {
     login: {
@@ -1222,6 +1223,78 @@ const local: App.I18n.Schema = {
           disable: 'Material disabled',
           enable: 'Material enabled',
           delete: 'Material deleted'
+        }
+      },
+      skill: {
+        title: 'Skill Management',
+        detailTitle: 'Skill Detail',
+        id: 'Skill Handle',
+        name: 'Skill Name',
+        description: 'Description',
+        source: 'Source',
+        sourcePackage: 'Source Package',
+        version: 'Version',
+        status: 'Status',
+        operator: 'Last Operator',
+        updateAvailable: 'Updatable',
+        updatable: 'Updatable',
+        detail: 'Detail',
+        more: 'Actions',
+        install: 'Install Skill',
+        action: {
+          disable: 'Disable',
+          enable: 'Enable',
+          uninstall: 'Uninstall',
+          update: 'Update',
+          traces: 'Traces'
+        },
+        drawer: {
+          basic: 'Basic Info',
+          frontmatter: 'Frontmatter Key-Values',
+          frontmatterEmpty: '(no frontmatter)',
+          content: 'SKILL.md Body'
+        },
+        installModal: {
+          title: 'Install Skill',
+          receiptTitle: 'Install Completed',
+          receiptNote: '{count} skill(s) installed:',
+          done: 'Done',
+          confirm: 'Install',
+          tip: 'Install = freeze the current HEAD snapshot (version = commit at install time); any repo-relative path segment matching an excluded segment is skipped.',
+          repoUrl: 'Repository URL',
+          repoUrlPlaceholder: 'git repository URL (https/ssh)',
+          excludeDirs: 'Excluded Dir Segments',
+          excludeDirsPlaceholder: 'Type a segment and press Enter (multiple allowed)'
+        },
+        updateModal: {
+          title: 'Update Completed',
+          done: 'Done',
+          noOp: 'Remote unchanged, no trace written (idempotent — nothing changed)',
+          updatedNote: 'Remote snapshot re-pulled and traced.',
+          removed: 'Removed skills:',
+          removedEmpty: 'None removed',
+          terminal: 'All entries of this source package after update'
+        },
+        tracesDrawer: {
+          title: 'Update Traces',
+          empty: 'No update traces yet'
+        },
+        confirm: {
+          target: 'Target: {name}',
+          updateTarget: 'Source package: {sourcePackage}',
+          disable: 'Disable Skill',
+          disableTip: 'Leaves assembly candidacy (reversible via Enable)',
+          enable: 'Enable Skill',
+          enableTip: 'Restores assembly candidacy',
+          uninstall: 'Uninstall Skill',
+          uninstallTip: 'Library row deletion is irreversible; assignment-in-place is rejected (unbind first)',
+          update: 'Update Skill Package',
+          updateTip: 'Re-pulls the remote snapshot with trace; skills deleted remotely but still assigned reject the whole update'
+        },
+        success: {
+          disable: 'Skill disabled',
+          enable: 'Skill enabled',
+          uninstall: 'Skill uninstalled'
         }
       },
       /** Account profile widget (#56 code-without-page — shared by order/project detail drawers, driven by externalId filter). */

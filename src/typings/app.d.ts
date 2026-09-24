@@ -1448,6 +1448,78 @@ declare namespace App {
               delete: string;
             };
           };
+          skill: {
+            title: string;
+            detailTitle: string;
+            id: string;
+            name: string;
+            description: string;
+            source: string;
+            sourcePackage: string;
+            version: string;
+            status: string;
+            operator: string;
+            updateAvailable: string;
+            updatable: string;
+            detail: string;
+            more: string;
+            install: string;
+            action: {
+              disable: string;
+              enable: string;
+              uninstall: string;
+              update: string;
+              traces: string;
+            };
+            drawer: {
+              basic: string;
+              frontmatter: string;
+              frontmatterEmpty: string;
+              content: string;
+            };
+            installModal: {
+              title: string;
+              receiptTitle: string;
+              receiptNote: string;
+              done: string;
+              confirm: string;
+              tip: string;
+              repoUrl: string;
+              repoUrlPlaceholder: string;
+              excludeDirs: string;
+              excludeDirsPlaceholder: string;
+            };
+            updateModal: {
+              title: string;
+              done: string;
+              noOp: string;
+              updatedNote: string;
+              removed: string;
+              removedEmpty: string;
+              terminal: string;
+            };
+            tracesDrawer: {
+              title: string;
+              empty: string;
+            };
+            confirm: {
+              target: string;
+              updateTarget: string;
+              disable: string;
+              disableTip: string;
+              enable: string;
+              enableTip: string;
+              uninstall: string;
+              uninstallTip: string;
+              update: string;
+              updateTip: string;
+            };
+            success: {
+              disable: string;
+              enable: string;
+              uninstall: string;
+            };
+          };
           /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
           account: {
             title: string;

@@ -37,6 +37,12 @@
  * 账号域（#56 收口，1 端点）：有码无页——订单/项目详情抽屉嵌件按 externalId 查极简档案认交易对手。
  * 详情响应不带 externalId（契约如此），嵌件由列表页 externalId 筛选值驱动（过渡——REQ-21/admin#76
  * 落地 detail 补 ownerExternalId 后迁锚点至详情响应）。
+ *
+ * 技能域（#67 技能管理，技能线 8 端点）：git 仓库快照安装治理面——清单（内置＋安装同权、不分页、
+ * 内置在前）+ 详情（frontmatter 全量＋正文全文＝审核面）+ 安装/卸载/停用⇄启用/显式更新/更新留痕。
+ * id 为 opaque 串两形制（builtin: 前缀 / TSID 十进制串）路径段直传；安装命令无 tag/ref（版本恒＝
+ * 装时 HEAD）；updateAvailable 展示性标记不门控更新；回执三形（install＝条目数组 / 卸载·启停＝
+ * 单个 summary / update＝from→to＋移除名单＋终态行集）。
  */
 import { request } from '../request';
 
@@ -245,6 +251,52 @@ export function fetchEnableAiplatformMaterial(id: string) {
 /** DELETE /aiplatform/materials/{id}——删除素材（治理移除登记行与全部块、不动来源项目、不可逆；回执＝删除前终态 summary）。 */
 export function fetchDeleteAiplatformMaterial(id: string) {
   return request<Api.Aiplatform.MaterialSummary>({ url: `/aiplatform/materials/${id}`, method: 'delete' });
+}
+
+/* ---- 技能域（#67 技能管理，技能线 8 端点；清单无分页、id＝opaque 串两形制透传）。 */
+
+/** GET /aiplatform/skills——技能清单（内置＋安装同权、不分页；服务端排序内置在前）。 */
+export function fetchGetAiplatformSkillList() {
+  return request<Api.Aiplatform.SkillSummary[]>({ url: '/aiplatform/skills', method: 'get' });
+}
+
+/** GET /aiplatform/skills/{id}——技能详情（frontmatter 全量 + 正文全文＝安装审核面；查无 404 SKL_001）。 */
+export function fetchGetAiplatformSkill(id: string) {
+  return request<Api.Aiplatform.SkillDetail>({ url: `/aiplatform/skills/${id}`, method: 'get' });
+}
+
+/** POST /aiplatform/skills/install——安装技能包（git 快照固化；clone 走网络可能慢）。回执＝本次装入条目。 */
+export function fetchInstallAiplatformSkill(data: Api.Aiplatform.InstallSkillCommand) {
+  return request<Api.Aiplatform.SkillSummary[]>({ url: '/aiplatform/skills/install', method: 'post', data });
+}
+
+/** DELETE /aiplatform/skills/{id}——卸载技能（库行删除不可逆；有指派在身 409 SKL_008 先解绑）。回执＝删除前终态。 */
+export function fetchUninstallAiplatformSkill(id: string) {
+  return request<Api.Aiplatform.SkillSummary>({ url: `/aiplatform/skills/${id}`, method: 'delete' });
+}
+
+/** POST /aiplatform/skills/{id}/disable——停用技能（可逆开关；对内置行可达与否归 provider 裁决透传）。 */
+export function fetchDisableAiplatformSkill(id: string) {
+  return request<Api.Aiplatform.SkillSummary>({ url: `/aiplatform/skills/${id}/disable`, method: 'post' });
+}
+
+/** POST /aiplatform/skills/{id}/enable——启用技能（停用的可逆侧；重复启用幂等）。 */
+export function fetchEnableAiplatformSkill(id: string) {
+  return request<Api.Aiplatform.SkillSummary>({ url: `/aiplatform/skills/${id}/enable`, method: 'post' });
+}
+
+/** POST /aiplatform/skills/update——显式更新技能包（重拉快照＋版本留痕；远端已删且有指派 409 SKL_013 整体拒绝）。 */
+export function fetchUpdateAiplatformSkill(data: Api.Aiplatform.UpdateSkillCommand) {
+  return request<Api.Aiplatform.SkillUpdateReceipt>({ url: '/aiplatform/skills/update', method: 'post', data });
+}
+
+/** GET /aiplatform/skills/update-traces?sourcePackage=——更新留痕（按来源包必传；倒序 append-only、卸载不删痕）。 */
+export function fetchGetAiplatformSkillUpdateTraces(sourcePackage: string) {
+  return request<Api.Aiplatform.SkillUpdateTrace[]>({
+    url: '/aiplatform/skills/update-traces',
+    method: 'get',
+    params: { sourcePackage }
+  });
 }
 
 /* ---- 账号域（#56 收口，1 端点；有码无页——嵌订单/项目详情抽屉，无独立页面）。 */

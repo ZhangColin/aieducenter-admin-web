@@ -249,7 +249,8 @@ const local: App.I18n.Schema = {
     aiplatform_cost: '成本中心',
     aiplatform_price: '单价表',
     aiplatform_price_entry: '单价表',
-    aiplatform_material: '知识素材'
+    aiplatform_material: '知识素材',
+    aiplatform_skill: '技能管理'
   },
   page: {
     login: {
@@ -1219,6 +1220,79 @@ const local: App.I18n.Schema = {
           disable: '素材已停用',
           enable: '素材已启用',
           delete: '素材已删除'
+        }
+      },
+      skill: {
+        title: '技能管理',
+        detailTitle: '技能详情',
+        id: '技能柄',
+        name: '技能名',
+        description: '描述',
+        source: '来源',
+        sourcePackage: '来源包',
+        version: '版本',
+        status: '状态',
+        operator: '最近操作',
+        updateAvailable: '可更新',
+        updatable: '可更新',
+        detail: '详情',
+        more: '操作',
+        install: '安装技能',
+        action: {
+          disable: '停用',
+          enable: '启用',
+          uninstall: '卸载',
+          update: '更新',
+          traces: '留痕'
+        },
+        drawer: {
+          basic: '基本信息',
+          frontmatter: 'Frontmatter 键值',
+          frontmatterEmpty: '（无 frontmatter）',
+          content: 'SKILL.md 正文'
+        },
+        installModal: {
+          title: '安装技能',
+          receiptTitle: '安装完成',
+          receiptNote: '本次装入 {count} 项：',
+          done: '完成',
+          confirm: '安装',
+          tip: '安装＝固化当前 HEAD 快照（版本＝装时 commit）；排除目录段命中仓库相对路径任一段即不入库。',
+          repoUrl: '仓库地址',
+          repoUrlPlaceholder: 'git 仓库地址（https/ssh）',
+          excludeDirs: '排除目录段',
+          excludeDirsPlaceholder: '输入目录段后回车（可多个）'
+        },
+        updateModal: {
+          title: '更新完成',
+          done: '完成',
+          noOp: '远端未前进，未落痕（幂等——无任何变更）',
+          updatedNote: '已重拉远端快照并留痕。',
+          removed: '移除技能：',
+          removedEmpty: '无移除',
+          terminal: '更新后该来源包全部条目'
+        },
+        tracesDrawer: {
+          title: '更新留痕',
+          empty: '暂无更新留痕'
+        },
+        confirm: {
+          /** 写确认框共用的目标对账行（技能名/来源包插值）。 */
+          target: '目标：{name}',
+          updateTarget: '来源包：{sourcePackage}',
+          disable: '停用技能',
+          disableTip: '退出装配候选（可逆——可经「启用」恢复）',
+          enable: '启用技能',
+          enableTip: '恢复装配候选',
+          uninstall: '卸载技能',
+          uninstallTip: '库行删除不可逆；有指派在身将被拒绝（先解绑再卸载）',
+          update: '更新技能包',
+          updateTip: '重拉远端快照并留痕；远端已删且被指派的技能会令更新整体拒绝'
+        },
+        success: {
+          disable: '技能已停用',
+          enable: '技能已启用',
+          uninstall: '技能已卸载'
         }
       },
       /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */

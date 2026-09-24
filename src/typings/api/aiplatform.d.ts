@@ -44,6 +44,17 @@
  *   删除不可逆（治理移除，不动来源项目；回执＝删除前终态 summary——确认移除了什么）。错误码数字形
  *   ＝域码 2×1000＋序号（KNW_005→2005 查无 404 / KNW_006→2006 缺 X-User 头 400 / KNW_007→2007
  *   未知 status 400）。
+ *
+ * 技能域（#67 技能管理，技能线 8 端点）：清单**无分页**（有界目录）、服务端排序内置在前；
+ *   id 为 opaque 串两形制（内置＝`builtin:<技能名>` / 安装＝TSID 十进制串）——一律 string 透传、
+ *   禁止数值化；source 1=内置 2=安装、status 1=启用 2=停用（与素材域同构），`*Name` 随行直读。
+ *   安装命令无 tag/ref 字段（repoUrl＋excludeDirs[]，版本恒＝装时 HEAD commit）。回执三形：
+ *   install＝装入条目 summary[] / uninstall·启停＝单个 summary（uninstall＝删除前终态）/
+ *   update＝from→to＋removedSkillNames[]＋终态行集（from==to＝幂等未落痕未写行）。
+ *   `updateAvailable` 为来源包级标记（true=远端 HEAD≠装时版本；null=未检查过、内置恒 null）
+ *   ——**不门控更新动作**（provider 不保证检查过）。留痕 append-only 倒序、卸载不删痕。
+ *   错误码数字形＝域码 7×1000＋序号（SKL_001→7001 查无 404 / SKL_002–007 安装失败族 /
+ *   SKL_008→7008 有指派在身 409 / SKL_013→7013 更新整体拒绝 409）。
  */
 declare namespace Api {
   namespace Aiplatform {
@@ -688,6 +699,92 @@ declare namespace Api {
     }
 
     type MaterialFilter = Omit<MaterialSearchParams, 'page' | 'size'>;
+
+    /* ---- 技能域（#67 技能管理——技能线 8 端点）---- */
+
+    /** 技能来源（两态）：1=内置 2=安装（sourceName 中文名随行直读）。 */
+    type SkillSource = 1 | 2;
+
+    /** 技能状态（两态）：1=启用 2=停用——与素材域同构；内置恒 1（启停对内置行的裁决归 provider 透传）。 */
+    type SkillStatus = 1 | 2;
+
+    /** 技能管理五写动作（install 单独门控触发按钮；disable⇄enable 互斥；uninstall/update 仅安装行）。 */
+    type SkillAction = 'install' | 'disable' | 'enable' | 'uninstall' | 'update';
+
+    /**
+     * 技能列表行（GET /skills 全量元素 = install 回执条目 = update 回执终态行集，同 schema
+     * `AiplatformSkillSummaryResponse`）。清单无分页（有界目录）、服务端排序内置在前。
+     */
+    interface SkillSummary {
+      /**
+       * 技能柄（opaque 串两形制，详情寻址键）：内置＝`builtin:<技能名>` / 安装＝TSID 十进制串
+       * ——一律 string 透传，禁止数值化。
+       */
+      id: string;
+      name: string;
+      description: string;
+      source: SkillSource;
+      sourceName: string;
+      /** 来源包标识（安装仓库规范化地址）；内置 null */
+      sourcePackage: string | null;
+      /** 版本标识（装时/上次更新 commit）；内置 null */
+      version: string | null;
+      status: SkillStatus;
+      statusName: string;
+      operatorId: string | null;
+      operatorName: string | null;
+      /**
+       * 远端有新版标记（来源包级）：true=远端 HEAD≠装时版本；null=未检查过（内置恒 null 不适用）
+       * ——展示性标记，**不门控更新动作**（provider 不保证检查过，更新永远显式点）。
+       */
+      updateAvailable: boolean | null;
+    }
+
+    /** 技能详情（GET /skills/{id}；清单行超集——frontmatter 解析态 + 正文全文＝安装审核面）。 */
+    interface SkillDetail extends SkillSummary {
+      /** SKILL.md frontmatter 全量（自由 map——审核面所见即运行时注入面，键值原样直出） */
+      frontmatter: Record<string, unknown>;
+      /** SKILL.md 正文（frontmatter 剥离后全文） */
+      content: string;
+    }
+
+    /** POST /skills/install body——安装命令无 tag/ref 字段，版本恒＝装时 HEAD commit。 */
+    interface InstallSkillCommand {
+      /** 技能仓库 git 地址（https/ssh/本地路径——clone 走宿主 git 凭据） */
+      repoUrl: string;
+      /** 排除目录段名单（可缺省）：仓库相对路径任一段命中即不入库（段名精确匹配） */
+      excludeDirs?: string[];
+    }
+
+    /** POST /skills/update body——sourcePackage 取技能清单行原值回传。 */
+    interface UpdateSkillCommand {
+      sourcePackage: string;
+    }
+
+    /**
+     * 显式更新回执（POST /skills/update）：from==to＝远端未前进（幂等，未落痕未写行）；
+     * removedSkillNames＝本次移除的技能名（有指派在身的移除会令整体 409 SKL_013，不至此）；
+     * skills＝更新后该来源包全部条目（同名行原地翻新保留 id/状态/指派）。
+     */
+    interface SkillUpdateReceipt {
+      sourcePackage: string;
+      fromVersion: string;
+      toVersion: string;
+      removedSkillNames: string[];
+      operatorId: string;
+      operatorName: string;
+      skills: SkillSummary[];
+    }
+
+    /** 更新留痕行（GET /skills/update-traces?sourcePackage=；倒序 append-only、卸载不删痕）。 */
+    interface SkillUpdateTrace {
+      sourcePackage: string;
+      fromVersion: string;
+      toVersion: string;
+      operatorId: string;
+      operatorName: string;
+      operatedAt: string;
+    }
 
     /**
      * 账号档案（GET /accounts/{externalId}；有码无页——订单/项目详情抽屉嵌件按 externalId 查，

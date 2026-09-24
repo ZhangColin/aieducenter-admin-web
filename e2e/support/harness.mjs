@@ -1,9 +1,9 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，六域共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域，共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
- * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx / KNW→2xxx / IDN→6xxx）、message 原文。
+ * body.code＝provider 数字业务码（域码×1000＋序号：PRJ→4xxx / ORD→5xxx / WSP→1xxx / MET→3xxx / KNW→2xxx / IDN→6xxx / SKL→7xxx）、message 原文。
  */
 import zlib from 'node:zlib';
 
@@ -55,14 +55,23 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  * 安装 /proxy-default/** 全量 mock（auth / menus.my / aiplatform 各域）。
  *
  * @param page playwright page
- * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean}}}
+ * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material?, skill? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean}}}
  *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
- *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404——透传 toast 断言用）
+ *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409——透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
-  const state = { failNextQuote: false, failNextWorkspaceWrite: false, failNextReprice: false, failNextMaterialWrite: false };
+  const state = {
+    failNextQuote: false,
+    failNextWorkspaceWrite: false,
+    failNextReprice: false,
+    failNextMaterialWrite: false,
+    failNextSkillInstall: false,
+    failNextSkillWrite: false,
+    failNextSkillUninstall: false,
+    failNextSkillUpdate: false
+  };
 
   const json = (route, status, body) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -279,6 +288,96 @@ export async function installAiplatformMocks(page, fixtures) {
     return receipt;
   }
 
+  /** 技能启停（可逆开关）——行·详情同步就地变异（抽屉 reload 后拿到新事实）、操作者留最近一次。 */
+  function applySkillToggle(row, enabled) {
+    row.status = enabled ? 1 : 2;
+    row.statusName = enabled ? '启用' : '停用';
+    row.operatorId = '1';
+    row.operatorName = 'E2E Mock';
+    const detail = fixtures.skill.SKILL_DETAILS[row.id];
+    if (detail) {
+      detail.status = row.status;
+      detail.statusName = row.statusName;
+      detail.operatorId = row.operatorId;
+      detail.operatorName = row.operatorName;
+    }
+    return { ...row };
+  }
+
+  /** 技能卸载（库行删除不可逆）——回执＝删除前终态；行·详情双删。 */
+  function applySkillUninstall(row) {
+    const receipt = { ...row };
+    const idx = fixtures.skill.SKILL_ROWS.indexOf(row);
+    if (idx >= 0) fixtures.skill.SKILL_ROWS.splice(idx, 1);
+    delete fixtures.skill.SKILL_DETAILS[row.id];
+    return receipt;
+  }
+
+  /** 安装（git 快照固化）——按 repoUrl 落包：装入条目 append 清单尾（内置在前序不动）、详情随建。 */
+  function applySkillInstall(command) {
+    const rows = fixtures.skill.INSTALL_ROWS.map(row => ({ ...row, sourcePackage: command.repoUrl }));
+    for (const row of rows) {
+      fixtures.skill.SKILL_ROWS.push(row);
+      fixtures.skill.SKILL_DETAILS[row.id] = { ...row, frontmatter: { name: row.name }, content: `e2e mock ${row.name}` };
+    }
+    return rows.map(row => ({ ...row }));
+  }
+
+  /**
+   * 显式更新（重拉快照＋版本留痕）——PACK_A 靶：同名行原地翻新（版本→to、可更新标记回落
+   * false、操作者落痕）+ 移除 sql-helper + 新增 diagram-draw + 留痕 unshift；其余包＝远端
+   * 未前进（from==to 幂等回执，未落痕未写行、终态行集原样）。
+   */
+  function applySkillUpdate(sourcePackage) {
+    const S = fixtures.skill;
+    if (sourcePackage !== S.PACK_A) {
+      const rows = S.SKILL_ROWS.filter(row => row.sourcePackage === sourcePackage).map(row => ({ ...row }));
+      const version = rows[0]?.version ?? 'unknown';
+      return { sourcePackage, fromVersion: version, toVersion: version, removedSkillNames: [], operatorId: '1', operatorName: 'E2E Mock', skills: rows };
+    }
+    const removedSkillNames = [];
+    for (let i = S.SKILL_ROWS.length - 1; i >= 0; i -= 1) {
+      const row = S.SKILL_ROWS[i];
+      if (row.sourcePackage !== sourcePackage) continue;
+      if (row.name === 'sql-helper') {
+        removedSkillNames.push(row.name);
+        S.SKILL_ROWS.splice(i, 1);
+        delete S.SKILL_DETAILS[row.id];
+      } else {
+        row.version = S.PACK_A_TO;
+        row.updateAvailable = false;
+        row.operatorId = '1';
+        row.operatorName = 'E2E Mock';
+        const detail = S.SKILL_DETAILS[row.id];
+        if (detail) {
+          detail.version = row.version;
+          detail.updateAvailable = false;
+          detail.operatorId = row.operatorId;
+          detail.operatorName = row.operatorName;
+        }
+      }
+    }
+    S.SKILL_ROWS.push({ ...S.UPDATE_ADDED_ROW });
+    S.SKILL_DETAILS[S.UPDATE_ADDED_ROW.id] = { ...S.UPDATE_ADDED_ROW, frontmatter: { name: 'diagram-draw' }, content: 'e2e mock diagram-draw' };
+    (S.UPDATE_TRACES[sourcePackage] ??= []).unshift({
+      sourcePackage,
+      fromVersion: S.PACK_A_FROM,
+      toVersion: S.PACK_A_TO,
+      operatorId: '1',
+      operatorName: 'E2E Mock',
+      operatedAt: '2026-09-24T10:00:00Z'
+    });
+    return {
+      sourcePackage,
+      fromVersion: S.PACK_A_FROM,
+      toVersion: S.PACK_A_TO,
+      removedSkillNames,
+      operatorId: '1',
+      operatorName: 'E2E Mock',
+      skills: S.SKILL_ROWS.filter(row => row.sourcePackage === sourcePackage).map(row => ({ ...row }))
+    };
+  }
+
   await page.route('**/proxy-default/**', route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
@@ -321,6 +420,12 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:material:disable', name: 'AI 平台 / 素材停用' },
             { code: 'admin:aiplatform:material:enable', name: 'AI 平台 / 素材启用' },
             { code: 'admin:aiplatform:material:delete', name: 'AI 平台 / 素材删除' },
+            { code: 'admin:aiplatform:skill:read', name: 'AI 平台 / 技能查看' },
+            { code: 'admin:aiplatform:skill:install', name: 'AI 平台 / 技能安装' },
+            { code: 'admin:aiplatform:skill:disable', name: 'AI 平台 / 技能停用' },
+            { code: 'admin:aiplatform:skill:enable', name: 'AI 平台 / 技能启用' },
+            { code: 'admin:aiplatform:skill:uninstall', name: 'AI 平台 / 技能卸载' },
+            { code: 'admin:aiplatform:skill:update', name: 'AI 平台 / 技能更新' },
             { code: 'admin:aiplatform:account:read', name: 'AI 平台 / 账号档案查看' }
           ],
           menus: []
@@ -432,6 +537,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_material',
                   parentId: '82',
                   sortOrder: 6,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '220',
+                  menuName: '技能管理',
+                  routeName: 'aiplatform_skill',
+                  routePath: '/aiplatform/skill',
+                  component: 'view.aiplatform_skill',
+                  icon: 'carbon:tools',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_skill',
+                  parentId: '82',
+                  sortOrder: 7,
                   menuType: 2,
                   status: 1
                 }
@@ -675,6 +794,65 @@ export async function installAiplatformMocks(page, fixtures) {
         const detail = fixtures.material.MATERIAL_DETAILS[deleteMatch[1]];
         if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
         return knw404();
+      }
+    }
+
+    // ---- 技能域（#67；清单无分页全量直出、id＝opaque 串两形制路径段）----
+    if (fixtures.skill) {
+      const skl404 = () =>
+        json(route, 404, { code: 7001, message: '技能不存在（SKL_001）', data: null, requestId: 'e2e-mock', errors: null });
+      if (path === '/aiplatform/skills' && method === 'GET') {
+        return json(route, 200, { code: 200, message: 'ok', data: fixtures.skill.SKILL_ROWS.map(row => ({ ...row })), requestId: 'e2e-mock', errors: null });
+      }
+      if (path === '/aiplatform/skills/install' && method === 'POST') {
+        if (state.failNextSkillInstall) {
+          state.failNextSkillInstall = false;
+          // 克隆失败/超时（安装失败族 SKL_004）：HTTP 502 + 数字业务码 7004 + 原文 message
+          return json(route, 502, { code: 7004, message: '技能仓库克隆失败或超时（SKL_004）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        const command = JSON.parse(route.request().postData() ?? '{}');
+        return json(route, 200, { code: 200, message: 'ok', data: applySkillInstall(command), requestId: 'e2e-mock', errors: null });
+      }
+      if (path === '/aiplatform/skills/update' && method === 'POST') {
+        if (state.failNextSkillUpdate) {
+          state.failNextSkillUpdate = false;
+          // 远端已删且有指派在身（SKL_013）：HTTP 409 + 数字业务码 7013 + 原文 message（整体拒绝）
+          return json(route, 409, { code: 7013, message: '远端已删除且被指派的技能无法移除，更新被整体拒绝（SKL_013）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        const command = JSON.parse(route.request().postData() ?? '{}');
+        return json(route, 200, { code: 200, message: 'ok', data: applySkillUpdate(command.sourcePackage ?? ''), requestId: 'e2e-mock', errors: null });
+      }
+      if (path === '/aiplatform/skills/update-traces' && method === 'GET') {
+        const sourcePackage = url.searchParams.get('sourcePackage') ?? '';
+        const traces = fixtures.skill.UPDATE_TRACES[sourcePackage] ?? [];
+        return json(route, 200, { code: 200, message: 'ok', data: traces.map(trace => ({ ...trace })), requestId: 'e2e-mock', errors: null });
+      }
+      const sklToggleMatch = path.match(/^\/aiplatform\/skills\/([^/]+)\/(disable|enable)$/);
+      if (sklToggleMatch && method === 'POST') {
+        const row = fixtures.skill.SKILL_ROWS.find(r => r.id === sklToggleMatch[1]);
+        if (!row) return skl404();
+        if (state.failNextSkillWrite) {
+          state.failNextSkillWrite = false;
+          // 写操作缺留痕头（SKL_009）：HTTP 400 + 数字业务码 7009 + 原文 message
+          return json(route, 400, { code: 7009, message: '技能库写操作必须留痕（SKL_009）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: applySkillToggle(row, sklToggleMatch[2] === 'enable'), requestId: 'e2e-mock', errors: null });
+      }
+      const sklIdMatch = path.match(/^\/aiplatform\/skills\/([^/]+)$/);
+      if (sklIdMatch && method === 'DELETE') {
+        const row = fixtures.skill.SKILL_ROWS.find(r => r.id === sklIdMatch[1]);
+        if (!row) return skl404();
+        if (state.failNextSkillUninstall) {
+          state.failNextSkillUninstall = false;
+          // 有指派在身（SKL_008）：HTTP 409 + 数字业务码 7008 + 原文 message（先解绑再卸）
+          return json(route, 409, { code: 7008, message: '技能有指派在身，先解绑再卸载（SKL_008）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        return json(route, 200, { code: 200, message: 'ok', data: applySkillUninstall(row), requestId: 'e2e-mock', errors: null });
+      }
+      if (sklIdMatch && method === 'GET') {
+        const detail = fixtures.skill.SKILL_DETAILS[sklIdMatch[1]];
+        if (detail) return json(route, 200, { code: 200, message: 'ok', data: detail, requestId: 'e2e-mock', errors: null });
+        return skl404();
       }
     }
 

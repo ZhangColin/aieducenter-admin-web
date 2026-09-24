@@ -1,4 +1,4 @@
-# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域、#64 契约增量）
+# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域、#64 契约增量、#67 扩技能域）
 
 headless Chrome（`playwright-core` 系统 channel，**免下载浏览器**）+ `page.route` 全量 mock。
 mock fixtures 的字段形状**派生自 admin :8081 `/v3/api-docs`**（各域 `support/*-fixtures.mjs` 头注释标明
@@ -47,10 +47,20 @@ e2e/
     material-fixtures.mjs  素材 fixtures（AiplatformMaterialSummary/DetailResponse 形状——kind string
                            裸值恒 "PRD"、status 1/2 两态矩阵、沉淀时间 9 月 ×10 vs 8 月 ×2（闭区间
                            过滤靶）、启停/删除变异由 harness 行·详情同步就地改）
+    skill-fixtures.mjs     技能 fixtures（AiplatformSkillSummary/Detail/UpdateTraceResponse 形状——
+                           id opaque 串两形制（builtin: 前缀 / TSID 十进制串）、内置 3 + 安装三包
+                           （可更新 true/false/null 包级统一）、frontmatter 四型值（string/number/
+                           array/object）；安装/更新/启停/卸载变异由 harness 就地改）
   material.e2e.mjs        素材域验收流（清单契约字段（kind 裸值 + operator 两列）/status 单选·沉淀
                            时间闭区间（Instant UTC）·projectId 精确过滤/分页 1-based/详情抽屉（元数据 +
                            content 全文）/停用⇄启用按状态门控切换（抽屉 reload 二次回读——回执 summary
                            无 content）/删除（抽屉随行关闭 + 刷新后不可见）/失败透传 toast）
+  skill.e2e.mjs           技能域验收流（清单契约字段（无分页、内置在前、null 占位、可更新三态）/
+                           详情抽屉三节（全字段 + frontmatter 四型值格式化 + 正文全文）/安装单步表单
+                           （tag 手输落参 + 回执态不关窗 + 失败留窗 502 SKL_004）/动作矩阵门控（互斥 +
+                           安装行专属）/停用⇄启用/卸载（409 SKL_008 透传）/显式更新（回执 from→to +
+                           移除名单 + 终态行集 + from==to 幂等呈现 + 409 SKL_013 透传）/更新留痕
+                           （按来源包 query 时间线倒序 + 空态））
 ```
 
 账号档案嵌件（#56 收口，account:read 有码无页）无独立 e2e 文件——用例挂在订单/项目域尾部：

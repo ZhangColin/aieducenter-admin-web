@@ -29,6 +29,7 @@ declare module "@elegant-router/types" {
     "aiplatform_price": "/aiplatform/price";
     "aiplatform_price_entry": "/aiplatform/price/entry";
     "aiplatform_project": "/aiplatform/project";
+    "aiplatform_skill": "/aiplatform/skill";
     "aiplatform_workspace": "/aiplatform/workspace";
     "app": "/app";
     "app_list": "/app/list";
@@ -115,6 +116,7 @@ declare module "@elegant-router/types" {
     | "aiplatform_order"
     | "aiplatform_price_entry"
     | "aiplatform_project"
+    | "aiplatform_skill"
     | "aiplatform_workspace"
     | "app_list"
     | "home"

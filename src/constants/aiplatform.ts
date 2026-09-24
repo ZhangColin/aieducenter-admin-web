@@ -1,5 +1,5 @@
 /**
- * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63/#64）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域。
+ * AI 平台领域常量（aiplatform，#56/#57/#58/#60/#61/#62/#63/#64/#67）——订单域 + 项目域 + 沙箱域 + 成本域 + 单价表域 + 素材域 + 技能域。
  *
  * `status` 是 Integer code，响应带 `statusName` 中文名（ADR-0009 直读）——
  * 列表/详情/下拉标签文案直接用响应 `statusName` 原值（aiplatform 链路有 *Name，与 account 域
@@ -187,4 +187,21 @@ export const materialWriteAuth: Record<Api.Aiplatform.MaterialAction, string> = 
   disable: 'admin:aiplatform:material:disable',
   enable: 'admin:aiplatform:material:enable',
   delete: 'admin:aiplatform:material:delete'
+};
+
+/* ---- 技能域（#67）---- */
+
+/** 技能状态标签色（语义：启用成功（装配候选）/ 停用终态灰——与素材域同构）。 */
+export const skillStatusTagColor: Record<Api.Aiplatform.SkillStatus, NaiveUI.ThemeColor> = {
+  1: 'success',
+  2: 'default'
+};
+
+/** 技能五写权限码（hasAuth 门控用；install 门控安装触发按钮、余四写门控操作下拉逐项）。 */
+export const skillWriteAuth: Record<Api.Aiplatform.SkillAction, string> = {
+  install: 'admin:aiplatform:skill:install',
+  disable: 'admin:aiplatform:skill:disable',
+  enable: 'admin:aiplatform:skill:enable',
+  uninstall: 'admin:aiplatform:skill:uninstall',
+  update: 'admin:aiplatform:skill:update'
 };

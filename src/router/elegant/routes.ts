@@ -124,6 +124,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'aiplatform_skill',
+        path: '/aiplatform/skill',
+        component: 'view.aiplatform_skill',
+        meta: {
+          title: 'aiplatform_skill',
+          i18nKey: 'route.aiplatform_skill'
+        }
+      },
+      {
         name: 'aiplatform_workspace',
         path: '/aiplatform/workspace',
         component: 'view.aiplatform_workspace',
