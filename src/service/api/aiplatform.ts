@@ -43,6 +43,10 @@
  * id 为 opaque 串两形制（builtin: 前缀 / TSID 十进制串）路径段直传；安装命令无 tag/ref（版本恒＝
  * 装时 HEAD）；updateAvailable 展示性标记不门控更新；回执三形（install＝条目数组 / 卸载·启停＝
  * 单个 summary / update＝from→to＋移除名单＋终态行集）。
+ *
+ * 指派域（#68 指派配置，技能线 assignments 2 端点）：每职能槽位一个 GET/PUT——PUT 整包替换
+ * （清单即终态、空＝清空），回执＝替换后读面（含停用行，「指派了但已停用」实态）；前端 toast＋
+ * 回读刷新。装配生效＝动态查库（变更后下一轮自然生效）。
  */
 import { request } from '../request';
 
@@ -297,6 +301,18 @@ export function fetchGetAiplatformSkillUpdateTraces(sourcePackage: string) {
     method: 'get',
     params: { sourcePackage }
   });
+}
+
+/* ---- 指派域（#68，技能线 assignments 2 端点；每槽位一个 GET/PUT、slot 路径段三值寻址）。 ---- */
+
+/** GET /aiplatform/skills/assignments/{slot}——槽位指派读面（含停用行——「指派了但已停用」实态；未知槽位 404 SKL_010）。 */
+export function fetchGetAiplatformSkillAssignments(slot: Api.Aiplatform.SkillSlot) {
+  return request<Api.Aiplatform.SlotAssignment>({ url: `/aiplatform/skills/assignments/${slot}`, method: 'get' });
+}
+
+/** PUT /aiplatform/skills/assignments/{slot}——槽位指派整包替换（清单即终态、空＝清空；builtin 柄 400 SKL_011）。回执＝替换后读面（前端 toast＋回读刷新，不消费此体）。 */
+export function fetchAssignAiplatformSkills(slot: Api.Aiplatform.SkillSlot, data: Api.Aiplatform.SkillAssignCommand) {
+  return request<Api.Aiplatform.SlotAssignment>({ url: `/aiplatform/skills/assignments/${slot}`, method: 'put', data });
 }
 
 /* ---- 账号域（#56 收口，1 端点；有码无页——嵌订单/项目详情抽屉，无独立页面）。 */

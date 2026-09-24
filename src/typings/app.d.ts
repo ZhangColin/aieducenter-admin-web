@@ -1520,6 +1520,17 @@ declare namespace App {
               uninstall: string;
             };
           };
+          /** 指派配置页（#68——技能线 assignments 2 端点；行上下文列文案复用 skill.* 同字段键）。 */
+          skillAssignment: {
+            title: string;
+            slot: {
+              main: string;
+              executor: string;
+              subagent: string;
+            };
+            save: string;
+            saved: string;
+          };
           /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
           account: {
             title: string;

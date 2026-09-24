@@ -297,3 +297,21 @@ export const UPDATE_ADDED_ROW = {
   operatorName: 'E2E Mock',
   updateAvailable: false
 };
+
+/* ---- 指派域（#68；`AiplatformSlotAssignmentResponse`={slot, skills[]} 与 PUT 回执同形、
+ * `AiplatformSkillAssignCommand`={skillIds[]}——api-docs 实读）。初始态覆盖三签用例靶：
+ * main 两项含停用行 csv-analyzer（「指派了但已停用」warning 呈现靶）/ executor 一项（清空靶）/
+ * subagent 空（空→非空靶）。PUT 由 harness 就地整包替换（回读如实）。 ---- */
+
+/** 指派槽位三键（路径段寻址；mock 对未知槽位回 404 SKL_010=7010）。 */
+export const ASSIGN_SLOTS = ['main', 'executor', 'subagent'];
+
+/** 初始指派态（安装行 TSID id 数组——GET 时映射 SKILL_ROWS 行）。 */
+export const SKILL_ASSIGNMENTS = {
+  main: [DISABLE_ID, ENABLE_ID],
+  executor: [UNINSTALL_ID],
+  subagent: []
+};
+
+/** subagent 空→非空靶（doc-writer 行 id——PUT body 断言锚）。 */
+export const EMPTY_SLOT_ROW_ID = '740223456789000301';

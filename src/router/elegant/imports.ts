@@ -27,6 +27,7 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   aiplatform_price_entry: () => import("@/views/aiplatform/price_entry/index.vue"),
   aiplatform_project: () => import("@/views/aiplatform/project/index.vue"),
   aiplatform_skill: () => import("@/views/aiplatform/skill/index.vue"),
+  aiplatform_skill_assignment: () => import("@/views/aiplatform/skill_assignment/index.vue"),
   aiplatform_workspace: () => import("@/views/aiplatform/workspace/index.vue"),
   app_list: () => import("@/views/app/list/index.vue"),
   home: () => import("@/views/home/index.vue"),

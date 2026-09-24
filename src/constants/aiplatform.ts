@@ -205,3 +205,27 @@ export const skillWriteAuth: Record<Api.Aiplatform.SkillAction, string> = {
   uninstall: 'admin:aiplatform:skill:uninstall',
   update: 'admin:aiplatform:skill:update'
 };
+
+/* ---- 指派域（#68）---- */
+
+/**
+ * 指派上下文状态标签色（与技能清单 skillStatusTagColor 有意不同）：停用行升级 warning
+ * （「指派了但已停用」＝装配退化警示，终态语义——停用不解除指派）；启用 success 同技能清单。
+ */
+export const skillAssignmentStatusTagColor: Record<Api.Aiplatform.SkillStatus, NaiveUI.ThemeColor> = {
+  1: 'success',
+  2: 'warning'
+};
+
+/** 指派槽位三签（NTabs 顺序；路径段寻址，未知槽位 404 SKL_010——前端三槽固定不可达）。 */
+export const SKILL_SLOTS: readonly Api.Aiplatform.SkillSlot[] = ['main', 'executor', 'subagent'];
+
+/** 槽位签 label（端侧三值映射——响应无 slotName；签名与 toast 插值共用单点）。 */
+export const skillSlotLabel: Record<Api.Aiplatform.SkillSlot, App.I18n.I18nKey> = {
+  main: 'page.aiplatform.skillAssignment.slot.main',
+  executor: 'page.aiplatform.skillAssignment.slot.executor',
+  subagent: 'page.aiplatform.skillAssignment.slot.subagent'
+};
+
+/** 指派保存权限码（hasAuth 门控每签保存钮）。 */
+export const SKILL_ASSIGN_AUTH = 'admin:aiplatform:skill:assign';

@@ -254,7 +254,8 @@ const local: App.I18n.Schema = {
     aiplatform_price: 'Price Entries',
     aiplatform_price_entry: 'Price Entries',
     aiplatform_material: 'Knowledge Materials',
-    aiplatform_skill: 'Skill Management'
+    aiplatform_skill: 'Skill Management',
+    aiplatform_skill_assignment: 'Skill Assignment'
   },
   page: {
     login: {
@@ -1296,6 +1297,17 @@ const local: App.I18n.Schema = {
           enable: 'Skill enabled',
           uninstall: 'Skill uninstalled'
         }
+      },
+      /** Skill assignment page (#68 — skill-line assignments 2 endpoints; row context columns reuse skill.* same-field keys). */
+      skillAssignment: {
+        title: 'Skill Assignment',
+        slot: {
+          main: 'Main Agent',
+          executor: 'Run Executor',
+          subagent: 'Sub-agent'
+        },
+        save: 'Save Assignments',
+        saved: 'Assignments saved for {slot}'
       },
       /** Account profile widget (#56 code-without-page — shared by order/project detail drawers, driven by externalId filter). */
       account: {

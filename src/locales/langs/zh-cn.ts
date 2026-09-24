@@ -250,7 +250,8 @@ const local: App.I18n.Schema = {
     aiplatform_price: '单价表',
     aiplatform_price_entry: '单价表',
     aiplatform_material: '知识素材',
-    aiplatform_skill: '技能管理'
+    aiplatform_skill: '技能管理',
+    aiplatform_skill_assignment: '指派配置'
   },
   page: {
     login: {
@@ -1294,6 +1295,17 @@ const local: App.I18n.Schema = {
           enable: '技能已启用',
           uninstall: '技能已卸载'
         }
+      },
+      /** 指派配置页（#68——技能线 assignments 2 端点；行上下文列文案复用 skill.* 同字段键）。 */
+      skillAssignment: {
+        title: '指派配置',
+        slot: {
+          main: '主智能体',
+          executor: 'run 执行体',
+          subagent: '子智能体'
+        },
+        save: '保存指派',
+        saved: '已保存 {slot} 指派'
       },
       /** 账号档案嵌件（#56 有码无页——订单/项目详情抽屉共用，externalId 筛选驱动）。 */
       account: {

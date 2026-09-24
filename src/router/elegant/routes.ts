@@ -130,7 +130,18 @@ export const generatedRoutes: GeneratedRoute[] = [
         meta: {
           title: 'aiplatform_skill',
           i18nKey: 'route.aiplatform_skill'
-        }
+        },
+        children: [
+          {
+            name: 'aiplatform_skill_assignment',
+            path: '/aiplatform/skill/assignment',
+            component: 'view.aiplatform_skill_assignment',
+            meta: {
+              title: 'aiplatform_skill_assignment',
+              i18nKey: 'route.aiplatform_skill_assignment'
+            }
+          }
+        ]
       },
       {
         name: 'aiplatform_workspace',

@@ -1,5 +1,5 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域，共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域（#68 指派），共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
@@ -56,9 +56,9 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  *
  * @param page playwright page
  * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material?, skill? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean}}}
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean}}}
  *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
- *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409——透传 toast 断言用）
+ *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409/400——透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
@@ -70,7 +70,8 @@ export async function installAiplatformMocks(page, fixtures) {
     failNextSkillInstall: false,
     failNextSkillWrite: false,
     failNextSkillUninstall: false,
-    failNextSkillUpdate: false
+    failNextSkillUpdate: false,
+    failNextSkillAssign: false
   };
 
   const json = (route, status, body) =>
@@ -426,6 +427,7 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:skill:enable', name: 'AI 平台 / 技能启用' },
             { code: 'admin:aiplatform:skill:uninstall', name: 'AI 平台 / 技能卸载' },
             { code: 'admin:aiplatform:skill:update', name: 'AI 平台 / 技能更新' },
+            { code: 'admin:aiplatform:skill:assign', name: 'AI 平台 / 技能指派' },
             { code: 'admin:aiplatform:account:read', name: 'AI 平台 / 账号档案查看' }
           ],
           menus: []
@@ -551,6 +553,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_skill',
                   parentId: '82',
                   sortOrder: 7,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '230',
+                  menuName: '指派配置',
+                  routeName: 'aiplatform_skill_assignment',
+                  routePath: '/aiplatform/skill-assignment',
+                  component: 'view.aiplatform_skill_assignment',
+                  icon: 'carbon:list-checked',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_skill_assignment',
+                  parentId: '82',
+                  sortOrder: 8,
                   menuType: 2,
                   status: 1
                 }
@@ -801,6 +817,30 @@ export async function installAiplatformMocks(page, fixtures) {
     if (fixtures.skill) {
       const skl404 = () =>
         json(route, 404, { code: 7001, message: '技能不存在（SKL_001）', data: null, requestId: 'e2e-mock', errors: null });
+      // ---- 指派域（#68；每槽位一个 GET/PUT——先于 /skills/{id} 匹配。GET/PUT 回执同形
+      // {slot, skills[]}；PUT 整包替换 skillIds 就地变异（回读如实）、停用行照常随行返回）----
+      const assignmentMatch = path.match(/^\/aiplatform\/skills\/assignments\/([^/]+)$/);
+      if (assignmentMatch) {
+        const slot = assignmentMatch[1];
+        if (!fixtures.skill.ASSIGN_SLOTS.includes(slot)) {
+          return json(route, 404, { code: 7010, message: '未知职能槽位（SKL_010）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (method === 'PUT') {
+          if (state.failNextSkillAssign) {
+            state.failNextSkillAssign = false;
+            // 内置柄不可指派（SKL_011）：HTTP 400 + 数字业务码 7011 + 原文 message（失败注入代表样——
+            // 页面选项集已排除 builtin，此分支模拟 provider 侧裁决的透传 toast 断言）
+            return json(route, 400, { code: 7011, message: '内置技能不可指派，装配按配置挂载（SKL_011）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          const command = JSON.parse(route.request().postData() ?? '{}');
+          fixtures.skill.SKILL_ASSIGNMENTS[slot] = command.skillIds ?? [];
+        }
+        const skills = fixtures.skill.SKILL_ASSIGNMENTS[slot]
+          .map(id => fixtures.skill.SKILL_ROWS.find(row => row.id === id))
+          .filter(Boolean)
+          .map(row => ({ ...row }));
+        return json(route, 200, { code: 200, message: 'ok', data: { slot, skills }, requestId: 'e2e-mock', errors: null });
+      }
       if (path === '/aiplatform/skills' && method === 'GET') {
         return json(route, 200, { code: 200, message: 'ok', data: fixtures.skill.SKILL_ROWS.map(row => ({ ...row })), requestId: 'e2e-mock', errors: null });
       }

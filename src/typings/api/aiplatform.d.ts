@@ -786,6 +786,29 @@ declare namespace Api {
       operatedAt: string;
     }
 
+    /* ---- 指派域（#68 指派配置——技能线 assignments 2 端点，每槽位一个 GET/PUT）---- */
+
+    /** 职能槽位（三槽，路径段寻址）：main=主智能体 / executor=run 执行体 / subagent=子智能体——响应无 slotName，label 端侧映射。 */
+    type SkillSlot = 'main' | 'executor' | 'subagent';
+
+    /**
+     * 槽位指派读面（GET/PUT /skills/assignments/{slot} 回执同形）：slot 回显 + 已指派技能清单行
+     * （与技能清单行共形、含停用行——「指派了但已停用」实态如实呈现；停用行不参与装配合成，
+     * 停用不解除指派）。装配生效语义＝动态查库：变更后智能体下一轮自然生效。
+     */
+    interface SlotAssignment {
+      slot: SkillSlot;
+      skills: SkillSummary[];
+    }
+
+    /**
+     * PUT /skills/assignments/{slot} body——skillIds 即该槽位终态（整包替换：未列入＝解绑、
+     * 空清单＝清空）；只收安装库行 TSID 柄，内置 `builtin:` 柄 400 SKL_011（装配按配置挂载）。
+     */
+    interface SkillAssignCommand {
+      skillIds: string[];
+    }
+
     /**
      * 账号档案（GET /accounts/{externalId}；有码无页——订单/项目详情抽屉嵌件按 externalId 查，
      * 认交易对手）。externalId＝OIDC sub＝identity 账户 Id；未命中 404 IDN_004（业务码 6004）。

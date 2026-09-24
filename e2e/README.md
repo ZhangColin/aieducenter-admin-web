@@ -1,4 +1,4 @@
-# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域、#64 契约增量、#67 扩技能域）
+# E2E 测试 seam（#57 落地，#56 六域共用；#61 扩成本域、#62 扩单价表域、#63 扩素材域、#64 契约增量、#67 扩技能域（#68 指派））
 
 headless Chrome（`playwright-core` 系统 channel，**免下载浏览器**）+ `page.route` 全量 mock。
 mock fixtures 的字段形状**派生自 admin :8081 `/v3/api-docs`**（各域 `support/*-fixtures.mjs` 头注释标明
@@ -50,7 +50,8 @@ e2e/
     skill-fixtures.mjs     技能 fixtures（AiplatformSkillSummary/Detail/UpdateTraceResponse 形状——
                            id opaque 串两形制（builtin: 前缀 / TSID 十进制串）、内置 3 + 安装三包
                            （可更新 true/false/null 包级统一）、frontmatter 四型值（string/number/
-                           array/object）；安装/更新/启停/卸载变异由 harness 就地改）
+                           array/object）；安装/更新/启停/卸载变异由 harness 就地改；#68 指派态
+                           SKILL_ASSIGNMENTS 三槽初始指派——PUT 整包替换就地变异）
   material.e2e.mjs        素材域验收流（清单契约字段（kind 裸值 + operator 两列）/status 单选·沉淀
                            时间闭区间（Instant UTC）·projectId 精确过滤/分页 1-based/详情抽屉（元数据 +
                            content 全文）/停用⇄启用按状态门控切换（抽屉 reload 二次回读——回执 summary
@@ -61,7 +62,13 @@ e2e/
                            安装行专属）/停用⇄启用/卸载（409 SKL_008 透传）/显式更新（回执 from→to +
                            移除名单 + 终态行集 + from==to 幂等呈现 + 409 SKL_013 透传）/更新留痕
                            （按来源包 query 时间线倒序 + 空态））
+  skill-assignment.e2e.mjs 指派配置验收流（#68：三签 label 端侧映射＋切签/进入加载 GET 预填/
+                           选项表不列 builtin＋停用行可勾与警示色实态/增减保存 PUT 整包＋toast 无
+                           确认＋回读刷新/空勾选＝清空/空→非空/失败注入 400 SKL_011 透传）
 ```
+
+技能域 fixtures 一并承载指派态（`SKILL_ASSIGNMENTS` 三槽初始指派——PUT 由 harness 就地整包替换，
+回读如实）；指派 mock 分支先于 `/skills/{id}` 匹配（`/skills/assignments/{slot}` 路径同前缀）。
 
 账号档案嵌件（#56 收口，account:read 有码无页）无独立 e2e 文件——用例挂在订单/项目域尾部：
 externalId 筛选在 ⇒ 抽屉嵌件点亮（GET `/aiplatform/accounts/{externalId}`），筛选缺省 ⇒ 不出档案区。
