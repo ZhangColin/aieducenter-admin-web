@@ -1,5 +1,5 @@
 /**
- * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域（#68 指派、#69 智能体配置），共用 seam）——page.route mock + 断言汇总。
+ * E2E 公共 harness（#57 落地、#58 泛化，#60/#61/#62/#63 扩沙箱/成本/单价表/素材域，#67 扩技能域（#68 指派、#69 智能体配置、#71 草稿域），共用 seam）——page.route mock + 断言汇总。
  *
  * mock 派生自 admin :8081 `/v3/api-docs`（fixtures 见各域 support/*-fixtures.mjs）；
  * 错误信封按 AiplatformUpstreamErrorAdvice 形状：HTTP 状态照抄 provider、
@@ -56,9 +56,10 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  *
  * @param page playwright page
  * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material?, skill? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean, failNextAgentConfigUpdate: boolean, failNextAgentToolToggle: boolean}}}
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean, failNextSkillDraftPromote: boolean, failNextSkillDraftReject: boolean, failNextAgentConfigUpdate: boolean, failNextAgentToolToggle: boolean}}}
  *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
  *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409/400，
+ *          skillDraftPromote 抛 409 SKL_016、skillDraftReject 抛 400 SKL_018，
  *          agentConfigUpdate 抛 400、agentToolToggle 抛 403——透传 toast 断言用）
  */
 export async function installAiplatformMocks(page, fixtures) {
@@ -73,6 +74,8 @@ export async function installAiplatformMocks(page, fixtures) {
     failNextSkillUninstall: false,
     failNextSkillUpdate: false,
     failNextSkillAssign: false,
+    failNextSkillDraftPromote: false,
+    failNextSkillDraftReject: false,
     failNextAgentConfigUpdate: false,
     failNextAgentToolToggle: false
   };
@@ -322,7 +325,7 @@ export async function installAiplatformMocks(page, fixtures) {
     const rows = fixtures.skill.INSTALL_ROWS.map(row => ({ ...row, sourcePackage: command.repoUrl }));
     for (const row of rows) {
       fixtures.skill.SKILL_ROWS.push(row);
-      fixtures.skill.SKILL_DETAILS[row.id] = { ...row, frontmatter: { name: row.name }, content: `e2e mock ${row.name}` };
+      fixtures.skill.SKILL_DETAILS[row.id] = { ...row, frontmatter: { name: row.name }, content: `e2e mock ${row.name}`, resources: {} };
     }
     return rows.map(row => ({ ...row }));
   }
@@ -362,7 +365,7 @@ export async function installAiplatformMocks(page, fixtures) {
       }
     }
     S.SKILL_ROWS.push({ ...S.UPDATE_ADDED_ROW });
-    S.SKILL_DETAILS[S.UPDATE_ADDED_ROW.id] = { ...S.UPDATE_ADDED_ROW, frontmatter: { name: 'diagram-draw' }, content: 'e2e mock diagram-draw' };
+    S.SKILL_DETAILS[S.UPDATE_ADDED_ROW.id] = { ...S.UPDATE_ADDED_ROW, frontmatter: { name: 'diagram-draw' }, content: 'e2e mock diagram-draw', resources: {} };
     (S.UPDATE_TRACES[sourcePackage] ??= []).unshift({
       sourcePackage,
       fromVersion: S.PACK_A_FROM,
@@ -380,6 +383,66 @@ export async function installAiplatformMocks(page, fixtures) {
       operatorName: 'E2E Mock',
       skills: S.SKILL_ROWS.filter(row => row.sourcePackage === sourcePackage).map(row => ({ ...row }))
     };
+  }
+
+  /* ---- 草稿域变异（#71；provider BackofficeSkillDraftAppService 镜像）---- */
+
+  /**
+   * 晋升（撞名复查＋入池＋两处留痕）：技能库 push 自产新行（source=3、self 虚拟值、
+   * 从未被加载）＋详情随建；草稿移出在途清单（终态不列活跃面）＋详情留档回填（status 2）。
+   */
+  function applySkillDraftPromote(draft) {
+    const S = fixtures.skill;
+    const row = {
+      id: S.PROMOTED_SKILL_ID,
+      name: draft.name,
+      description: draft.description,
+      source: 3,
+      sourceName: '自产',
+      sourcePackage: 'self',
+      version: 'self',
+      status: 1,
+      statusName: '启用',
+      operatorId: '1',
+      operatorName: 'E2E Mock',
+      updateAvailable: null,
+      loadCount: '0',
+      lastLoadedAt: null
+    };
+    S.SKILL_ROWS.push(row);
+    S.SKILL_DETAILS[row.id] = { ...row, frontmatter: { name: row.name }, content: `e2e mock ${row.name}`, resources: {} };
+    const idx = S.SKILL_DRAFT_ROWS.findIndex(r => r.id === draft.id);
+    if (idx >= 0) S.SKILL_DRAFT_ROWS.splice(idx, 1);
+    const detail = S.SKILL_DRAFT_DETAILS[draft.id];
+    if (detail) {
+      detail.status = 2;
+      detail.statusName = '已晋升';
+      detail.operatorId = '1';
+      detail.operatorName = 'E2E Mock';
+      detail.reviewedAt = '2026-09-29T10:00:00';
+    }
+    return { ...row };
+  }
+
+  /**
+   * 拒绝（终态留档不复活）：草稿移出在途清单＋详情回填（status 3＋操作者/时刻/理由）——
+   * 回执＝终态草稿详情（留痕直读）。
+   */
+  function applySkillDraftReject(draft, reason) {
+    const S = fixtures.skill;
+    const idx = S.SKILL_DRAFT_ROWS.findIndex(r => r.id === draft.id);
+    if (idx >= 0) S.SKILL_DRAFT_ROWS.splice(idx, 1);
+    const detail = S.SKILL_DRAFT_DETAILS[draft.id];
+    if (detail) {
+      detail.status = 3;
+      detail.statusName = '已拒绝';
+      detail.operatorId = '1';
+      detail.operatorName = 'E2E Mock';
+      detail.reviewedAt = '2026-09-29T10:00:00';
+      detail.rejectReason = reason;
+      return { ...detail };
+    }
+    return { ...draft, status: 3, statusName: '已拒绝', operatorId: '1', operatorName: 'E2E Mock', reviewedAt: '2026-09-29T10:00:00', rejectReason: reason };
   }
 
   /* ---- 智能体配置域变异（#69；provider BackofficeAgentConfigAppService 镜像）---- */
@@ -503,6 +566,9 @@ export async function installAiplatformMocks(page, fixtures) {
             { code: 'admin:aiplatform:skill:uninstall', name: 'AI 平台 / 技能卸载' },
             { code: 'admin:aiplatform:skill:update', name: 'AI 平台 / 技能更新' },
             { code: 'admin:aiplatform:skill:assign', name: 'AI 平台 / 技能指派' },
+            { code: 'admin:aiplatform:skill-draft:read', name: 'AI 平台 / 草稿审核查看' },
+            { code: 'admin:aiplatform:skill-draft:promote', name: 'AI 平台 / 草稿晋升' },
+            { code: 'admin:aiplatform:skill-draft:reject', name: 'AI 平台 / 草稿拒绝' },
             { code: 'admin:aiplatform:agent-config:update', name: 'AI 平台 / 智能体配置更新' },
             { code: 'admin:aiplatform:agent-tool:toggle', name: 'AI 平台 / 智能体工具开关' },
             { code: 'admin:aiplatform:account:read', name: 'AI 平台 / 账号档案查看' }
@@ -658,6 +724,20 @@ export async function installAiplatformMocks(page, fixtures) {
                   i18nKey: 'route.aiplatform_agent_config',
                   parentId: '82',
                   sortOrder: 9,
+                  menuType: 2,
+                  status: 1
+                },
+                {
+                  id: '250',
+                  menuName: '草稿审核',
+                  routeName: 'aiplatform_skill_draft',
+                  routePath: '/aiplatform/skill/draft',
+                  component: 'view.aiplatform_skill_draft',
+                  icon: 'carbon:task-approved',
+                  iconType: 1,
+                  i18nKey: 'route.aiplatform_skill_draft',
+                  parentId: '82',
+                  sortOrder: 10,
                   menuType: 2,
                   status: 1
                 }
@@ -931,6 +1011,44 @@ export async function installAiplatformMocks(page, fixtures) {
           .filter(Boolean)
           .map(row => ({ ...row }));
         return json(route, 200, { code: 200, message: 'ok', data: { slot, skills }, requestId: 'e2e-mock', errors: null });
+      }
+      // ---- 草稿域（#71；drafts 4 端点——在途清单不分页自荐倒序、终态不列活跃面。
+      // promote 无 body（操作者头）回执＝技能库自产新行；reject body {reason} 回执＝终态
+      // 详情留痕直读。失败注入：promote 409 SKL_016 撞名 / reject 400 SKL_018 空白——
+      // 页面错误不判码（透传 toast＋无条件刷新）的断言靶）----
+      if (path === '/aiplatform/skills/drafts' && method === 'GET') {
+        return json(route, 200, { code: 200, message: 'ok', data: fixtures.skill.SKILL_DRAFT_ROWS.map(row => ({ ...row })), requestId: 'e2e-mock', errors: null });
+      }
+      const sklDraftMatch = path.match(/^\/aiplatform\/skills\/drafts\/([^/]+)(\/(promote|reject))?$/);
+      if (sklDraftMatch) {
+        const draft = fixtures.skill.SKILL_DRAFT_DETAILS[sklDraftMatch[1]];
+        if (!draft) {
+          return json(route, 404, { code: 7015, message: '技能草稿不存在（SKL_015）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (sklDraftMatch[3] === 'promote' && method === 'POST') {
+          if (state.failNextSkillDraftPromote) {
+            state.failNextSkillDraftPromote = false;
+            // 审核期间同名入库（SKL_016）：HTTP 409 + 数字业务码 7016 + 原文 message（失败注入代表样）
+            return json(route, 409, { code: 7016, message: '技能库已有同名技能，晋升被拒（SKL_016）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          return json(route, 200, { code: 200, message: 'ok', data: applySkillDraftPromote(draft), requestId: 'e2e-mock', errors: null });
+        }
+        if (sklDraftMatch[3] === 'reject' && method === 'POST') {
+          const command = JSON.parse(route.request().postData() ?? '{}');
+          if (!command.reason || String(command.reason).trim() === '') {
+            // 空白理由（SKL_018）：HTTP 400 + 数字业务码 7018（前端必填已拦——服务端兜底透传）
+            return json(route, 400, { code: 7018, message: '拒绝理由不能为空白（SKL_018）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          if (state.failNextSkillDraftReject) {
+            state.failNextSkillDraftReject = false;
+            // 失败注入代表样（400 SKL_018）——透传 toast＋留表单态断言锚
+            return json(route, 400, { code: 7018, message: '拒绝理由不能为空白（SKL_018）', data: null, requestId: 'e2e-mock', errors: null });
+          }
+          return json(route, 200, { code: 200, message: 'ok', data: applySkillDraftReject(draft, String(command.reason).trim()), requestId: 'e2e-mock', errors: null });
+        }
+        if (!sklDraftMatch[3] && method === 'GET') {
+          return json(route, 200, { code: 200, message: 'ok', data: { ...draft }, requestId: 'e2e-mock', errors: null });
+        }
       }
       // ---- 智能体配置域（#69；agent-configs 3 + agent-tools 2。GET/PUT 回执同形读面；
       // 工具开关窄幅写口挂 main 行开关列——与配置全量写共表共留痕）----

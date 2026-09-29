@@ -67,10 +67,14 @@
 | **单价表 / 价目行 (Unit price entry)** | **菜单词「单价表」**，**领域实体「价目行」**（`price-entry`）；成本换算用的单价数据，append-only（改价 = 关当前行 + 开新行，可预发布未来生效） |
 | **知识素材 (Material)** | aiplatform 沉淀的知识资产；停用⇄启用可逆、删除为治理移除（不动来源项目） |
 | **账号档案 (Account profile)** | aiplatform 侧极简账号档案（`id/externalId/displayName/createdAt`），嵌订单/项目详情抽屉按 `externalId` 查。_Avoid_: identity 域的「Account（终端用户账号）」——不同域 |
-| **技能 (Skill)** | aiplatform 智能体可装配的能力单元，来源两分同权（内置 1 / 安装 2）；寻址柄为 opaque 双形制字符串（`builtin:技能名` 前缀 / TSID 十进制串）。停用⇄启用可逆；卸载为移除（内置不可卸、有指派在身先解绑） |
+| **技能 (Skill)** | aiplatform 智能体可装配的能力单元，来源三分同权（内置 1 / 安装 2 / 自产 3——经草稿晋升入库，package/version 为虚拟值 self）；寻址柄为 opaque 双形制字符串（`builtin:技能名` 前缀 / TSID 十进制串）。停用⇄启用可逆；卸载为移除（内置不可卸、有指派在身先解绑） |
 | **职能槽位 (slot)** | 技能**指派**的维度，三槽：main=主智能体 / executor=run 执行体 / subagent=子智能体。_Avoid_: 与「智能体配置座」混称——指派三槽、配置两座（main/executor） |
 | **来源包 (sourcePackage)** | 安装技能的 git 仓库标识；显式更新与更新留痕按**来源包**聚合（非按单个技能） |
 | **快照安装 (install)** | 从 git 仓库 HEAD 快照固化入库（版本=装时 commit；排除目录段不入库）。_Avoid_: 联想 ref/tag 选择——契约无此面 |
+| **技能草稿 (skill draft)** | 自产线会话自荐产生的待审候选；在途/终态两态，终态（已晋升/已拒绝）不列活跃审核面、按 id 留档可查。_Avoid_: 与「技能」混称——草稿未入库、不可指派 |
+| **晋升 (promote)** | 人审通过草稿入库成正式技能（撞名复查＋入池＋两处留痕，不可逆、不自动指派）。_Avoid_: 「安装」——安装是 git 快照通道，来源不同 |
+| **扫描判定 (scan verdict)** | 草稿自动扫描的风险初筛（SAFE 安全 / CAUTION 注意；DANGEROUS 写入口拒收不落库）——廉价哨兵非安全边界，SAFE 不豁免人审通读 |
+| **血统 (lineage)** | 草稿来源追溯三件：来源项目 / run / 职能槽位——审核「真伪/血统可溯」判读的回溯锚点 |
 | **智能体配置座 (agent config)** | 可编辑配置的智能体，两座（main/executor）：systemPrompt / 模型档位 / 两增强工具开关；覆盖态与默认分治（覆盖标记+默认预览），清空覆盖即回落默认。回滚＝旧值快照写回（一次新变更、留新痕） |
 | **增强工具 (enhancement tool)** | 平台级增强能力两件：web_search（联网搜索）/ fetch_url（网页抓取）——工具面唯一可开关的 kind；骨架/内建工具恒开 |
 | **更新留痕 (update trace)** | 按来源包 append-only 的版本变迁记录（from→to + 操作者），倒序、卸载不删痕 |
@@ -288,6 +292,26 @@ mock E2E（skill-assignment **28/28 两轮全绿** + skill 56/56 / order 35/35 /
 - **真链新印证（mock 外首证）**：① 安装 repoUrl **本地 git 路径直传**（provider clone 本地仓——联调无需外网；重装同仓取新 HEAD，版本恒＝装时 HEAD commit 二次印证）；② **工具开关与配置写共表共留痕**（PUT /agent-tools/web_search 各落一条配置留痕「联网搜索 开→关/关→开」——T3 契约注记「两入口同源」真链实证）；③ **卸载不删痕＋重装见史**（uninstall 后 update-traces 仍可查、重装后行级留痕抽屉见旧痕——append-only）；④ modelId **显式写值＝真实变更**（值等默认仍是 null→显式的覆盖写、如实落痕——provider 语义「显式即覆盖」，与「值面无动幂等不落痕」不矛盾）。
 - **api-docs 技能线现 20 路径**（15＋drafts 4＋precheck 1——后 5 属 #71/#72 消费 admin #88/#90，本票不触）。
 - **环境数据留档（写面全部还原）**：冒烟技能 smoke-skill-65 已终卸（清单还原 2 行原始态：prd-writing＋selftest-live-check）；指派三槽空、配置双座默认无覆盖、工具全开；main 配置留痕 4 条（覆盖/回滚/工具开关×2——真联调留痕保留，#56 素材先例同款）；本地仓 `~/tmp/skill-smoke-65` 保留（冒烟包留痕 1 痕跨卸载存活、仓在可复装）；#260 活体验收资产 selftest-live-check 未动。UI 走查为一次性脚本（用后即删，未入仓）。
+
+### 2026-09-29 #71 草稿审核页 grilling（草稿审核新页 250 + 技能管理页观测扩展；admin #92/#93 已 CLOSED——blocker 解除，grill 收口后实现即刻可进）
+
+13 决策全按推荐定稿（Q1–Q13，单票全量、mock E2E 一轮）。契约正本＝admin HEAD DTO（本地 :8081 若旧构建按 T8 口径读 `@Schema`，联调前重启后端）。
+
+- **契约事实（admin #92/#93 源码核实，2026-09-29）**：drafts 4 端点——GET `/skills/drafts`（**不分页**、行 10 字段 id/name/description/slot/projectId/runId/scanVerdict/status 恒1/statusName/createdAt，自荐倒序）；GET `/skills/drafts/{id}`（16 字段：+content 正文全文 +scanFindings＝**untyped `List<Map<String,Object>>`**（七键 patternId/severity/category/file/line/matchText/description 仅 swagger 描述层）+留痕4 operatorId/operatorName/reviewedAt/rejectReason 在途恒 null，**任意状态可查留档**）；POST `/{id}/promote`（**无 body**、操作者 X-User 头，回执＝技能库清单行 `SkillSummary` 含新技能 id）；POST `/{id}/reject`（body 仅 reason，回执＝**终态草稿详情**同形、留痕直读）。错误族：409 SKL_016 撞名 / 409 SKL_017 已审结 / 400 SKL_009 缺操作者 / 400 SKL_018 空白理由 / 404 SKL_015——信封 code＝数字 7xxx、errors 恒 null、message 中文透传（**SKL_016 文案「技能库已有同名技能，晋升被拒」不含「先处置同名」指引**——票面括号是 issue 注释非后端文案）。观测字段：loadCount **JSON string 三态**（"5"/"0"/null——**null＝内置不适用、0＝从未加载**，语义＝load 实际发生口径）；lastLoadedAt LocalDateTime；resources＝`Map<String,String>`（**仅 Detail**、无 scripts/内置恒**空对象 {}** 非 null）；自产行 sourcePackage/version＝固定虚拟值 self。
+- **草稿审核页（叶 250）**：清单照先例（NCard + NDataTable flex-height + sm:h-full、无分页无检索面、**不列 status 列**——整页恒在途零信息量）+ 刷新按钮、不轮询；详情 NDrawer 720 三节（基本信息 desc-table 含血统三件 → scanFindings → 正文全文 pre），**不设终态留痕节**（终态呈现归拒绝回执）。findings＝**七键投影卡片**（类型 Record<string,unknown> 缺键跳过、值直显——T8 closing「文档化程度足够即投影」先例；severity **裸值直显不映射色**（值域未文档化）、file:line mono、matchText 代码块、空列表「无发现」）。scanVerdict＝NTag 安全（SAFE）/注意（CAUTION）。审核动作＝**双入口**（行下拉 + 抽屉动作条，矩阵收 constants 单点 workspace 先例；promote/reject 两码分别 `v-if`）。晋升＝$dialog.warning（技能名对账+不可逆）；拒绝＝NModal reason 必填（前端拦截、SKL_018 兜底）。回执＝**回执态 modal 双写**（晋升呈新技能行 id mono；拒绝呈终态详情留痕三件——**拒绝回执是唯一终态留痕呈现面**）。错误＝**不判业务码**（#56 standing 决策零冲突）：写失败透传 message toast + **无条件刷新在途清单**（不判码也解 SKL_017 他端审结 stale）。权限三码 read（两读复用）/promote/reject，读写不串。
+- **技能管理页（220）观测扩展**：详情 desc-table 加「使用次数/最近使用」两行（清单不加列——已 9 列）；loadCount 三态文案（千分位/「从未加载」/「内置不适用」，lastLoadedAt 同步）；自产行清单 package/version＝`-` 占位（内置行先例）、**详情如实直读 self**（扫视面降噪 vs 核对面如实分治）；resources＝详情第四节 NCollapse（每文件一面板：头相对路径 mono + 体 pre 全文、默认收起、`{}` 不渲染节）。
+- **落位**：`views/aiplatform/skill_draft/`（下划线目录）→ 键 `aiplatform_skill_draft`；种子 V20 已种（V21 正典 routePath `/aiplatform/skill/draft`、icon carbon:task-approved、i18n_key `route.aiplatform_skill_draft`＝「草稿审核」）；`aiplatform_skill` 再添子叶由 T2 `flattenLeafParentRoutes` 自动覆盖；slot 稳定键三值端侧映射复用 skillSlotLabel 先例。
+- **术语**：glossary「技能」两分→**三分同权**（+自产 3）；补 4 条（技能草稿/晋升/扫描判定/血统）。无 ADR（全为先例延伸，无一满足难逆+意外+真权衡三条件）。
+
+### 2026-09-29 #71 交付：草稿审核页＋技能管理观测扩展点亮 ✅（单票全量——drafts 4 端点＋清单/详情观测字段，技能线 20 端点收官）
+
+mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言 +12）/ agent-config 43/43 + order 35/35 / project 87/87 / workspace 48/48 / cost 43/43 / price-entry 44/44 / material 46/46 / skill-assignment 32/32 全量回归绿）。验收全过：在途清单契约字段（无分页、不列 status 列、自荐倒序、血统三件槽位复用 skillSlotLabel、判定 NTag 安全/注意）/ 详情抽屉三节（含 findings 七键投影——七键全 + 缺键跳过、file:line mono、matchText 代码块、空列表「无发现」；不设终态留痕节）/ 动作双入口（行下拉＋抽屉动作条，promote/reject 两码分别 v-if）/ 晋升 $dialog 对账→回执态 modal 新技能行 id mono→技能库自产行入列（跨页断言）/ 拒绝 NModal 必填前端拦截→成功不关窗切回执态留痕三件（唯一终态留痕呈现面）＋同目标抽屉随行关闭 / 错误不判码（409 SKL_016、400 SKL_018 透传 toast＋无条件刷新，GET +1 断言）/ 观测扩展（自产行清单 package/version `-` 占位 vs 详情 self 如实直读分治；loadCount 三态「12,345/从未加载/内置不适用」两行同步；resources 第四节 NCollapse 默认收起、`{}` 不渲染）。
+
+- **契约事实**：见上 grilling 段（admin #92/#93 源码核实）——实现零新发现，逐字段对齐。类型层 `SkillSource` 扩三态（1|2|3）、`SkillSummary` + `loadCount: string | null`（JSON string 三态）/`lastLoadedAt`、`SkillDetail` + `resources: Record<string,string>`；草稿域五类型（DraftSummary 10 字段/DraftDetail 16 字段/ScanVerdict 两值封闭/DraftAction/RejectCommand）。
+- **形态**：`views/aiplatform/skill_draft/`（index 清单收口 + 3 modules——detail-drawer 判读面三节＋动作条 emit、reject-modal 单弹窗双态、promote-receipt-modal 纯回执态）；清单行内 `source === 2 && sourcePackage` 门控（自产行 self 虚拟值 `-` 占位）；路由键 `aiplatform_skill_draft` gen-route 正典 `/aiplatform/skill/draft`（与 V21 种子一致；嵌套 aiplatform_skill 由 flattenLeafParentRoutes 自动提平）。写后无条件 `getData()` 在 dialog 回调与 modal settled 钩子两处对称落位；成功且抽屉开在同目标则随行关闭（素材删除先例）。
+- **E2E**：skill-fixtures 扩观测字段全行（"12345" 千分位靶/"0" 从未加载靶/null 内置靶）＋自产行（SELF_ROW source=3）＋草稿域三靶（d1 SAFE 晋升/d2 CAUTION 拒绝·findings 两条含缺键样本/d3 只读）；harness 扩 drafts 4 路由（**须在 `/skills/{id}` 匹配之前**——`/skills/drafts` 撞单段 regex）＋`applySkillDraftPromote/Reject`（技能库 push 自产新行、草稿移出活跃面、详情留档回填）＋`failNextSkillDraftPromote`(409 SKL_016)/`failNextSkillDraftReject`(400 SKL_018)＋菜单叶 250/权限码三枚。
+- **code-review 修正（双轴 review，紧随本票；修后 47/47+68/68+43/43 复绿）**：① **slot 映射内联模板串绕过 constants 单点**（Standards 轴硬伤）——草稿页两处 `$t(\`…skillAssignment.slot.${slot}\`)` → `$t(skillSlotLabel[slot])`（CONTEXT grilling 段自己写着「复用 skillSlotLabel 先例」，两行修复）；② **拒绝理由 `maxlength="500"` 臆造上限**（Spec 轴）——契约无长度限制，静默截断终态留档理由 → 删 maxlength/show-count；③ resources pre `dark:bg-#333` 与全仓既有 pre 形不一致 → 统一去掉。判断项不修记录在案：promote 回执直读 `self`（回执＝核对面，与 D11 清单扫视面分治自洽）；fmtVal 与 formatFmValue 子集孪生、desc-grid 第 5-8 份、pickRowAction 第 2 份/localFmt 第 4 份（文档化容忍至第 8 份）；`source === 2` 字面量（文件既有 idiom）。
+- **顺带修正（独立 commit）**：agent-config e2e 存量断言漂移——aa072c7 把默认值预览改「查看默认」弹层但断言仍查内联灰字，41/42 红 → 断言对齐现 UI＋补弹层交互断言 43/43（stash 法证实 HEAD 上即红，非本票回归）。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 

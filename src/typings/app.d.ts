@@ -1476,7 +1476,13 @@ declare namespace App {
               frontmatter: string;
               frontmatterEmpty: string;
               content: string;
+              resources: string;
             };
+            /** Usage-count observability (#71): loadCount JSON-string three-state texts. */
+            loadCount: string;
+            lastLoadedAt: string;
+            loadNever: string;
+            loadBuiltinNa: string;
             installModal: {
               title: string;
               receiptTitle: string;
@@ -1518,6 +1524,63 @@ declare namespace App {
               disable: string;
               enable: string;
               uninstall: string;
+            };
+          };
+          /** Draft review page (#71 — skill-line drafts 4 endpoints). */
+          skillDraft: {
+            title: string;
+            detailTitle: string;
+            basic: string;
+            id: string;
+            name: string;
+            description: string;
+            slot: string;
+            projectId: string;
+            runId: string;
+            scanVerdict: string;
+            status: string;
+            createdAt: string;
+            detail: string;
+            more: string;
+            content: string;
+            verdict: {
+              safe: string;
+              caution: string;
+            };
+            finding: {
+              title: string;
+              empty: string;
+              patternId: string;
+              severity: string;
+              category: string;
+              location: string;
+              description: string;
+            };
+            action: {
+              promote: string;
+              reject: string;
+            };
+            confirm: {
+              target: string;
+              promote: string;
+              promoteTip: string;
+            };
+            promoteReceipt: {
+              title: string;
+              note: string;
+              done: string;
+            };
+            rejectModal: {
+              title: string;
+              receiptTitle: string;
+              receiptNote: string;
+              reason: string;
+              reasonPlaceholder: string;
+              confirm: string;
+              done: string;
+              operator: string;
+              reviewedAt: string;
+              rejectReason: string;
             };
           };
           /** 指派配置页（#68——技能线 assignments 2 端点；行上下文列文案复用 skill.* 同字段键）。 */

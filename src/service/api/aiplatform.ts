@@ -309,6 +309,34 @@ export function fetchGetAiplatformSkillUpdateTraces(sourcePackage: string) {
   });
 }
 
+/* ---- 草稿域（#71 草稿审核，技能线 drafts 4 端点；清单＝在途活跃面不分页、id＝TSID 串透传）。 ---- */
+
+/** GET /aiplatform/skills/drafts——在途草稿清单（跨项目全部在途、自荐时间倒序、不分页；终态不列活跃面）。 */
+export function fetchGetAiplatformSkillDraftList() {
+  return request<Api.Aiplatform.SkillDraftSummary[]>({ url: '/aiplatform/skills/drafts', method: 'get' });
+}
+
+/** GET /aiplatform/skills/drafts/{id}——草稿详情（正文全文＋scanFindings＋终态留痕＝人审判读面；任意状态可查，查无 404 SKL_015）。 */
+export function fetchGetAiplatformSkillDraft(id: string) {
+  return request<Api.Aiplatform.SkillDraftDetail>({ url: `/aiplatform/skills/drafts/${id}`, method: 'get' });
+}
+
+/**
+ * POST /aiplatform/skills/drafts/{id}/promote——晋升入池（无 body、操作者 X-User 头）。回执＝技能库
+ * 清单行（含新技能 id）；撞名 409 SKL_016 / 已审结 409 SKL_017（错误不判码：透传 toast＋无条件刷新）。
+ */
+export function fetchPromoteAiplatformSkillDraft(id: string) {
+  return request<Api.Aiplatform.SkillSummary>({ url: `/aiplatform/skills/drafts/${id}/promote`, method: 'post' });
+}
+
+/**
+ * POST /aiplatform/skills/drafts/{id}/reject——拒绝草稿（终态留档不复活；空白理由 400 SKL_018 兜底）。
+ * 回执＝终态草稿详情（留痕直读——唯一终态留痕呈现面）。
+ */
+export function fetchRejectAiplatformSkillDraft(id: string, data: Api.Aiplatform.RejectSkillDraftCommand) {
+  return request<Api.Aiplatform.SkillDraftDetail>({ url: `/aiplatform/skills/drafts/${id}/reject`, method: 'post', data });
+}
+
 /* ---- 指派域（#68，技能线 assignments 2 端点；每槽位一个 GET/PUT、slot 路径段三值寻址）。 ---- */
 
 /** GET /aiplatform/skills/assignments/{slot}——槽位指派读面（含停用行——「指派了但已停用」实态；未知槽位 404 SKL_010）。 */

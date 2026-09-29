@@ -1,17 +1,21 @@
 <script setup lang="ts">
 /**
- * AI 平台技能详情抽屉（#67）——安装审核面：所见即运行时注入面。
+ * AI 平台技能详情抽屉（#67；#71 观测扩展）——安装审核面：所见即运行时注入面。
  *
- * 720 单栏三节：基本信息（清单行全字段，id mono——opaque 串两形制直读）/ Frontmatter 泛型键值
- * （自由 map：原始键直出、值按类型格式化——string 原样、number/boolean String、数组逗号并、
- * 对象 JSON 串）/ 正文全文（frontmatter 剥离后 SKILL.md 原文，pre 只读——素材全文同形）。
- * 写动作收口在父页（操作下拉单点），本抽屉纯读面。
+ * 720 单栏四节：基本信息（清单行全字段＋使用计数两行，id mono——opaque 串两形制直读）/
+ * Frontmatter 泛型键值（自由 map：原始键直出、值按类型格式化——string 原样、number/boolean
+ * String、数组逗号并、对象 JSON 串）/ 正文全文（frontmatter 剥离后 SKILL.md 原文，pre 只读
+ * ——素材全文同形）/ scripts/ 资源面 NCollapse（相对路径 mono＝面板头、内容全文 pre；空对象
+ * `{}` 不渲染节——无 scripts/内置恒空）。使用计数三态：loadCount **string 形态**（"5"/"0"/null
+ * ——null＝内置不适用、0＝从未加载）；来源包/版本自产行如实直读 `self`（清单扫视面降噪、
+ * 核对面如实分治）。写动作收口在父页（操作下拉单点），本抽屉纯读面。
  */
 import { computed, ref, watch } from 'vue';
-import { NDrawer, NDrawerContent, NSpin, NTag } from 'naive-ui';
+import { NCollapse, NCollapseItem, NDrawer, NDrawerContent, NSpin, NTag } from 'naive-ui';
 import { skillStatusTagColor } from '@/constants/aiplatform';
 import { fetchGetAiplatformSkill } from '@/service/api';
 import { $t } from '@/locales';
+import { formatDateTime } from '@/utils/common';
 
 defineOptions({ name: 'SkillDetailDrawer' });
 
@@ -40,6 +44,25 @@ watch(visible, val => {
 
 /** frontmatter 自由 map → 键值对数组（原始键直出；插入序即渲染序）。 */
 const frontmatterEntries = computed(() => (detail.value?.frontmatter ? Object.entries(detail.value.frontmatter) : []));
+
+/** resources map → 键值对数组（相对路径→内容全文；空对象＝无，节不渲染）。 */
+const resourceEntries = computed(() => (detail.value?.resources ? Object.entries(detail.value.resources) : []));
+
+/** 使用次数三态：null＝内置不适用 / "0"＝从未加载 / 实值千分位（JSON string 形态）。 */
+const loadCountText = computed(() => {
+  const count = detail.value?.loadCount;
+  if (count === null || count === undefined) return $t('page.aiplatform.skill.loadBuiltinNa');
+  if (count === '0') return $t('page.aiplatform.skill.loadNever');
+  return Number(count).toLocaleString('zh-CN');
+});
+
+/** 最近使用与 loadCount 三态同步（"0"/null 时 lastLoadedAt 亦 null——同文案呈现）。 */
+const lastLoadedText = computed(() => {
+  const count = detail.value?.loadCount;
+  if (count === null || count === undefined) return $t('page.aiplatform.skill.loadBuiltinNa');
+  if (count === '0' || !detail.value?.lastLoadedAt) return $t('page.aiplatform.skill.loadNever');
+  return formatDateTime(detail.value.lastLoadedAt);
+});
 
 /** 值按类型格式化：string 原样 / number·boolean String / 数组逗号并（元素递归）/ 对象 JSON 串。 */
 function formatFmValue(value: unknown): string {
@@ -93,6 +116,11 @@ function formatFmValue(value: unknown): string {
               </NTag>
               <span v-else>-</span>
             </span>
+            <!-- 使用计数观测面（#71）：loadCount JSON string 三态——null＝内置不适用 / "0"＝从未加载 / 千分位 -->
+            <span class="text-right text-#999">{{ $t('page.aiplatform.skill.loadCount') }}</span>
+            <span>{{ loadCountText }}</span>
+            <span class="text-right text-#999">{{ $t('page.aiplatform.skill.lastLoadedAt') }}</span>
+            <span>{{ lastLoadedText }}</span>
           </div>
         </div>
 
@@ -112,6 +140,19 @@ function formatFmValue(value: unknown): string {
         <div>
           <div class="mb-8px font-600">{{ $t('page.aiplatform.skill.drawer.content') }}</div>
           <pre class="max-h-60vh overflow-auto whitespace-pre-wrap rounded-8px bg-#f5f5f5 p-12px text-13px leading-6">{{ detail.content }}</pre>
+        </div>
+
+        <!-- 四、scripts/ 资源面（相对路径 mono＝面板头、内容全文 pre；默认全收起；空对象不渲染节） -->
+        <div v-if="resourceEntries.length">
+          <div class="mb-8px font-600">{{ $t('page.aiplatform.skill.drawer.resources') }}</div>
+          <NCollapse>
+            <NCollapseItem v-for="[filePath, fileContent] in resourceEntries" :key="filePath" :name="filePath">
+              <template #header>
+                <span class="break-all font-mono text-13px">{{ filePath }}</span>
+              </template>
+              <pre class="max-h-40vh overflow-auto whitespace-pre-wrap rounded-8px bg-#f5f5f5 p-12px text-13px leading-6">{{ fileContent }}</pre>
+            </NCollapseItem>
+          </NCollapse>
         </div>
       </div>
     </NDrawerContent>

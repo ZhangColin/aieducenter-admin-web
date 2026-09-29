@@ -709,10 +709,10 @@ declare namespace Api {
 
     type MaterialFilter = Omit<MaterialSearchParams, 'page' | 'size'>;
 
-    /* ---- 技能域（#67 技能管理——技能线 8 端点）---- */
+    /* ---- 技能域（#67 技能管理——技能线 8 端点；#71 观测扩展）---- */
 
-    /** 技能来源（两态）：1=内置 2=安装（sourceName 中文名随行直读）。 */
-    type SkillSource = 1 | 2;
+    /** 技能来源（三态）：1=内置 2=安装 3=自产（sourceName 中文名随行直读；自产行 sourcePackage/version＝虚拟值 self）。 */
+    type SkillSource = 1 | 2 | 3;
 
     /** 技能状态（两态）：1=启用 2=停用——与素材域同构；内置恒 1（启停对内置行的裁决归 provider 透传）。 */
     type SkillStatus = 1 | 2;
@@ -734,9 +734,9 @@ declare namespace Api {
       description: string;
       source: SkillSource;
       sourceName: string;
-      /** 来源包标识（安装仓库规范化地址）；内置 null */
+      /** 来源包标识（安装仓库规范化地址）；内置 null、自产＝固定虚拟值 `self`（清单扫视面 `-` 占位、详情如实直读） */
       sourcePackage: string | null;
-      /** 版本标识（装时/上次更新 commit）；内置 null */
+      /** 版本标识（装时/上次更新 commit）；内置 null、自产＝固定虚拟值 `self` */
       version: string | null;
       status: SkillStatus;
       statusName: string;
@@ -747,14 +747,27 @@ declare namespace Api {
        * ——展示性标记，**不门控更新动作**（provider 不保证检查过，更新永远显式点）。
        */
       updateAvailable: boolean | null;
+      /**
+       * 加载次数（使用计数观测面，#71）：**JSON string 形态**（Long 全局序列化同 id 口径——
+       * "5"/"0"/null 三态）；口径＝load 实际发生（指派/启停/清单重建不计数）；"0"＝从未被
+       * 加载过、null＝内置不适用。呈现三态：千分位 / 「从未加载」 / 「内置不适用」。
+       */
+      loadCount: string | null;
+      /** 最近加载时刻（使用计数观测面，#71）；null＝从未被加载过（内置恒 null）。 */
+      lastLoadedAt: string | null;
     }
 
-    /** 技能详情（GET /skills/{id}；清单行超集——frontmatter 解析态 + 正文全文＝安装审核面）。 */
+    /** 技能详情（GET /skills/{id}；清单行超集——frontmatter 解析态 + 正文全文 + scripts/ 资源面）。 */
     interface SkillDetail extends SkillSummary {
       /** SKILL.md frontmatter 全量（自由 map——审核面所见即运行时注入面，键值原样直出） */
       frontmatter: Record<string, unknown>;
       /** SKILL.md 正文（frontmatter 剥离后全文） */
       content: string;
+      /**
+       * scripts/ 资源面（#71 观测扩展）：相对路径→内容全文；**仅 Detail**、无 scripts/内置行
+       * 恒空对象 `{}`（非 null——空对象不渲染节）。
+       */
+      resources: Record<string, string>;
     }
 
     /** POST /skills/install body——安装命令无 tag/ref 字段，版本恒＝装时 HEAD commit。 */
@@ -793,6 +806,75 @@ declare namespace Api {
       operatorId: string;
       operatorName: string;
       operatedAt: string;
+    }
+
+    /* ---- 草稿域（#71 草稿审核——技能线 drafts 4 端点；admin #92 镜像 aiplatform #259 自产线）---- */
+
+    /**
+     * 草稿状态：1=在途 2=已晋升 3=已拒绝——**清单＝活跃面恒 1**（终态不列活跃面）；
+     * 详情任意状态可查（终态留档——拒绝回执即终态详情直读）。
+     */
+    type SkillDraftStatus = 1 | 2 | 3;
+
+    /**
+     * 写入前静态扫描判定（两值封闭）：SAFE=安全 / CAUTION=注意——DANGEROUS 已在写入口
+     * 拒收不落库（值域不可达）；label/tag 端侧映射。
+     */
+    type SkillScanVerdict = 'SAFE' | 'CAUTION';
+
+    /** 草稿两审核写动作（晋升/拒绝；权限码 Record 的键约束）。 */
+    type SkillDraftAction = 'promote' | 'reject';
+
+    /**
+     * 草稿清单行（GET /skills/drafts 全量元素＝在途活跃面，**不分页**、自荐时间倒序——
+     * 有界人审队列不造分页）。id 为 TSID 十进制串透传；血统三件（projectId/runId/slot）为
+     * 审核溯源锚（来源 run 的外部资料接触史必查——人审职责，前端仅呈现材料）。
+     */
+    interface SkillDraftSummary {
+      /** 草稿柄（详情/审核操作寻址，TSID 十进制串勿做数值假设；未寻址 404 SKL_015） */
+      id: string;
+      /** 技能名（撞名判断键——晋升时撞名复查 SKL_016） */
+      name: string;
+      description: string;
+      /** 来源槽位稳定键（main/executor/subagent——复用指派域 SkillSlot；响应无 slotName，label 端侧映射） */
+      slot: SkillSlot;
+      /** 来源项目 id（血统三件之一） */
+      projectId: string;
+      /** 来源 run 标识（血统三件之一） */
+      runId: string;
+      /** 写入前静态扫描判定（SAFE/CAUTION） */
+      scanVerdict: SkillScanVerdict;
+      /** 状态 code（清单＝活跃面恒 1） */
+      status: SkillDraftStatus;
+      statusName: string;
+      /** 自荐时刻（清单按此刻倒序） */
+      createdAt: string;
+    }
+
+    /**
+     * 草稿详情（GET /skills/drafts/{id}；清单行超集＝人审判读承载面，**任意状态可查**——
+     * 终态留档）。scanFindings 为 untyped map 清单逐字透传（七键 patternId/severity/category/
+     * file/line/matchText/description 仅 swagger 描述层——投影缺键跳过、值直显）；空列表＝无发现。
+     * 终态留痕四字段在途恒 null（拒绝回执即本形状直读——唯一终态留痕呈现面）。
+     */
+    interface SkillDraftDetail extends SkillDraftSummary {
+      /** 技能正文全文（自产 a-only 无 scripts；判读主体，不经截断/改写） */
+      content: string;
+      /** 扫描 findings 留档（untyped map；空列表＝无发现） */
+      scanFindings: Record<string, unknown>[];
+      /** 终态审核操作者 id（在途为 null） */
+      operatorId: string | null;
+      /** 终态审核操作者名（在途为 null） */
+      operatorName: string | null;
+      /** 终态时刻（晋升/拒绝落定时刻；在途为 null） */
+      reviewedAt: string | null;
+      /** 拒绝理由（已拒绝态携带；其余 null） */
+      rejectReason: string | null;
+    }
+
+    /** POST /skills/drafts/{id}/reject body——理由合法性由 provider 裁决（空白 400 SKL_018 兜底；前端必填先行拦截）。 */
+    interface RejectSkillDraftCommand {
+      reason: string;
     }
 
     /* ---- 指派域（#68 指派配置——技能线 assignments 2 端点，每槽位一个 GET/PUT）---- */

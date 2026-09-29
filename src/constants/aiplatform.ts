@@ -206,6 +206,29 @@ export const skillWriteAuth: Record<Api.Aiplatform.SkillAction, string> = {
   update: 'admin:aiplatform:skill:update'
 };
 
+/* ---- 草稿域（#71）---- */
+
+/** 扫描判定标签色（语义：SAFE 安全 success / CAUTION 注意 warning——DANGEROUS 写入口拒收不可达）。 */
+export const skillDraftScanVerdictTagColor: Record<Api.Aiplatform.SkillScanVerdict, NaiveUI.ThemeColor> = {
+  SAFE: 'success',
+  CAUTION: 'warning'
+};
+
+/** 扫描判定 label（端侧两值映射——响应无 *Name）。 */
+export const skillDraftScanVerdictLabel: Record<Api.Aiplatform.SkillScanVerdict, App.I18n.I18nKey> = {
+  SAFE: 'page.aiplatform.skillDraft.verdict.safe',
+  CAUTION: 'page.aiplatform.skillDraft.verdict.caution'
+};
+
+/**
+ * 草稿两审核写权限码（hasAuth 门控用）——行下拉与抽屉动作条双入口共用单点（workspaceWriteAuth
+ * 先例：promote/reject 分别 `v-if`，审阅只读（read 码）无页内落点——菜单可见性归 RBAC/种子）。
+ */
+export const skillDraftWriteAuth: Record<Api.Aiplatform.SkillDraftAction, string> = {
+  promote: 'admin:aiplatform:skill-draft:promote',
+  reject: 'admin:aiplatform:skill-draft:reject'
+};
+
 /* ---- 指派域（#68）---- */
 
 /**

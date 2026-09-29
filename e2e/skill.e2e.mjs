@@ -91,13 +91,19 @@ async function main() {
   await page.locator(ROW).first().waitFor({ timeout: 15000 });
   h.check('落 /aiplatform/skill 且列表渲染', page.url().includes('/aiplatform/skill'));
 
-  /* ================= 2. 清单渲染契约字段（无分页 + 内置在前 + 内置行占位 + 可更新三态） ================= */
-  h.check('清单全量 8 行（内置 3 + 安装 5，无分页切片）', (await page.locator(ROW).count()) === 8, `实际 ${await page.locator(ROW).count()} 行`);
+  /* ================= 2. 清单渲染契约字段（无分页 + 内置在前 + 内置行占位 + 可更新三态 + 自产行） ================= */
+  h.check('清单全量 9 行（内置 3 + 安装 5 + 自产 1，无分页切片）', (await page.locator(ROW).count()) === 9, `实际 ${await page.locator(ROW).count()} 行`);
   h.check('无分页控件（有界目录契约）', (await page.locator('.n-pagination').count()) === 0);
   h.check('初始请求无查询参数', (lastListCall(calls)?.query ?? '') === '', lastListCall(calls)?.query);
-  // 服务端排序内置在前：前 3 行 sourceName 均为「内置」、第 4 行起「安装」
+  // 服务端排序内置在前：前 3 行「内置」、第 4-8 行「安装」、第 9 行「自产」
   const sourceTexts = await page.locator(ROW).allTextContents();
-  h.check('内置在前（前 3 行内置、第 4 行起安装）', sourceTexts.slice(0, 3).every(t => t.includes('内置')) && sourceTexts.slice(3).every(t => t.includes('安装')));
+  h.check(
+    '内置在前（前 3 行内置、第 4-8 行安装、第 9 行自产）',
+    sourceTexts.slice(0, 3).every(t => t.includes('内置')) && sourceTexts.slice(3, 8).every(t => t.includes('安装')) && sourceTexts.slice(8).every(t => t.includes('自产'))
+  );
+  // 自产行（#71 观测扩展）：sourcePackage/version＝虚拟值 self——清单扫视面 `-` 占位（详情如实直读分治）
+  const selfRow = page.locator(ROW).filter({ hasText: 'api-doc-gen' });
+  h.check('自产行：package/version 列 `-` 占位（self 零信息量）', (await selfRow.getByText('self').count()) === 0 && (await selfRow.getByText('-', { exact: true }).count()) >= 2, await selfRow.textContent());
   // 首行（builtin:web-search）：名称 + 四列 null 占位 '-'
   const firstRow = page.locator(ROW).first();
   h.check('内置行：名称直显 + 描述', (await firstRow.getByText('web-search').count()) > 0 && (await firstRow.getByText('联网搜索增强工具技能').count()) > 0);
@@ -127,13 +133,39 @@ async function main() {
   h.check('抽屉二节：frontmatter 原始键直出 + string/number 值', (await drawer.getByText('license', { exact: true }).count()) > 0 && (await drawer.getByText('MIT').count()) > 0 && (await drawer.getByText('version', { exact: true }).count()) > 0);
   h.check('抽屉二节：数组值逗号并 + 布尔直读 + 对象 JSON 串', (await drawer.getByText('Read, Write, Bash').count()) > 0 && (await drawer.getByText('{"owner":"acme","tier":"gold"}').count()) > 0);
   h.check('抽屉三节：正文全文锚点 + 多段呈现', (await drawer.getByText('## 使用约束').count()) > 0);
+  // 使用计数观测面（#71）：loadCount "12345" → 千分位；lastLoadedAt 同步直显（LocalDateTime 不折算）
+  h.check('抽屉一节：使用次数千分位（12345 → 12,345）', (await drawer.getByText('12,345').count()) > 0);
+  h.check('抽屉一节：最近使用时刻直显', (await drawer.getByText('2026-09-21 06:40:00').count()) > 0);
+  // 抽屉四节：resources NCollapse（默认全收起——头在、内容不见；点开见全文）
+  h.check('抽屉四节：scripts/ 资源节渲染（默认收起）', (await drawer.getByText('scripts/ 资源').count()) > 0 && (await drawer.getByText('E2E-RESOURCE-ANCHOR').count()) === 0);
+  await drawer.getByText('scripts/export.sh').click();
+  await sleep(400);
+  h.check('抽屉四节：展开面板见资源全文（pre 代码块）', (await drawer.getByText('E2E-RESOURCE-ANCHOR').count()) > 0);
   await page.keyboard.press('Escape');
   await sleep(600);
   h.check('抽屉已关（行操作可达）', !(await page.locator('.n-drawer').isVisible()));
   // 内置行详情：builtin: 柄两形制直显（opaque 串不数值化；exact 避开 pre 正文首行撞串）
+  // ＋ loadCount null →「内置不适用」两行（#71 三态之一）＋ 无 resources 节
   await page.locator(ROW).filter({ hasText: 'web-search' }).getByRole('button', { name: /详\s*情/ }).click();
   await drawer.getByText('builtin:web-search', { exact: true }).waitFor({ timeout: 5000 });
+  await drawer.getByText(skillFixtures.CONTENT_MARK).waitFor({ timeout: 5000 });
   h.check('内置行抽屉：builtin: 柄两形制直显', (await drawer.getByText('builtin:web-search', { exact: true }).count()) > 0);
+  h.check('内置行抽屉：使用次数/最近使用＝「内置不适用」（null 三态）', (await drawer.getByText('内置不适用').count()) === 2);
+  h.check('内置行抽屉：无 scripts/ 资源节（空对象不渲染）', (await drawer.getByText('scripts/ 资源').count()) === 0);
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  // 新装行详情：loadCount "0" →「从未加载」两行（#71 三态之二；lastLoadedAt null 同步）
+  await page.locator(ROW).filter({ hasText: 'doc-writer' }).getByRole('button', { name: /详\s*情/ }).click();
+  await drawer.getByText(skillFixtures.CONTENT_MARK).waitFor({ timeout: 5000 });
+  h.check('新装行抽屉：使用次数/最近使用＝「从未加载」（"0" 三态）', (await drawer.getByText('从未加载').count()) === 2);
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  // 自产行详情：sourcePackage/version 如实直读 self（核对面如实——与清单扫视面分治）＋ 无 scripts
+  await page.locator(ROW).filter({ hasText: 'api-doc-gen' }).getByRole('button', { name: /详\s*情/ }).click();
+  await drawer.getByText(skillFixtures.CONTENT_MARK).waitFor({ timeout: 5000 });
+  h.check('自产行抽屉：来源包/版本如实直读 self', (await drawer.getByText('self', { exact: true }).count()) === 2);
+  h.check('自产行抽屉：使用次数 5（loadCount 实值）', (await drawer.getByText('2026-09-22 02:15:00').count()) > 0 && (await drawer.getByText('内置不适用').count()) === 0);
+  h.check('自产行抽屉：无 scripts/ 资源节（a-only 无 scripts）', (await drawer.getByText('scripts/ 资源').count()) === 0);
   await page.keyboard.press('Escape');
   await sleep(600);
 
@@ -145,6 +177,9 @@ async function main() {
   h.check('停用行下拉：启用（互斥侧）+ 更新/卸载/留痕（安装行）', opts.includes('启用') && !opts.includes('停用') && opts.includes('更新') && opts.includes('卸载') && opts.includes('留痕'), JSON.stringify(opts));
   opts = await openRowMenu(page, page.locator(ROW).filter({ hasText: 'sql-helper' }));
   h.check('启用行下拉：停用 + 更新/卸载/留痕', opts.includes('停用') && !opts.includes('启用') && opts.includes('更新') && opts.includes('卸载') && opts.includes('留痕'), JSON.stringify(opts));
+  // 自产行（source=3）：更新/卸载/留痕仅安装行——自产同样不可达（无安装来源包）
+  opts = await openRowMenu(page, selfRow);
+  h.check('自产行下拉：仅停用（更新/卸载/留痕不可达不出现）', opts.length === 1 && opts[0] === '停用', JSON.stringify(opts));
 
   /* ================= 5. 停用链：确认（目标对账）→ POST disable → toast + 行态翻转 ================= */
   await pickRowAction(page, installedRow, '停用');
@@ -175,7 +210,7 @@ async function main() {
   const uninstalledToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('技能已卸载')));
   h.check('卸载成功 toast（回执不消费）+ DELETE 端点', Boolean(uninstalledToast) && calls.some(c => c.method === 'DELETE' && c.path === `/aiplatform/skills/${UNINSTALL_ID}`));
   await sleep(600);
-  h.check('卸载后行消失（清单 7 行）', (await page.locator(ROW).filter({ hasText: 'seo-audit' }).count()) === 0 && (await page.locator(ROW).count()) === 7, `实际 ${await page.locator(ROW).count()} 行`);
+  h.check('卸载后行消失（清单 8 行）', (await page.locator(ROW).filter({ hasText: 'seo-audit' }).count()) === 0 && (await page.locator(ROW).count()) === 8, `实际 ${await page.locator(ROW).count()} 行`);
 
   /* ================= 8. 卸载失败链：409 SKL_008 透传 toast、行保留 ================= */
   state.failNextSkillUninstall = true;
@@ -214,7 +249,7 @@ async function main() {
   h.check('回执态：本次装入 2 项 + 条目（name/version/sourcePackage）', (await modal.getByText('本次装入 2 项').count()) > 0 && (await modal.getByText('chart-render').count()) > 0 && (await modal.getByText('slide-builder').count()) > 0);
   await modal.getByRole('button', { name: /完\s*成/ }).click();
   await sleep(600);
-  h.check('完成即关 + 父页刷新（新装入行入列，9 行）', !(await modal.isVisible()) && (await page.locator(ROW).filter({ hasText: 'chart-render' }).count()) > 0 && (await page.locator(ROW).count()) === 9, `实际 ${await page.locator(ROW).count()} 行`);
+  h.check('完成即关 + 父页刷新（新装入行入列，10 行）', !(await modal.isVisible()) && (await page.locator(ROW).filter({ hasText: 'chart-render' }).count()) > 0 && (await page.locator(ROW).count()) === 10, `实际 ${await page.locator(ROW).count()} 行`);
 
   /* ================= 10. 安装失败链：502 SKL_004 透传 toast、表单留窗可修正 ================= */
   state.failNextSkillInstall = true;

@@ -3,10 +3,11 @@
  * AI 平台技能管理页（#67，#65 技能域 T1）。
  *
  * 治理工作面：列表 NDataTable **无分页**（有界目录，服务端排序内置在前、如实呈现）——
- * 内置与安装同权，来源/来源包/版本/状态/最近操作/可更新标记逐列直读。行操作＝「操作」下拉
- * （workspace 范式）：停用⇄启用互斥切换（按 status；对内置行照给——契约无「内置不可停」码，
- * provider 裁决透传）＋ 更新/卸载/留痕仅安装行（source=2——内置无 sourcePackage 且契约明示
- * 不可卸）；五写 hasAuth 逐码门控，留痕是读动作不门控。
+ * 内置/安装/自产同权，来源/来源包/版本/状态/最近操作/可更新标记逐列直读（自产行
+ * sourcePackage/version＝虚拟值 self，清单扫视面 `-` 占位——详情如实直读）。行操作＝
+ * 「操作」下拉（workspace 范式）：停用⇄启用互斥切换（按 status；对内置行照给——契约无
+ * 「内置不可停」码，provider 裁决透传）＋ 更新/卸载/留痕仅安装行（source=2——内置无
+ * sourcePackage 且契约明示不可卸）；五写 hasAuth 逐码门控，留痕是读动作不门控。
  *
  * 回执分型（Q7）：启停/卸载＝toast＋刷新（卸载回执＝删除前终态不消费，素材删除先例）；安装/
  * 显式更新＝回执态 modal（信息量大——install 装入条目表、update from→to＋移除名单＋终态行集，
@@ -82,12 +83,13 @@ const { columns, columnChecks, data, getData, loading, scrollX } = useNaiveTable
       render: row => row.sourceName
     },
     {
+      // 自产行（source=3）固定虚拟值 self 零信息量——清单扫视面 `-` 占位（详情如实直读，分治）
       key: 'sourcePackage',
       title: $t('page.aiplatform.skill.sourcePackage'),
       align: 'center',
       minWidth: 220,
       ellipsis: { tooltip: true },
-      render: row => (row.sourcePackage ? <span class="font-mono">{row.sourcePackage}</span> : '-')
+      render: row => (row.source === 2 && row.sourcePackage ? <span class="font-mono">{row.sourcePackage}</span> : '-')
     },
     {
       key: 'version',
@@ -95,7 +97,7 @@ const { columns, columnChecks, data, getData, loading, scrollX } = useNaiveTable
       align: 'center',
       width: 140,
       ellipsis: { tooltip: true },
-      render: row => (row.version ? <span class="font-mono">{row.version}</span> : '-')
+      render: row => (row.source === 2 && row.version ? <span class="font-mono">{row.version}</span> : '-')
     },
     {
       key: 'status',

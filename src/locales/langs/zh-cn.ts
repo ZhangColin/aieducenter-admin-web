@@ -252,6 +252,7 @@ const local: App.I18n.Schema = {
     aiplatform_material: '知识素材',
     aiplatform_skill: '技能管理',
     aiplatform_skill_assignment: '指派配置',
+    aiplatform_skill_draft: '草稿审核',
     aiplatform_agent: '智能体',
     aiplatform_agent_config: '智能体配置'
   },
@@ -1252,8 +1253,14 @@ const local: App.I18n.Schema = {
           basic: '基本信息',
           frontmatter: 'Frontmatter 键值',
           frontmatterEmpty: '（无 frontmatter）',
-          content: 'SKILL.md 正文'
+          content: 'SKILL.md 正文',
+          resources: 'scripts/ 资源'
         },
+        /** 使用计数观测面（#71）：loadCount JSON string 三态文案。 */
+        loadCount: '使用次数',
+        lastLoadedAt: '最近使用',
+        loadNever: '从未加载',
+        loadBuiltinNa: '内置不适用',
         installModal: {
           title: '安装技能',
           receiptTitle: '安装完成',
@@ -1296,6 +1303,63 @@ const local: App.I18n.Schema = {
           disable: '技能已停用',
           enable: '技能已启用',
           uninstall: '技能已卸载'
+        }
+      },
+      /** 草稿审核页（#71——技能线 drafts 4 端点；行字段/抽屉文案与 skill.* 同字段键独立成段）。 */
+      skillDraft: {
+        title: '草稿审核',
+        detailTitle: '草稿详情',
+        basic: '基本信息',
+        id: '草稿柄',
+        name: '技能名',
+        description: '简介',
+        slot: '来源槽位',
+        projectId: '来源项目',
+        runId: '来源 Run',
+        scanVerdict: '扫描判定',
+        status: '状态',
+        createdAt: '自荐时刻',
+        detail: '详情',
+        more: '操作',
+        content: '正文全文',
+        verdict: {
+          safe: '安全',
+          caution: '注意'
+        },
+        finding: {
+          title: '扫描发现',
+          empty: '无发现',
+          patternId: '模式',
+          severity: '严重度',
+          category: '类别',
+          location: '位置',
+          description: '说明'
+        },
+        action: {
+          promote: '晋升',
+          reject: '拒绝'
+        },
+        confirm: {
+          target: '目标：{name}',
+          promote: '晋升草稿',
+          promoteTip: '晋升＝技能草稿原样入池（不可逆；审核期间同名入库将被拒绝）'
+        },
+        promoteReceipt: {
+          title: '晋升完成',
+          note: '已晋升入池，新技能行：',
+          done: '完成'
+        },
+        rejectModal: {
+          title: '拒绝草稿',
+          receiptTitle: '已拒绝',
+          receiptNote: '草稿已拒绝（终态留档、不复活——重提靠未来会话新草稿）。',
+          reason: '拒绝理由',
+          reasonPlaceholder: '终态留档可查——拒绝须有据（必填）',
+          confirm: '拒绝',
+          done: '完成',
+          operator: '审核操作者',
+          reviewedAt: '落定时刻',
+          rejectReason: '拒绝理由'
         }
       },
       /** 指派配置页（#68——技能线 assignments 2 端点；行上下文列文案复用 skill.* 同字段键）。 */

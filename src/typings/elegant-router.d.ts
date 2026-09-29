@@ -33,6 +33,7 @@ declare module "@elegant-router/types" {
     "aiplatform_project": "/aiplatform/project";
     "aiplatform_skill": "/aiplatform/skill";
     "aiplatform_skill_assignment": "/aiplatform/skill/assignment";
+    "aiplatform_skill_draft": "/aiplatform/skill/draft";
     "aiplatform_workspace": "/aiplatform/workspace";
     "app": "/app";
     "app_list": "/app/list";
@@ -122,6 +123,7 @@ declare module "@elegant-router/types" {
     | "aiplatform_project"
     | "aiplatform_skill"
     | "aiplatform_skill_assignment"
+    | "aiplatform_skill_draft"
     | "aiplatform_workspace"
     | "app_list"
     | "home"

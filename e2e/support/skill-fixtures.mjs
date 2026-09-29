@@ -2,24 +2,39 @@
  * 技能域 E2E mock fixtures（#67）——字段形状派生自 admin :8081 `/v3/api-docs`：
  * - `AiplatformSkillSummaryResponse`（列表行 = install 回执条目 = update 终态行集，同 schema）：
  *   id/name/description/source·sourceName/sourcePackage/version/status·statusName/
- *   operatorId/operatorName/updateAvailable
- * - `AiplatformSkillDetailResponse`（清单行超集 + frontmatter 自由 map + content 正文）
+ *   operatorId/operatorName/updateAvailable/loadCount·lastLoadedAt
+ * - `AiplatformSkillDetailResponse`（清单行超集 + frontmatter 自由 map + content 正文 + resources）
  * - `AiplatformSkillUpdateTraceResponse`（from/to/operator 两列/operatedAt）
  * - #68 指派：`AiplatformSlotAssignmentResponse` / `AiplatformSkillAssignCommand`
  * - #69 智能体配置：`AiplatformAgentConfigResponse` / `AiplatformAgentConfigUpdateCommand` /
  *   `AiplatformAgentConfigTraceResponse` / `AiplatformAgentToolResponse` /
  *   `AiplatformAgentToolSlotResponse` / `AiplatformAgentToolToggleCommand`
+ * - #71 草稿域：`AiplatformSkillDraftSummaryResponse` / `AiplatformSkillDraftDetailResponse` /
+ *   `AiplatformSkillDraftRejectCommand`（drafts 4 端点——admin #92 源码核实）
  *
- * 契约要点（api-docs 实读，2026-09-24）：id 为 **opaque 串两形制**（内置＝`builtin:<技能名>` /
- * 安装＝TSID 十进制串——一律 string，勿做数值假设）；source 1=内置 2=安装、status 1=启用 2=停用
- * （内置恒 1）＋`*Name` 中文名随行直读；sourcePackage/version 内置为 null；updateAvailable 为
- * 来源包级标记（true=远端 HEAD≠装时版本 / null=未检查过——按包统一才符合「包级」语义）。
- * 清单无分页、服务端排序内置在前（fixtures 预排：内置 3 行在前，安装行随后）。
+ * 契约要点（api-docs 实读，2026-09-24；#71 扩展 2026-09-29）：id 为 **opaque 串两形制**
+ * （内置＝`builtin:<技能名>` / 安装＝TSID 十进制串——一律 string，勿做数值假设）；source
+ * 1=内置 2=安装 3=自产、status 1=启用 2=停用（内置恒 1）＋`*Name` 中文名随行直读；
+ * sourcePackage/version 内置为 null、**自产＝固定虚拟值 `self`**；updateAvailable 为来源包级
+ * 标记（true=远端 HEAD≠装时版本 / null=未检查过——按包统一才符合「包级」语义）。
+ * 清单无分页、服务端排序内置在前（fixtures 预排：内置 3 行在前，安装行随后，自产行末）。
  *
- * 覆盖矩阵：内置 ×3（下拉仅停用——更新/卸载/留痕不可达）；安装三包——PACK_A ×3（禁用行＝
- * 启用靶 + 可更新 true + 更新靶：from→to 翻新两行/移除 sql-helper/新增 diagram-draw）、
+ * 观测面（#71）：`loadCount` **JSON string 三态**（"5"/"0"/null——null＝内置不适用、
+ * "0"＝从未加载，口径＝load 实际发生）；`lastLoadedAt` null＝从未加载。`resources`
+ * `Map<String,String>` **仅 Detail**（无 scripts/内置恒空对象 `{}`）。
+ *
+ * 覆盖矩阵：内置 ×3（下拉仅停用——更新/卸载/留痕不可达；loadCount null＝内置不适用靶）；
+ * 安装三包——PACK_A ×3（禁用行＝启用靶 + 可更新 true + 更新靶：from→to 翻新两行/移除
+ * sql-helper/新增 diagram-draw；a1 loadCount "12345"＝千分位靶 + resources 1 文件靶）、
  * PACK_B ×1（装者留痕、可更新 false、卸载靶）、PACK_C ×1（可更新 null＝未检查、no-op 更新靶
- * from==to）。frontmatter 四型值（string/number/array/object）钉泛型键值格式化分派。
+ * from==to；loadCount "0"＝从未加载靶）；自产 ×1（source=3、sourcePackage/version=self、
+ * 下拉仅停用——更新/卸载/留痕不可达、resources {} 无 scripts、详情 self 如实直读靶）。
+ * frontmatter 四型值（string/number/array/object）钉泛型键值格式化分派。
+ *
+ * 草稿覆盖矩阵：在途 ×3（自荐倒序预排）——d1 SAFE/findings 空/executor＝晋升靶（回执＝
+ * 技能库自产新行）/ d2 CAUTION/findings 两条（七键全 + 缺键样本＝投影缺键跳过靶）/subagent＝
+ * 拒绝靶（从抽屉动作条发起——双入口＋同目标抽屉随行关闭断言）/ d3 SAFE/main＝抽屉只读靶。
+ * 拒绝留痕回填（status 3 + operator/reviewedAt/rejectReason）＝终态回执呈现靶。
  */
 
 /** 停用靶：PACK_A 行 a1（启用态、可更新 true——抽屉停用链 + 更新入口同包）。 */
@@ -47,6 +62,23 @@ export const INSTALL_REPO_URL = 'https://github.com/acme/e2e-new-pack';
 export const PACK_A_FROM = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0';
 export const PACK_A_TO = '0b9a8f7e6d5c4b3a29180f7e6d5c4b3a2918076e';
 
+/** 自产行 id（#71 观测扩展靶：source=3、self 虚拟值、无 scripts、loadCount "5"）。 */
+export const SELF_SKILL_ID = '740223456789000601';
+
+/** 草稿三靶 id（#71）：d1 晋升 / d2 拒绝（抽屉动作条发起）/ d3 抽屉只读。 */
+export const PROMOTE_DRAFT_ID = '3852400001111111';
+export const REJECT_DRAFT_ID = '3852400001111112';
+export const DRAWER_DRAFT_ID = '3852400001111113';
+
+/** 晋升回执新技能 id（回执态 modal「新技能行 id mono」断言锚）。 */
+export const PROMOTED_SKILL_ID = '740223456789000701';
+
+/** 草稿正文断言锚点（详情三节·判读主体）。 */
+export const DRAFT_CONTENT_MARK = 'E2E-DRAFT-CONTENT-ANCHOR';
+
+/** 拒绝理由提交值（回执留痕原文直读断言锚）。 */
+export const REJECT_REASON = '正文与现有技能 prd-writing 方法论重叠，解消方向不明';
+
 /** 正文全文锚点（frontmatter 剥离后的 SKILL.md 原文断言用）。 */
 export const CONTENT_MARK = 'E2E-SKILL-CONTENT-ANCHOR';
 
@@ -64,7 +96,9 @@ const BUILTIN_ROWS = [
     statusName: '启用',
     operatorId: null,
     operatorName: null,
-    updateAvailable: null
+    updateAvailable: null,
+    loadCount: null,
+    lastLoadedAt: null
   },
   {
     id: 'builtin:fetch-url',
@@ -78,7 +112,9 @@ const BUILTIN_ROWS = [
     statusName: '启用',
     operatorId: null,
     operatorName: null,
-    updateAvailable: null
+    updateAvailable: null,
+    loadCount: null,
+    lastLoadedAt: null
   },
   {
     id: 'builtin:project-context',
@@ -92,7 +128,9 @@ const BUILTIN_ROWS = [
     statusName: '启用',
     operatorId: null,
     operatorName: null,
-    updateAvailable: null
+    updateAvailable: null,
+    loadCount: null,
+    lastLoadedAt: null
   }
 ];
 
@@ -110,7 +148,9 @@ const INSTALLED_ROWS = [
     statusName: '启用',
     operatorId: '1',
     operatorName: '王建设',
-    updateAvailable: true
+    updateAvailable: true,
+    loadCount: '12345',
+    lastLoadedAt: '2026-09-21T06:40:00'
   },
   {
     id: ENABLE_ID,
@@ -124,7 +164,9 @@ const INSTALLED_ROWS = [
     statusName: '停用',
     operatorId: '3',
     operatorName: '陈运营',
-    updateAvailable: true
+    updateAvailable: true,
+    loadCount: '0',
+    lastLoadedAt: null
   },
   {
     id: REMOVED_ID,
@@ -138,7 +180,9 @@ const INSTALLED_ROWS = [
     statusName: '启用',
     operatorId: '1',
     operatorName: '王建设',
-    updateAvailable: true
+    updateAvailable: true,
+    loadCount: '7',
+    lastLoadedAt: '2026-09-18T03:20:00'
   },
   {
     id: UNINSTALL_ID,
@@ -152,7 +196,9 @@ const INSTALLED_ROWS = [
     statusName: '启用',
     operatorId: '1',
     operatorName: '王建设',
-    updateAvailable: false
+    updateAvailable: false,
+    loadCount: '3',
+    lastLoadedAt: '2026-09-20T08:11:00'
   },
   {
     id: '740223456789000301',
@@ -166,12 +212,32 @@ const INSTALLED_ROWS = [
     statusName: '启用',
     operatorId: null,
     operatorName: null,
-    updateAvailable: null
+    updateAvailable: null,
+    loadCount: '0',
+    lastLoadedAt: null
   }
 ];
 
-/** 技能清单（harness 写变异就地改；内置在前预排）。 */
-export const SKILL_ROWS = [...BUILTIN_ROWS, ...INSTALLED_ROWS];
+/** 自产行（#71）：source=3、sourcePackage/version＝虚拟值 self、无 scripts（resources {}）、loadCount "5"。 */
+const SELF_ROW = {
+  id: SELF_SKILL_ID,
+  name: 'api-doc-gen',
+  description: '按项目事实生成 API 文档初稿（自产晋升入池）',
+  source: 3,
+  sourceName: '自产',
+  sourcePackage: 'self',
+  version: 'self',
+  status: 1,
+  statusName: '启用',
+  operatorId: '700200',
+  operatorName: '运营·技能管理员',
+  updateAvailable: null,
+  loadCount: '5',
+  lastLoadedAt: '2026-09-22T02:15:00'
+};
+
+/** 技能清单（harness 写变异就地改；内置在前预排、安装随后、自产收尾）。 */
+export const SKILL_ROWS = [...BUILTIN_ROWS, ...INSTALLED_ROWS, SELF_ROW];
 
 /** 造 SKILL.md 正文（frontmatter 剥离后原文，多段 + 断言锚点）。 */
 function skillContent(id) {
@@ -190,8 +256,9 @@ function skillContent(id) {
 }
 
 /**
- * 详情（清单行超集 + frontmatter 自由 map + content）。安装行 frontmatter 四型值
- * （string/number/array/object）钉泛型键值格式化分派；内置行极简两键。
+ * 详情（清单行超集 + frontmatter 自由 map + content + resources）。安装行 frontmatter 四型值
+ * （string/number/array/object）钉泛型键值格式化分派；内置行极简两键；resources 仅 a1 带
+ * 1 文件（NCollapse 靶——E2E-RESOURCE-ANCHOR）、其余恒空对象 {}（无 scripts/内置契约形）。
  */
 export const SKILL_DETAILS = {
   [DISABLE_ID]: {
@@ -205,30 +272,43 @@ export const SKILL_DETAILS = {
       strict: true,
       metadata: { owner: 'acme', tier: 'gold' }
     },
-    content: skillContent('pdf-export')
+    content: skillContent('pdf-export'),
+    resources: {
+      'scripts/export.sh': '#!/usr/bin/env bash\n# E2E-RESOURCE-ANCHOR 打包导出 PDF\nset -euo pipefail\nnpm run export -- --out "$1"\n'
+    }
   },
-  [ENABLE_ID]: { ...INSTALLED_ROWS[1], frontmatter: { name: 'csv-analyzer', license: 'Apache-2.0' }, content: skillContent('csv-analyzer') },
-  [REMOVED_ID]: { ...INSTALLED_ROWS[2], frontmatter: { name: 'sql-helper' }, content: skillContent('sql-helper') },
+  [ENABLE_ID]: { ...INSTALLED_ROWS[1], frontmatter: { name: 'csv-analyzer', license: 'Apache-2.0' }, content: skillContent('csv-analyzer'), resources: {} },
+  [REMOVED_ID]: { ...INSTALLED_ROWS[2], frontmatter: { name: 'sql-helper' }, content: skillContent('sql-helper'), resources: {} },
   [UNINSTALL_ID]: {
     ...INSTALLED_ROWS[3],
     frontmatter: { name: 'seo-audit', description: 'SEO 审计技能', version: 1 },
-    content: skillContent('seo-audit')
+    content: skillContent('seo-audit'),
+    resources: {}
   },
   '740223456789000301': {
     ...INSTALLED_ROWS[4],
     frontmatter: { name: 'doc-writer' },
-    content: skillContent('doc-writer')
+    content: skillContent('doc-writer'),
+    resources: {}
   },
   'builtin:web-search': {
     ...BUILTIN_ROWS[0],
     frontmatter: { name: 'web-search', description: '内置联网搜索技能' },
-    content: skillContent('builtin:web-search')
+    content: skillContent('builtin:web-search'),
+    resources: {}
   },
-  'builtin:fetch-url': { ...BUILTIN_ROWS[1], frontmatter: { name: 'fetch-url' }, content: skillContent('builtin:fetch-url') },
+  'builtin:fetch-url': { ...BUILTIN_ROWS[1], frontmatter: { name: 'fetch-url' }, content: skillContent('builtin:fetch-url'), resources: {} },
   'builtin:project-context': {
     ...BUILTIN_ROWS[2],
     frontmatter: { name: 'project-context' },
-    content: skillContent('builtin:project-context')
+    content: skillContent('builtin:project-context'),
+    resources: {}
+  },
+  [SELF_SKILL_ID]: {
+    ...SELF_ROW,
+    frontmatter: { name: 'api-doc-gen', license: 'Internal' },
+    content: skillContent('api-doc-gen'),
+    resources: {}
   }
 };
 
@@ -268,7 +348,9 @@ export const INSTALL_ROWS = [
     statusName: '启用',
     operatorId: '1',
     operatorName: 'E2E Mock',
-    updateAvailable: null
+    updateAvailable: null,
+    loadCount: '0',
+    lastLoadedAt: null
   },
   {
     id: '740223456789000402',
@@ -457,3 +539,130 @@ export const AGENT_TOOL_SLOTS = [
     ]
   }
 ];
+
+/* ---- 草稿域（#71；`AiplatformSkillDraftSummaryResponse`＝10 字段清单行 /
+ * `AiplatformSkillDraftDetailResponse`＝16 字段（+content/scanFindings untyped map/留痕 4 件）/
+ * `AiplatformSkillDraftRejectCommand`={reason}——admin #92 源码核实）。契约要点：清单＝在途
+ * 活跃面恒 status 1、**不分页**自荐倒序；id TSID 十进制串透传；slot 三值稳定键（无 slotName
+ * ——端侧映射）；scanVerdict SAFE/CAUTION 两值（DANGEROUS 写入口拒收不落库）；留痕 4 件
+ * 在途恒 null（终态留档——harness 写后回填）；promote 回执＝技能库清单行（自产形状）、
+ * reject 回执＝终态草稿详情。覆盖矩阵：d1 SAFE/findings 空/executor＝晋升靶、d2 CAUTION/
+ * findings 两条（七键全 + 缺键样本＝投影缺键跳过靶）/subagent＝拒绝靶（抽屉动作条发起）、
+ * d3 SAFE/main＝抽屉只读靶。血统三件覆盖三槽位。 ---- */
+
+/** 在途草稿清单（自荐倒序预排——d1 最近在前；harness 写后移除＝终态不列活跃面）。 */
+export const SKILL_DRAFT_ROWS = [
+  {
+    id: PROMOTE_DRAFT_ID,
+    name: 'prd-review-checklist',
+    description: '按 PRD 评审清单逐项核对需求完整性',
+    slot: 'executor',
+    projectId: '7395120209080100101',
+    runId: 'run-20260928-0342',
+    scanVerdict: 'SAFE',
+    status: 1,
+    statusName: '在途',
+    createdAt: '2026-09-28T15:42:10'
+  },
+  {
+    id: REJECT_DRAFT_ID,
+    name: 'competitor-sniff',
+    description: '抓取竞品定价页并生成对比摘要',
+    slot: 'subagent',
+    projectId: '7395120209080100102',
+    runId: 'run-20260927-0918',
+    scanVerdict: 'CAUTION',
+    status: 1,
+    statusName: '在途',
+    createdAt: '2026-09-27T11:18:33'
+  },
+  {
+    id: DRAWER_DRAFT_ID,
+    name: 'meeting-notes-distill',
+    description: '把会议记录蒸馏为决议与待办清单',
+    slot: 'main',
+    projectId: '7395120209080100101',
+    runId: 'run-20260926-0077',
+    scanVerdict: 'SAFE',
+    status: 1,
+    statusName: '在途',
+    createdAt: '2026-09-26T09:03:45'
+  }
+];
+
+/** 造草稿正文（自产 a-only 无 scripts；判读主体，多段 + 断言锚点）。 */
+function draftContent(name) {
+  return [
+    `# ${name}`,
+    '',
+    `## 职能`,
+    `${DRAFT_CONTENT_MARK} 本技能按自荐时的会话上下文履行其专职动作，输入输出约定如下。`,
+    '',
+    '## 使用约束',
+    '仅在明确指令下调用；失败时如实回报，不静默重试。',
+    '',
+    '## 参考',
+    '无外部资料接触（血统可溯——来源 run 全程站内）。'
+  ].join('\n');
+}
+
+/**
+ * 在途终态留痕四件恒 null（契约形）。d2 findings 两条：第一条七键全（file:line/代码块靶）、
+ * 第二条缺 category/line/description（投影缺键跳过靶）。
+ */
+export const SKILL_DRAFT_DETAILS = {
+  [PROMOTE_DRAFT_ID]: {
+    ...SKILL_DRAFT_ROWS[0],
+    content: draftContent('prd-review-checklist'),
+    scanFindings: [],
+    operatorId: null,
+    operatorName: null,
+    reviewedAt: null,
+    rejectReason: null
+  },
+  [REJECT_DRAFT_ID]: {
+    ...SKILL_DRAFT_ROWS[1],
+    content: draftContent('competitor-sniff'),
+    scanFindings: [
+      {
+        patternId: 'external-fetch',
+        severity: 'HIGH',
+        category: 'network',
+        file: 'SKILL.md',
+        line: 12,
+        matchText: '抓取 https://competitor.example.com/pricing',
+        description: '正文含外部抓取指令——外部资料接触史必查'
+      },
+      {
+        patternId: 'shell-exec',
+        severity: 'MEDIUM',
+        file: 'SKILL.md',
+        line: 18,
+        matchText: 'curl -sL "$url" | head -200'
+      }
+    ],
+    operatorId: null,
+    operatorName: null,
+    reviewedAt: null,
+    rejectReason: null
+  },
+  [DRAWER_DRAFT_ID]: {
+    ...SKILL_DRAFT_ROWS[2],
+    content: draftContent('meeting-notes-distill'),
+    scanFindings: [
+      {
+        patternId: 'pii-mention',
+        severity: 'LOW',
+        category: 'privacy',
+        file: 'SKILL.md',
+        line: 7,
+        matchText: '记录参会人手机号',
+        description: '正文提及个人信息字段——确认不落盘'
+      }
+    ],
+    operatorId: null,
+    operatorName: null,
+    reviewedAt: null,
+    rejectReason: null
+  }
+};

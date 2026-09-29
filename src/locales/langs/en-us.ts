@@ -256,6 +256,7 @@ const local: App.I18n.Schema = {
     aiplatform_material: 'Knowledge Materials',
     aiplatform_skill: 'Skill Management',
     aiplatform_skill_assignment: 'Skill Assignment',
+    aiplatform_skill_draft: 'Draft Review',
     aiplatform_agent: 'Agent',
     aiplatform_agent_config: 'Agent Config'
   },
@@ -1255,8 +1256,14 @@ const local: App.I18n.Schema = {
           basic: 'Basic Info',
           frontmatter: 'Frontmatter Key-Values',
           frontmatterEmpty: '(no frontmatter)',
-          content: 'SKILL.md Body'
+          content: 'SKILL.md Body',
+          resources: 'scripts/ Resources'
         },
+        /** Usage-count observability (#71): loadCount JSON-string three-state texts. */
+        loadCount: 'Load Count',
+        lastLoadedAt: 'Last Loaded',
+        loadNever: 'Never loaded',
+        loadBuiltinNa: 'N/A for built-in',
         installModal: {
           title: 'Install Skill',
           receiptTitle: 'Install Completed',
@@ -1298,6 +1305,63 @@ const local: App.I18n.Schema = {
           disable: 'Skill disabled',
           enable: 'Skill enabled',
           uninstall: 'Skill uninstalled'
+        }
+      },
+      /** Draft review page (#71 — skill-line drafts 4 endpoints). */
+      skillDraft: {
+        title: 'Draft Review',
+        detailTitle: 'Draft Detail',
+        basic: 'Basic Info',
+        id: 'Draft Handle',
+        name: 'Skill Name',
+        description: 'Description',
+        slot: 'Source Slot',
+        projectId: 'Source Project',
+        runId: 'Source Run',
+        scanVerdict: 'Scan Verdict',
+        status: 'Status',
+        createdAt: 'Submitted At',
+        detail: 'Detail',
+        more: 'Actions',
+        content: 'Full Body',
+        verdict: {
+          safe: 'Safe',
+          caution: 'Caution'
+        },
+        finding: {
+          title: 'Scan Findings',
+          empty: 'No findings',
+          patternId: 'Pattern',
+          severity: 'Severity',
+          category: 'Category',
+          location: 'Location',
+          description: 'Note'
+        },
+        action: {
+          promote: 'Promote',
+          reject: 'Reject'
+        },
+        confirm: {
+          target: 'Target: {name}',
+          promote: 'Promote Draft',
+          promoteTip: 'Promote = the draft enters the skill library as-is (irreversible; a same-name skill added during review rejects the promotion)'
+        },
+        promoteReceipt: {
+          title: 'Promotion Completed',
+          note: 'Promoted into the library, new skill row:',
+          done: 'Done'
+        },
+        rejectModal: {
+          title: 'Reject Draft',
+          receiptTitle: 'Rejected',
+          receiptNote: 'Draft rejected (terminal and archived, no revival — resubmission requires a new draft from a future session).',
+          reason: 'Reject Reason',
+          reasonPlaceholder: 'Archived terminally for future audit — a rejection must be justified (required)',
+          confirm: 'Reject',
+          done: 'Done',
+          operator: 'Reviewer',
+          reviewedAt: 'Settled At',
+          rejectReason: 'Reject Reason'
         }
       },
       /** Skill assignment page (#68 — skill-line assignments 2 endpoints; row context columns reuse skill.* same-field keys). */
