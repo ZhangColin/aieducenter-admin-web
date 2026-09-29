@@ -313,6 +313,15 @@ mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言
 - **code-review 修正（双轴 review，紧随本票；修后 47/47+68/68+43/43 复绿）**：① **slot 映射内联模板串绕过 constants 单点**（Standards 轴硬伤）——草稿页两处 `$t(\`…skillAssignment.slot.${slot}\`)` → `$t(skillSlotLabel[slot])`（CONTEXT grilling 段自己写着「复用 skillSlotLabel 先例」，两行修复）；② **拒绝理由 `maxlength="500"` 臆造上限**（Spec 轴）——契约无长度限制，静默截断终态留档理由 → 删 maxlength/show-count；③ resources pre `dark:bg-#333` 与全仓既有 pre 形不一致 → 统一去掉。判断项不修记录在案：promote 回执直读 `self`（回执＝核对面，与 D11 清单扫视面分治自洽）；fmtVal 与 formatFmValue 子集孪生、desc-grid 第 5-8 份、pickRowAction 第 2 份/localFmt 第 4 份（文档化容忍至第 8 份）；`source === 2` 字面量（文件既有 idiom）。
 - **顺带修正（独立 commit）**：agent-config e2e 存量断言漂移——aa072c7 把默认值预览改「查看默认」弹层但断言仍查内联灰字，41/42 红 → 断言对齐现 UI＋补弹层交互断言 43/43（stash 法证实 HEAD 上即红，非本票回归）。
 
+### 2026-09-29 #71 联调收口：草稿域＋观测扩展真实链全量走查通过 ✅（admin-web :3001 → admin :8081 → aiplatform :8888）
+
+**API 全触达 + UI 真链走查 16/17**（运行中 admin 已含 #92/#93/#94——无需重启；深链 `/aiplatform/skill/draft`＝V21 正典再证）。收域标准对照（#56 四项同构）：① 域内全端点 happy path ✅（读面：drafts 清单 3 条/详情 16 字段×在途·终态两态/技能清单/技能详情×内置·安装·自产三形制；写面全触达——promote/reject 各 1 真且全链成功）；② 写操作留痕落库 ✅（两写回执与终态详情 operator 均＝**超级管理员**＝X-User 头注入→provider operator 列；reviewedAt 落定、rejectReason 原文回读）；③ 边界负例 ✅（404 SKL_015＝7015、400 SKL_018＝7018 空白+纯空格两形、409 SKL_017＝7017 三方向——已拒再晋升/已晋再晋升/已晋再拒绝，文案「终态不可再审——重提为新草稿」）；④ 签名负例属机机面——全链成功即正向证据（#65 口径）。
+
+- **观测扩展真链三态全实证**：`loadCount` **string 形态**——内置 prd-writing `null`（内置不适用）/ 安装 selftest-live-check `'1'`＋lastLoadedAt（**真 load 实际发生**——#260 活体资产真加载过一次，指派/启停不计数口径印证）/ promote 新晋行 `'0'`（从未加载）；`resources` 三形全 `{}`（内置/无 scripts 安装包/a-only 自产——`Map.of()` 出空对象在场）；自产行 `source=3`·sourceName「自产」·sourcePackage/version 双 `self`。
+- **UI 走查**（一次性脚本 /tmp 用后即删，#65 先例）：草稿页真数据渲染（3 条在途、三槽位映射、倒序、判定 tag）→ 抽屉判读面（真 SKILL.md 正文＋「无发现」＋血统 run mono）→ 晋升链（$dialog 对账→回执 modal→清单 3→2）→ 拒绝链（NModal→回执态留痕三件含「超级管理员」→清单 2→1）→ 技能管理页（自产行入列「自产」＋`-` 占位、详情「从未加载」/self 直读/无 scripts 节、安装行使用次数 1＋最近使用时刻）。**唯一 FAIL＝走查脚本断言自身缺陷**（读 `modal.first().textContent()` 撞 `$dialog` leave 残影收窄不足）——晋升回执事实由技能库自产行五断言＋API 回执行状交叉证实，非产品问题。
+- **SKL_016 撞名未真链构造**：前置「技能库已有同名技能」在现数据不可得（库 2 行与在途草稿不同名；构造需先入同名技能再 promote）——mock e2e（failNextSkillDraftPromote 409）＋admin 侧 RBAC/契约测试已钉，留档不补。
+- **环境数据留档（写面还原）**：promote 产生的自产行 subagent-live-check 已 uninstall 还原（技能库复核 2 行原状：prd-writing＋selftest-live-check）；**终态草稿留档不可逆**（reject main-live-check-v2＝理由已标注「联调验证」、promote subagent-live-check 留 status=2 痕——草稿本待人审，终态归宿正常）；在途剩 1 条（main-live-check，#260 线产物）。
+
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
 mock E2E（material **46/46 两轮全绿** + order 31/31 / project 63/63 / workspace 48/48 / cost 38/38 / price-entry 44/44 回归绿）。验收六条全过：清单渲染契约字段（id/kind/projectId·projectName/title/status·statusName/sunkAt/operatorId·operatorName——未治理行 '-'）/ status 单选 + 沉淀时间闭区间（Instant UTC 带 Z）+ projectId 精确筛选、分页 1-based / 详情抽屉（元数据 + content＝块按 seq 空行拼接全文 pre 呈现）/ 停用⇄启用按状态门控切换（行·抽屉双触发面）+ 删除 $dialog 确认（不可逆提示）、正确端点、成功后刷新 / 失败透传 message 统一 toast（400 KNW_006→2006）。
