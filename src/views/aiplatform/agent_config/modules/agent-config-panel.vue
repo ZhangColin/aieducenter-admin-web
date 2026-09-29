@@ -3,7 +3,7 @@
  * 智能体配置面板（#69，#65 技能域 T3）——NTabs 单座签内容：上半编辑卡＋下半留痕时间线卡。
  *
  * 编辑卡：systemPrompt NTextarea＋modelId NInput 手输（契约无白名单——错值靠留痕回滚兜底）；
- * 覆盖标记「已覆盖/默认」tag＋默认值灰字预览；清空字段提交＝清覆盖回落默认（契约全量终态：
+ * 覆盖标记「已覆盖/默认」tag＋回落提示短句（prompt 默认值经「查看默认」弹层看全文）；清空字段提交＝清覆盖回落默认（契约全量终态：
  * null/纯空白即回落），不加「恢复默认」专用按钮。保存四字段全量回传——webSearch/fetchUrl
  * 两 flag 以 GET 回显原值透传（契约「缺省＝true 开」，防静默误开）；成功 toast＋回读刷新，
  * 失败走 onError 透传 toast、表单保留可修正重试。
@@ -151,6 +151,7 @@ onMounted(load);
       </div>
       <template v-else-if="config">
         <NForm label-placement="top" :show-feedback="false" class="flex-col-stretch gap-16px">
+          <!-- NFormItem 默认槽容器是 flex row：多子元素会并排错位（textarea 曾被挤塌成一字一行竖条）——输入框＋提示必须包在单一 w-full 容器里上下堆叠 -->
           <NFormItem>
             <template #label>
               <span class="flex items-center gap-8px">
@@ -160,15 +161,27 @@ onMounted(load);
                 </NTag>
               </span>
             </template>
-            <NInput
-              v-model:value="form.systemPrompt"
-              type="textarea"
-              :autosize="{ minRows: 6, maxRows: 14 }"
-              :placeholder="$t('page.aiplatform.agentConfig.edit.systemPromptPlaceholder')"
-            />
-            <!-- 默认值灰字预览（清空覆盖即落此值） -->
-            <div class="mt-4px line-clamp-2 text-12px text-gray-400">
-              {{ $t('page.aiplatform.agentConfig.edit.defaultPrompt') }}{{ config.defaultSystemPrompt }}
+            <div class="w-full flex-col-stretch gap-4px">
+              <NInput
+                v-model:value="form.systemPrompt"
+                type="textarea"
+                :autosize="{ minRows: 6, maxRows: 14 }"
+                :placeholder="$t('page.aiplatform.agentConfig.edit.systemPromptPlaceholder')"
+              />
+              <!-- 回落提示短句＋「查看默认」弹层看全文（默认提示词很长，不再铺灰字长墙） -->
+              <div class="flex items-center gap-8px text-12px text-gray-400">
+                <span>{{ $t('page.aiplatform.agentConfig.edit.fallbackPrompt') }}</span>
+                <NPopover trigger="click">
+                  <template #trigger>
+                    <span class="cursor-pointer text-primary">
+                      {{ $t('page.aiplatform.agentConfig.edit.viewDefault') }}
+                    </span>
+                  </template>
+                  <div class="max-h-360px w-400px overflow-auto whitespace-pre-wrap text-13px leading-relaxed">
+                    {{ config.defaultSystemPrompt }}
+                  </div>
+                </NPopover>
+              </div>
             </div>
           </NFormItem>
           <NFormItem>
@@ -180,9 +193,11 @@ onMounted(load);
                 </NTag>
               </span>
             </template>
-            <NInput v-model:value="form.modelId" :placeholder="$t('page.aiplatform.agentConfig.edit.modelIdPlaceholder')" />
-            <div class="mt-4px text-12px text-gray-400">
-              {{ $t('page.aiplatform.agentConfig.edit.defaultModelId') }}{{ config.defaultModelId }}
+            <div class="w-full flex-col-stretch gap-4px">
+              <NInput v-model:value="form.modelId" :placeholder="$t('page.aiplatform.agentConfig.edit.modelIdPlaceholder')" />
+              <div class="text-12px text-gray-400">
+                {{ $t('page.aiplatform.agentConfig.edit.fallbackModel', { model: config.defaultModelId }) }}
+              </div>
             </div>
           </NFormItem>
         </NForm>

@@ -1552,8 +1552,9 @@ declare namespace App {
               modelIdPlaceholder: string;
               overridden: string;
               defaultTag: string;
-              defaultPrompt: string;
-              defaultModelId: string;
+              fallbackPrompt: string;
+              fallbackModel: string;
+              viewDefault: string;
               lastWrite: string;
               save: string;
               saved: string;

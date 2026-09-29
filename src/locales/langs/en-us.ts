@@ -1332,8 +1332,9 @@ const local: App.I18n.Schema = {
           modelIdPlaceholder: 'Model tier name (e.g. deepseek-v4-pro; no whitelist — wrong values are rolled back via traces)',
           overridden: 'Overridden',
           defaultTag: 'Default',
-          defaultPrompt: 'Default system prompt: ',
-          defaultModelId: 'Default model tier: ',
+          fallbackPrompt: 'Clear & save to fall back to the default prompt',
+          fallbackModel: 'Clear & save to fall back to {model}',
+          viewDefault: 'View default',
           lastWrite: 'Last write: {name} · {time}',
           save: 'Save Config',
           saved: 'Config saved for "{agent}"'

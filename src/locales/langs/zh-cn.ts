@@ -1330,8 +1330,9 @@ const local: App.I18n.Schema = {
           modelIdPlaceholder: '模型档位裸名（如 deepseek-v4-pro；无白名单，错值靠留痕回滚兜底）',
           overridden: '已覆盖',
           defaultTag: '默认',
-          defaultPrompt: '默认系统提示词：',
-          defaultModelId: '默认模型档位：',
+          fallbackPrompt: '清空保存后回落默认提示词',
+          fallbackModel: '清空保存后回落 {model}',
+          viewDefault: '查看默认',
           lastWrite: '最近写者：{name} · {time}',
           save: '保存配置',
           saved: '已保存「{agent}」配置'
