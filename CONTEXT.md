@@ -336,6 +336,19 @@ mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言
 - **切签存亡（Q7）＝随面板卸载丢弃**：NTabs display-directive if 卸载重挂，与未保存勾选同命（既有行为一致性）。
 - **契约事实（api-docs 实读）**：`skills` 是**技能名清单**（非柄——结果区直渲无需 id→名映射）；executed=false 时 **hints 恒空**（契约保证，无「未执行但 hints 非空」防御分支）；对照双头＝生效工作协议 ∪ 该槽已指派启用技能 ∪ 候选集内其他技能（subagent 槽无运营配置正本：对照＝已指派＋候选集）；错误族与 PUT 指派同源同码（400 SKL_011/404 SKL_001/404 SKL_010，走 onError 信封透传）。**客户端超时覆写 30s**（`@sa/axios` 默认 10s 会先于后端自身 15s 超时掐断、抢走 executed=false 降级回执——预检调用须带 `timeout: 30_000`，勿当冗余参数删）。
 
+### 2026-09-29 #72 收口交付：指派配置页预检三态点亮 ✅（mock E2E 52/52 两轮绿＋九域全量回归绿；spec #73 grill Q1–Q7 全按推荐）
+
+手动预检钮（每槽面板动作行、`skill:assign` 同码、空清单禁用、发起即清旧、不重试）＋三态 NAlert（重叠 warning 逐条四字段／无重叠 success／未执行 info 中性——红线落地）＋stale 派生标注＋非阻断双向＋切签随面板丢弃；**timeout 覆写 30s**（`@sa/axios` 默认 10s 会先于后端 15s 自身超时掐断、抢走 executed=false 降级回执——勿当冗余参数删）。code-review 双轴：e2e/README 补册（硬项已修）；判断项记录在案（四字段同形模板＝Q6 结构恒定、双 computed 三态级联、null 计数断言前瞻脆弱）。
+
+### 2026-09-29 #72 联调收口：预检真实链全量走查通过 ✅（admin-web :3001 → admin :8081 → aiplatform :8888——技能线 20 端点收官）
+
+**API 三方向＋错误族全实证＋UI 真链走查 7/8**（唯一 FAIL＝走查脚本断言自身缺陷，见下）。收域标准对照（#56 四项同构）：① 端点 happy path ✅——**clean**（main 单候选 executed=true hints 空，2.6s）／**overlap**（subagent 双自测技能候选，6.3s 真模型判定四字段全：counterpart＝对侧技能名形、overlap/resolution 中文长文直读）／**工作协议对照负向**（main 单自测技能候选 vs 需求梳理工作协议＝无重叠，6.4s——双头对照跑通）；② 留痕不适用（precheck 只读不变异——探针技能 install/uninstall 各留痕 1 条系 #65 已验收路径顺带再证）；③ 边界负例 ✅——400 SKL_011（7011 内置柄）/ 404 SKL_001（7001 未寻址 TSID）/ 404 SKL_010（7010 未知槽位）三发全中，与 PUT 指派同源同码、HTTP 状态与业务码分立；④ 签名负例属机机面——全链成功即正向证据（#65 口径）。
+
+- **executed=false 真链不可构造**（#71 SKL_016 同款留档）：该态需 provider 侧模型判定故障/超时/输出不可解析，admin-web 侧无法诱发——mock E2E 三态断言已钉（52/52）＋北向 swagger @Operation 两态纪律自描述。
+- **真模型逐次输出变体（意外实证）**：同一候选集两判——curl 首判 skills＝双候选清单、UI 走查次判 skills＝单候选＋counterpart 承载对侧技能名。skills 列哪些候选由模型裁量，UI 对两种形都正确渲染（契约容差落地）；两判 null 三字段均未出现。
+- **UI 走查**（一次性脚本仓内跑用后即删，#65/#71 先例）：正典深链 `/aiplatform/skill/assignment` → subagent 双勾 → 预检（真 6s loading 在途可见）→ overlap 警示真模型内容直读 → 取消一勾 stale 标注 → 保存钮全程可点（非阻断）。7/8：FAIL 项断言「全文无—」撞真模型中文行文「——」散文破折号——null 占位计数断言只在 mock fixtures（刻意无散文破折号）下成立，产品行为无缺陷。
+- **环境数据留档（写面还原）**：探针技能 selftest-progress-report（本地仓 `/tmp/precheck-overlap-skill-72` 构造真重叠用——#65 冒烟仓先例保留可复装）已终卸还原，技能库复核 2 行原状（prd-writing＋selftest-live-check）；三槽指派全程空（本票只读走查不变异指派）；uninstall 留痕跨卸载存活（契约先例）。
+
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
 mock E2E（material **46/46 两轮全绿** + order 31/31 / project 63/63 / workspace 48/48 / cost 38/38 / price-entry 44/44 回归绿）。验收六条全过：清单渲染契约字段（id/kind/projectId·projectName/title/status·statusName/sunkAt/operatorId·operatorName——未治理行 '-'）/ status 单选 + 沉淀时间闭区间（Instant UTC 带 Z）+ projectId 精确筛选、分页 1-based / 详情抽屉（元数据 + content＝块按 seq 空行拼接全文 pre 呈现）/ 停用⇄启用按状态门控切换（行·抽屉双触发面）+ 删除 $dialog 确认（不可逆提示）、正确端点、成功后刷新 / 失败透传 message 统一 toast（400 KNW_006→2006）。
