@@ -59,7 +59,7 @@
 | **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
 | **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
-| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 15 端点，共 49） |
+| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 15 端点已消费；drafts 4＋precheck 1 已入 BFF 待 #71/#72 消费——swagger 共 54） |
 | **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
 | **AI 项目 (Project)** | aiplatform 的交付单元；带订单引用（active/latestOrder）、成本指针（costSummary）、工作区引用（workspaceId）；归档项目照读 |
 | **沙箱 / 工作区 (Workspace)** | **菜单词用「沙箱」**（`沙箱管理`），**领域实体用「工作区」**（`workspaceId`/`Workspace`）；期望态 `desiredState` 与实态 `containerState` 可漂移（清单按两者过滤找 desired≠actual） |
@@ -263,7 +263,7 @@ mock E2E（agent-config **42/42 两轮全绿** + skill 56/56 / skill-assignment 
 - **坑（踩出）**：① **块注释里 `old*/new*` 的 `*/` 提前闭合注释**——TS1127 Invalid character 连环炸（typecheck 首跑红），全仓 grep 清算改 `old/new`；② Naive tab pane 类名是 `.n-tab-pane`（非 `.n-tabs-tab-pane`）——e2e 取整 pane 文本改走外层 `.n-card` first（display-directive if 下外卡只含活动签内容）。
 - **code-review 修正（双轴 review，紧随本票；修后 42/42 + 全量回归绿）**：① 删 `formatDateTime(config.updatedAt ?? '')` 不可达兜底（外层 `v-if operatorName` 已门控、函数签名收 `string | null`——trust-ui-gating standing rule）；② fixtures main 槽 4/6 骨架工具补全 8 工具、序对齐 provider 枚举（呈现级简化→契约忠实）。判断项不修记录在案：`agentConfig.stateOn/Off`（开/关）与 `tool.stateOn/Off`（开启/关闭）两对近义键（措辞刻意区分时间线紧凑 vs toast 完整）；`togglingTool` 单串 ref 并发点击互清 loading（仅视觉、mock 快速返回）；工具面失败/空无专属空态（onError 通用兜底 standing rule）。spec 轴：8 条 AC 全过、契约与 api-docs/provider 源码逐字段一致；回滚钮 update 码同门控与 harness PRJ_033/035/037 防御分支均为良性超纲。
 
-
+### 2026-09-24 T2 交付：指派配置页点亮 ✅（#68，#65 技能域之二——三职能槽位行勾选＋每槽 PUT 整包）
 
 mock E2E（skill-assignment **28/28 两轮全绿** + skill 56/56 / order 35/35 / project 87/87 / workspace 48/48 / cost 43/43 / price-entry 44/44 / material 46/46 全量回归绿）。验收七条全过：三签 label 端侧映射（主智能体/run 执行体/子智能体——响应无 slotName）＋切签/进入加载对应 GET 预填 / 选项表不列 builtin（5 安装行）＋行上下文列取自技能清单＋停用行可勾与警示色实态 / 增减保存直接 PUT `{skillIds[]}`＋toast 无确认弹窗、空勾选＝清空、成功后回读刷新 / assign 权限码门控保存钮 / 失败透传 message toast（400 SKL_011 注入代表样）。
 
@@ -272,6 +272,14 @@ mock E2E（skill-assignment **28/28 两轮全绿** + skill 56/56 / order 35/35 /
 - **三段 route key 中间父键坑（T2 特有，spec 决策 23 未预见）**：`skill_assignment` 目录（price_entry 先例）使 `aiplatform_skill` 成「**有 component 的父**」——生成器 transform（elegant/transform.ts）对带 children 的非一级路由设 redirect→首子，静态回退模式 `/aiplatform/skill` 会被劫持到 `/aiplatform/skill/assignment`、菜单把技能管理变父项。定案：消费侧 `flattenLeafParentRoutes` 提平（src/router/routes/index.ts，手写文件 gen-route 重跑不冲掉；只提「有 component 且有 children」的子节点，纯父中间层如 aiplatform_price 不在此列——redirect 是其预期形态）。静态模式实测 5/5（:3002 临时 static dev + harness auth mock：/aiplatform/skill 不劫持、/aiplatform/skill/assignment 可达、菜单两叶平级）。动态模式由 menus/my 树驱动（叶子直接挂目录）不经此层；**T3 的 agent_config 中间键 `aiplatform_agent` 无页面**（纯父，price 同款）不走此坑，但 spec 决策 23 的补键照做。
 - **E2E 坑（踩出）**：① **NTag type 不落 DOM class**（无 `.n-tag--warning-type` 之类——type 走 cssVars 内联着色）→ 警示色断言改 computed backgroundColor 差异化对比（停用行≠启用行），不锚主题具体色值（防主题覆写脆断）；② **NTabs `animated` 切签过渡期双表并存**（旧 pane leave 未摘）→ locator strict violation，去掉 animated（display-directive if 即卸载，且少一个动画面）；③ **组件 prop 勿叫 `slot`**——与 Vue2 废弃 slot attribute 撞名，`pnpm lint`（eslint-plugin-vue autofix）会**静默**把 `:slot="slot"` 改写成 `<template #[slot]>` 具名插槽＋删 prop（面板空白＋必填 prop 丢失，typecheck/e2e 双红而 lint 自报 0 错）。本次五次「文件被神秘改写」的真凶即它（时序全在 lint/commit pre-commit 之后）。根治＝prop 改名 `skillSlot`；教训：文件在 lint 后被无端改写，先怀疑 `--fix` autofix，不是 IDE/人。
 - **code-review 修正（双轴 review，紧随本票；修后 28/28 + typecheck/lint 干净）**：① 面板状态 tag 内联 `status===2 ? 'warning' : 'success'` 重现 #67 review ① 刚清除的形状（两轴同点名）→ constants 具名 `skillAssignmentStatusTagColor` 单点（与 skillStatusTagColor 有意不同：2→warning 升级，注释钉语义）；② e2e `EMPTY_SLOT_ROW_ID` 硬编码与「fixtures 单一事实源」自相矛盾 → 收进 skill-fixtures 导出。判断项不修记录在案：flattenLeafParentRoutes 泛型化免 `as GeneratedRoute[]`（spread 判别 union 本质要断言，泛型只是把 cast 挪进函数体，净收益零）；一层提平非递归（当前数据无四段 key 形，按「不可达不预设」口径自洽）。spec 轴：7 条 AC 全过、契约与 api-docs 实读逐字段一致；「回读表外行保留」spec 未要求（他端并发可达、整包语义自洽，良性超纲）；路由提平属决策 23 未预见的必要配套（条件窄、静态回退不变式实测反被修复）。
+
+### 2026-09-29 #65 联调收口：技能线真实链全量走查通过 ✅（admin-web :3001 → admin :8081 → aiplatform :8888）
+
+**API 层 15/15 端点全触达 + UI 真链走查 13/13**（登录/动态菜单三叶 + 三页真数据渲染 + 详情/更新留痕双抽屉 + 配置留痕时间线真痕 + 工具面三槽位）。收域标准对照（#56 四项同构）：① 域内全端点 happy path ✅（读面 11 连 200——清单/详情×两形制柄/指派×3 槽/配置×2 座/配置留痕/更新留痕/工具面；写面全触达——install/停用⇄启用/uninstall/update 两形/PUT 指派/PUT 配置/PUT 工具，全部回执 operator=超级管理员＝X-User-Id/Name 出站注入 → provider operator 列）；② 写操作留痕落库 ✅（更新留痕 from→to 落库回读、配置留痕覆盖/回滚各落一痕）；③ 边界负例 ✅（409 SKL_008 有指派卸载守卫、400 SKL_011 内置柄指派守卫、幂等更新 from==to 回执且**未落痕**——update-traces 仅 1 痕＝真更新那次）；④ 签名负例属 admin↔aiplatform 机机面（admin 仓验收项）——全链成功即正向证据。
+
+- **真链新印证（mock 外首证）**：① 安装 repoUrl **本地 git 路径直传**（provider clone 本地仓——联调无需外网；重装同仓取新 HEAD，版本恒＝装时 HEAD commit 二次印证）；② **工具开关与配置写共表共留痕**（PUT /agent-tools/web_search 各落一条配置留痕「联网搜索 开→关/关→开」——T3 契约注记「两入口同源」真链实证）；③ **卸载不删痕＋重装见史**（uninstall 后 update-traces 仍可查、重装后行级留痕抽屉见旧痕——append-only）；④ modelId **显式写值＝真实变更**（值等默认仍是 null→显式的覆盖写、如实落痕——provider 语义「显式即覆盖」，与「值面无动幂等不落痕」不矛盾）。
+- **api-docs 技能线现 20 路径**（15＋drafts 4＋precheck 1——后 5 属 #71/#72 消费 admin #88/#90，本票不触）。
+- **环境数据留档（写面全部还原）**：冒烟技能 smoke-skill-65 已终卸（清单还原 2 行原始态：prd-writing＋selftest-live-check）；指派三槽空、配置双座默认无覆盖、工具全开；main 配置留痕 4 条（覆盖/回滚/工具开关×2——真联调留痕保留，#56 素材先例同款）；本地仓 `~/tmp/skill-smoke-65` 保留（冒烟包留痕 1 痕跨卸载存活、仓在可复装）；#260 活体验收资产 selftest-live-check 未动。UI 走查为一次性脚本（用后即删，未入仓）。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
