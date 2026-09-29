@@ -59,7 +59,7 @@
 | **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
 | **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
-| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 15 端点已消费；drafts 4＋precheck 1 已入 BFF 待 #71/#72 消费——swagger 共 54） |
+| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 20 端点已消费——技能/指派/配置 15＋草稿 4（#71）＋预检 1（#72）；swagger 共 54 全触达） |
 | **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
 | **AI 项目 (Project)** | aiplatform 的交付单元；带订单引用（active/latestOrder）、成本指针（costSummary）、工作区引用（workspaceId）；归档项目照读 |
 | **沙箱 / 工作区 (Workspace)** | **菜单词用「沙箱」**（`沙箱管理`），**领域实体用「工作区」**（`workspaceId`/`Workspace`）；期望态 `desiredState` 与实态 `containerState` 可漂移（清单按两者过滤找 desired≠actual） |
@@ -69,6 +69,7 @@
 | **账号档案 (Account profile)** | aiplatform 侧极简账号档案（`id/externalId/displayName/createdAt`），嵌订单/项目详情抽屉按 `externalId` 查。_Avoid_: identity 域的「Account（终端用户账号）」——不同域 |
 | **技能 (Skill)** | aiplatform 智能体可装配的能力单元，来源三分同权（内置 1 / 安装 2 / 自产 3——经草稿晋升入库，package/version 为虚拟值 self）；寻址柄为 opaque 双形制字符串（`builtin:技能名` 前缀 / TSID 十进制串）。停用⇄启用可逆；卸载为移除（内置不可卸、有指派在身先解绑） |
 | **职能槽位 (slot)** | 技能**指派**的维度，三槽：main=主智能体 / executor=run 执行体 / subagent=子智能体。_Avoid_: 与「智能体配置座」混称——指派三槽、配置两座（main/executor） |
+| **预检 (precheck)** | 指派提交前的**非阻断**方法论重叠判定（对照双头＝该槽生效工作协议 ∪ 该槽已指派启用技能 ∪ 候选集内其他技能；模型判定 15s 档、可降级不重试）。回执三态：重叠提示／确认无重叠／**未执行**——红线：未执行不得伪装成「无重叠」。_Avoid_: 当作提交门——提示是输入不是门 |
 | **来源包 (sourcePackage)** | 安装技能的 git 仓库标识；显式更新与更新留痕按**来源包**聚合（非按单个技能） |
 | **快照安装 (install)** | 从 git 仓库 HEAD 快照固化入库（版本=装时 commit；排除目录段不入库）。_Avoid_: 联想 ref/tag 选择——契约无此面 |
 | **技能草稿 (skill draft)** | 自产线会话自荐产生的待审候选；在途/终态两态，终态（已晋升/已拒绝）不列活跃审核面、按 id 留档可查。_Avoid_: 与「技能」混称——草稿未入库、不可指派 |
@@ -321,6 +322,19 @@ mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言
 - **UI 走查**（一次性脚本 /tmp 用后即删，#65 先例）：草稿页真数据渲染（3 条在途、三槽位映射、倒序、判定 tag）→ 抽屉判读面（真 SKILL.md 正文＋「无发现」＋血统 run mono）→ 晋升链（$dialog 对账→回执 modal→清单 3→2）→ 拒绝链（NModal→回执态留痕三件含「超级管理员」→清单 2→1）→ 技能管理页（自产行入列「自产」＋`-` 占位、详情「从未加载」/self 直读/无 scripts 节、安装行使用次数 1＋最近使用时刻）。**唯一 FAIL＝走查脚本断言自身缺陷**（读 `modal.first().textContent()` 撞 `$dialog` leave 残影收窄不足）——晋升回执事实由技能库自产行五断言＋API 回执行状交叉证实，非产品问题。
 - **SKL_016 撞名未真链构造**：前置「技能库已有同名技能」在现数据不可得（库 2 行与在途草稿不同名；构造需先入同名技能再 promote）——mock e2e（failNextSkillDraftPromote 409）＋admin 侧 RBAC/契约测试已钉，留档不补。
 - **环境数据留档（写面还原）**：promote 产生的自产行 subagent-live-check 已 uninstall 还原（技能库复核 2 行原状：prd-writing＋selftest-live-check）；**终态草稿留档不可逆**（reject main-live-check-v2＝理由已标注「联调验证」、promote subagent-live-check 留 status=2 痕——草稿本待人审，终态归宿正常）；在途剩 1 条（main-live-check，#260 线产物）。
+
+### 2026-09-29 #72 grilling：指派配置页预检三态呈现（消费 admin #90 第 16 端点——precheck 1，BFF 已就绪 swagger 54）
+
+票面留「触发时机」本票 grill 定，两轮 7 决策全按推荐定稿（Q1–Q7）。实现 spec = 新票（ready-for-agent，见 #72 评论链接）；真链联调收口归 #72。
+
+- **触发时机（Q1）＝手动预检按钮**：保存行加「预检」钮点了才调（传点击时勾选清单快照）；否决编辑后自动（15s 模型调用随编辑停顿出发＋竞态）与提交前强制（每次保存强加 15s 税＋事实造两阶段确认流，反转 #68「无确认直接 PUT」定稿）。**票面「确认框」前提按实际形态收敛**——#68 无确认弹窗，预检传的是结果区上方当前候选快照（后端 session 想象的前提，契约不变）。
+- **作用域（Q2）＝每槽签面板内**：预检钮与保存钮同排（`hasAuth(skill:assign)` 同码门控，无新权限码）；端点按槽位寻址（`/{slot}/precheck`）、PUT 亦每槽一发，页面级齐检不符契约粒度。
+- **三态视觉（Q3）＝NAlert 单块居保存行下方**：hints 非空→warning「发现 N 处方法论重叠」＋逐条四字段标签化（涉及技能/对照/重叠/消解方向）；hints 空→success「未发现方法论重叠」；executed=false→**info 中性**「预检未执行——结果未知」（绝不 success 色）。loading＝预检钮自身 loading；**发起即清旧结果**（防新旧混淆）；预检与保存互不禁用（非阻断双向）。
+- **失效标注（Q4）＝保留＋标注**：清单变更后（含在途）旧结果保留、标注「清单已变更——结果对应上次快照」（快照 id 集 vs 当前勾选派生比较）——参照 hints 消解重叠时编辑动作不抽走参照物；下次预检/切签自然消亡。
+- **空清单（Q5）＝禁用预检钮**：重叠判定对象是候选技能（`skills`＝涉及的候选技能名），候选空则判定无对象。
+- **null 呈现（Q6）＝「—」占位**：counterpart/overlap/resolution 三 String 可 null（模型输出解析态），字段行保留恒定结构，不臆造兜底文案。
+- **切签存亡（Q7）＝随面板卸载丢弃**：NTabs display-directive if 卸载重挂，与未保存勾选同命（既有行为一致性）。
+- **契约事实（api-docs 实读）**：`skills` 是**技能名清单**（非柄——结果区直渲无需 id→名映射）；executed=false 时 **hints 恒空**（契约保证，无「未执行但 hints 非空」防御分支）；对照双头＝生效工作协议 ∪ 该槽已指派启用技能 ∪ 候选集内其他技能（subagent 槽无运营配置正本：对照＝已指派＋候选集）；错误族与 PUT 指派同源同码（400 SKL_011/404 SKL_001/404 SKL_010，走 onError 信封透传）。**客户端超时覆写 30s**（`@sa/axios` 默认 10s 会先于后端自身 15s 超时掐断、抢走 executed=false 降级回执——预检调用须带 `timeout: 30_000`，勿当冗余参数删）。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 

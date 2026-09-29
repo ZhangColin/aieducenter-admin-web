@@ -877,7 +877,7 @@ declare namespace Api {
       reason: string;
     }
 
-    /* ---- 指派域（#68 指派配置——技能线 assignments 2 端点，每槽位一个 GET/PUT）---- */
+    /* ---- 指派域（#68 指派配置＋#72 预检——技能线 assignments 2＋precheck 1 端点，每槽位一个 GET/PUT/POST）---- */
 
     /** 职能槽位（三槽，路径段寻址）：main=主智能体 / executor=run 执行体 / subagent=子智能体——响应无 slotName，label 端侧映射。 */
     type SkillSlot = 'main' | 'executor' | 'subagent';
@@ -898,6 +898,31 @@ declare namespace Api {
      */
     interface SkillAssignCommand {
       skillIds: string[];
+    }
+
+    /* ---- 指派预检（#72 指派配置——技能线 precheck 1 端点，非阻断重叠判定）---- */
+
+    /**
+     * 预检重叠提示（回执 hints 成员）：skills＝涉及的**候选技能名**清单（非柄，直渲免映射）；
+     * counterpart（「工作协议」或对侧技能名）/ overlap / resolution 三 String 可 null——模型
+     * 输出解析态，出 JSON null 如实在场、按「—」占位呈现不臆造兜底文案。
+     */
+    interface PrecheckHint {
+      skills: string[];
+      counterpart: string | null;
+      overlap: string | null;
+      resolution: string | null;
+    }
+
+    /**
+     * POST /skills/assignments/{slot}/precheck 回执——指派双头预检（对照＝该槽生效工作协议 ∪
+     * 该槽已指派启用技能 ∪ 候选集内其他技能；模型判定 15s 档、可降级不重试）。两态纪律：
+     * executed=true 且 hints 空＝确认无重叠；executed=false＝**未执行**（判定失败/超时/输出
+     * 不可解析，hints 恒空）——不得当「无重叠」呈现。非阻断：预检结果不拦 PUT 指派。
+     */
+    interface SkillAssignmentPrecheck {
+      executed: boolean;
+      hints: PrecheckHint[];
     }
 
     /* ---- 智能体配置域（#69 智能体配置，技能线 agent-configs 3 + agent-tools 2 端点）---- */

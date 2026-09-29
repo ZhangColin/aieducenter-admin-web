@@ -8,6 +8,10 @@
  * 确认弹窗、空勾选＝清空、成功后回读刷新 / assign 权限码门控保存钮（全量权限下按钮在）/
  * 失败透传 message toast（400 SKL_011 注入代表样）/ 空选项集引导（零安装行 → NEmpty＋跳技能管理，
  * 无裸空表无保存钮——#68 空态实录：选项集空时「怎么指派」无从下手）。
+ * #72 预检三态（spec #73 grill Q1–Q7）：手动预检钮（空清单禁用/loading 态/POST body＝点击时快照）/
+ * overlap 逐条四字段＋null「—」占位 / 非阻断（hints 非空保存照常 PUT、预检失败不阻塞指派）/
+ * stale 保留＋标注＋复原消解 / 再预检清旧＋notExecuted 降级态不伪装成无重叠（红线）/
+ * clean 确认无重叠 / 切签结果随面板丢弃。
  *
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/skill-assignment.e2e.mjs`。
  */
@@ -48,6 +52,12 @@ async function rowChecked(row) {
 async function toggleRow(row) {
   await row.locator('.n-checkbox').first().click();
   await sleep(300);
+}
+
+/** NAlert 三态视觉差异化（Naive type 不落 DOM class、走 cssVars 着色——NTag 同款坑：以 computed
+ *  背景色差异化断言，不锚定主题具体色值，仅证 warning/success/info 三态视觉互异）。 */
+async function alertBg(page) {
+  return page.locator('.n-alert').first().evaluate(el => getComputedStyle(el).backgroundColor);
 }
 
 async function main() {
@@ -176,7 +186,96 @@ async function main() {
   await sleep(600);
   h.check('失败后勾选态保留（未回读、可修正重试）', (await rowChecked(docRow)) === false);
 
-  /* ================= 9. 空选项集引导：零安装行 → NEmpty＋跳技能管理（无裸空表、无保存钮） ================= */
+  /* ================= 9. 预检（#72）：空清单禁用 → loading 态 → overlap 逐条四字段＋null「—」 ================= */
+  // 此刻 subagent 勾选＝[]（上节失败保存保留空勾选）——空清单禁用靶（Q5：判定对象为空不发 15s 调用）
+  const precheckBtn = page.getByRole('button', { name: /预\s*检/ });
+  h.check('空勾选：预检钮禁用（判定对象为空）', await precheckBtn.isDisabled());
+  await toggleRow(docRow); // 勾回 doc-writer → 非空
+  h.check('非空勾选：预检钮可点', await precheckBtn.isEnabled());
+  // loading 态靶（AC：15s 量级延迟有 loading）——延迟回执下预检钮自身 loading、发起即清旧（此刻本无结果区）
+  skillFixtures.SKILL_PRECHECK.delayMs = 1200;
+  await precheckBtn.click();
+  h.check('预检在途：预检钮 loading 态', (await page.locator('.n-button--loading').count()) === 1);
+  await page.locator('.n-alert').first().waitFor({ timeout: 10000 });
+  skillFixtures.SKILL_PRECHECK.delayMs = 0;
+  const overlapText = await page.locator('.n-alert').first().innerText();
+  const overlapBg = await alertBg(page);
+  h.check('overlap 态：「发现 2 处方法论重叠」文案', overlapText.includes('发现 2 处方法论重叠'), overlapText);
+  h.check(
+    'overlap 态：逐条四字段（涉及技能/对照/重叠/消解方向）＋值原文直读',
+    ['涉及技能', '对照', '重叠', '消解方向', 'doc-writer、prd-writing', '工作协议', '二选一或收窄 description'].every(t => overlapText.includes(t)),
+    overlapText
+  );
+  h.check('null 容差：三 null 字段「—」占位不臆造兜底（第二条样本）', (overlapText.match(/—/g) ?? []).length === 3, overlapText);
+  const precheckPost = calls.filter(c => c.method === 'POST' && c.path === '/aiplatform/skills/assignments/subagent/precheck').at(-1);
+  h.check(
+    '预检 POST body＝点击时勾选快照 {skillIds[]}',
+    Boolean(precheckPost) && JSON.stringify(JSON.parse(precheckPost.body ?? '{}').skillIds) === JSON.stringify([EMPTY_SLOT_ROW_ID]),
+    precheckPost?.body ?? 'no POST call'
+  );
+
+  /* ================= 10. 预检非阻断：hints 非空下保存照常 PUT（提示是输入不是门） ================= */
+  h.check('预检结果在、保存钮照常可点', await page.getByRole('button', { name: /保\s*存/ }).isEnabled());
+  await page.getByRole('button', { name: /保\s*存/ }).click();
+  await waitForMessage(page, msgs => msgs.some(m => m.includes('已保存')));
+  const subPutWithHints = lastAssignPut(calls, 'subagent');
+  h.check(
+    'hints 非空不拦保存（PUT 照常发出）',
+    Boolean(subPutWithHints) && JSON.stringify(subPutWithHints.skillIds) === JSON.stringify([EMPTY_SLOT_ROW_ID])
+  );
+
+  /* ================= 11. stale：清单变更旧结果保留＋标注；复原快照标注消解（Q4） ================= */
+  await toggleRow(docRow); // 取消勾选 → 清单 ≠ 快照（参照 hints 消解时不抽走参照物）
+  await sleep(300);
+  const staleText = await page.locator('.n-alert').first().innerText();
+  h.check('清单变更：旧结果保留＋「清单已变更」标注', staleText.includes('发现 2 处方法论重叠') && staleText.includes('清单已变更'), staleText);
+  await toggleRow(docRow); // 勾回 → 复原快照 → 派生比较自然消解
+  await sleep(300);
+  h.check('清单复原快照：stale 标注消解', !(await page.locator('.n-alert').first().innerText()).includes('清单已变更'));
+
+  /* ================= 12. 再预检清旧＋notExecuted 降级态（不得伪装成无重叠——红线） ================= */
+  skillFixtures.SKILL_PRECHECK.mode = 'notExecuted';
+  await precheckBtn.click();
+  await sleep(800);
+  const notExecutedText = await page.locator('.n-alert').first().innerText();
+  const notExecutedBg = await alertBg(page);
+  h.check('再预检清旧（overlap 文案不再呈现）', !notExecutedText.includes('发现 2 处'));
+  h.check(
+    'notExecuted：info 中性「预检未执行」且无「无重叠」文案',
+    notExecutedText.includes('预检未执行') && !notExecutedText.includes('未发现方法论重叠'),
+    notExecutedText
+  );
+  h.check('三态视觉互异：notExecuted ≠ overlap（cssVars 背景色）', notExecutedBg !== overlapBg, `${notExecutedBg} vs ${overlapBg}`);
+
+  /* ================= 13. clean 态：确认无重叠（success） ================= */
+  skillFixtures.SKILL_PRECHECK.mode = 'clean';
+  await precheckBtn.click();
+  await sleep(800);
+  const cleanText = await page.locator('.n-alert').first().innerText();
+  const cleanBg = await alertBg(page);
+  h.check('clean 态：success「未发现方法论重叠」', cleanText.includes('未发现方法论重叠'), cleanText);
+  h.check('三态视觉互异：clean ≠ overlap ≠ notExecuted（cssVars 背景色）', cleanBg !== overlapBg && cleanBg !== notExecutedBg, `${cleanBg} vs ${overlapBg} / ${notExecutedBg}`);
+
+  /* ================= 14. 预检失败注入：透传 toast＋无结果区＋不阻塞指派（AC） ================= */
+  state.failNextSkillPrecheck = true;
+  await precheckBtn.click();
+  const precheckFailToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('SKL_011')));
+  h.check('预检失败：错误族透传 toast（SKL_011——与 PUT 指派同源同码）', Boolean(precheckFailToast));
+  await sleep(400);
+  h.check('预检失败：无结果区（发起已清旧、不伪装）', (await page.locator('.n-alert').count()) === 0);
+  h.check('预检失败不阻塞指派：保存钮照常可点', await page.getByRole('button', { name: /保\s*存/ }).isEnabled());
+
+  /* ================= 15. 切签丢弃：结果随面板卸载（与未保存勾选同命，Q7） ================= */
+  await precheckBtn.click(); // clean 态再落一份结果
+  await sleep(800);
+  await page.locator('.n-tabs-tab').filter({ hasText: 'run 执行体' }).click();
+  await page.locator(ROW).filter({ hasText: 'seo-audit' }).waitFor({ timeout: 10000 });
+  await page.locator('.n-tabs-tab').filter({ hasText: '子智能体' }).click();
+  await page.locator(ROW).filter({ hasText: 'doc-writer' }).waitFor({ timeout: 10000 });
+  await sleep(600);
+  h.check('切签再回：预检结果随面板丢弃（无 alert）', (await page.locator('.n-alert').count()) === 0);
+
+  /* ================= 16. 空选项集引导：零安装行 → NEmpty＋跳技能管理（无裸空表、无保存钮） ================= */
   // 构造「从未安装过技能」实态：清单只余内置行（builtin 不列选项集，source 过滤后为空——真链
   // #68 空态实录）。破坏性变异放最后（后续节不再依赖安装行）。
   for (let i = skillFixtures.SKILL_ROWS.length - 1; i >= 0; i -= 1) {

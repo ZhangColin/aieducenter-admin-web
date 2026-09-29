@@ -1375,7 +1375,18 @@ const local: App.I18n.Schema = {
           action: '去技能管理安装'
         },
         save: '保存指派',
-        saved: '已保存 {slot} 指派'
+        saved: '已保存 {slot} 指派',
+        precheck: '预检',
+        precheckResult: {
+          overlapFound: '发现 {count} 处方法论重叠',
+          noOverlap: '未发现方法论重叠',
+          notExecuted: '预检未执行——判定失败或超时，结果未知（不等于无重叠）',
+          stale: '清单已变更——以下结果对应上次预检时的候选清单',
+          skills: '涉及技能',
+          counterpart: '对照',
+          overlap: '重叠',
+          resolution: '消解方向'
+        }
       },
       /** 智能体配置页（#69——技能线 agent-configs 3 + agent-tools 2 端点；两座编辑卡＋留痕时间线＋工具面）。 */
       agentConfig: {

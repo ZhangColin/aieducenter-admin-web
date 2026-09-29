@@ -56,11 +56,12 @@ export async function waitForMessage(page, predicate, timeoutMs = 10000) {
  *
  * @param page playwright page
  * @param fixtures { order?, project?, workspace?, cost?, priceEntry?, material?, skill? } 各域 fixtures（见 support/*-fixtures.mjs；域缺省＝不挂该域路由）
- * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean, failNextSkillDraftPromote: boolean, failNextSkillDraftReject: boolean, failNextAgentConfigUpdate: boolean, failNextAgentToolToggle: boolean}}}
+ * @returns {{calls: Array, state: {failNextQuote: boolean, failNextWorkspaceWrite: boolean, failNextReprice: boolean, failNextMaterialWrite: boolean, failNextSkillInstall: boolean, failNextSkillWrite: boolean, failNextSkillUninstall: boolean, failNextSkillUpdate: boolean, failNextSkillAssign: boolean, failNextSkillPrecheck: boolean, failNextSkillDraftPromote: boolean, failNextSkillDraftReject: boolean, failNextAgentConfigUpdate: boolean, failNextAgentToolToggle: boolean}}}
  *          calls=拦截到的请求流水（断言查询参数用）；state.failNext*＝下一次对应写抛业务错误信封
  *          （quote/workspaceWrite/reprice 抛 409，material 抛 400/404，skill 按动作族抛 502/400/409/409/400，
  *          skillDraftPromote 抛 409 SKL_016、skillDraftReject 抛 400 SKL_018，
- *          agentConfigUpdate 抛 400、agentToolToggle 抛 403——透传 toast 断言用）
+ *          agentConfigUpdate 抛 400、agentToolToggle 抛 403——透传 toast 断言用；
+ *          skillPrecheck 抛 400 SKL_011＝预检失败注入（错误族与 PUT 指派同源））
  */
 export async function installAiplatformMocks(page, fixtures) {
   const calls = [];
@@ -74,6 +75,7 @@ export async function installAiplatformMocks(page, fixtures) {
     failNextSkillUninstall: false,
     failNextSkillUpdate: false,
     failNextSkillAssign: false,
+    failNextSkillPrecheck: false,
     failNextSkillDraftPromote: false,
     failNextSkillDraftReject: false,
     failNextAgentConfigUpdate: false,
@@ -517,7 +519,7 @@ export async function installAiplatformMocks(page, fixtures) {
     }));
   }
 
-  await page.route('**/proxy-default/**', route => {
+  await page.route('**/proxy-default/**', async route => {
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/proxy-default', '');
     const method = route.request().method();
@@ -988,6 +990,30 @@ export async function installAiplatformMocks(page, fixtures) {
     if (fixtures.skill) {
       const skl404 = () =>
         json(route, 404, { code: 7001, message: '技能不存在（SKL_001）', data: null, requestId: 'e2e-mock', errors: null });
+      // ---- 指派预检（#72；POST body 与 PUT 指派同形 {skillIds[]}＝点击时快照，回执
+      // {executed, hints[]}——executed=false＝未执行降级态（hints 恒空）。三态样本由
+      // SKILL_PRECHECK.mode 切换、delayMs 模拟模型判定延迟（loading 态靶）；失败注入
+      // 400 SKL_011（错误族与 PUT 指派同源同码——透传 toast 断言靶）。只读不变异指派态 ----
+      const precheckMatch = path.match(/^\/aiplatform\/skills\/assignments\/([^/]+)\/precheck$/);
+      if (precheckMatch && method === 'POST') {
+        const slot = precheckMatch[1];
+        if (!fixtures.skill.ASSIGN_SLOTS.includes(slot)) {
+          return json(route, 404, { code: 7010, message: '未知职能槽位（SKL_010）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        if (state.failNextSkillPrecheck) {
+          state.failNextSkillPrecheck = false;
+          return json(route, 400, { code: 7011, message: '内置技能不可指派，装配按配置挂载（SKL_011）', data: null, requestId: 'e2e-mock', errors: null });
+        }
+        const P = fixtures.skill.SKILL_PRECHECK;
+        if (P.delayMs > 0) await sleep(P.delayMs);
+        const data =
+          P.mode === 'notExecuted'
+            ? { executed: false, hints: [] }
+            : P.mode === 'clean'
+              ? { executed: true, hints: [] }
+              : { executed: true, hints: fixtures.skill.PRECHECK_HINTS.map(hint => ({ ...hint })) };
+        return json(route, 200, { code: 200, message: 'ok', data, requestId: 'e2e-mock', errors: null });
+      }
       // ---- 指派域（#68；每槽位一个 GET/PUT——先于 /skills/{id} 匹配。GET/PUT 回执同形
       // {slot, skills[]}；PUT 整包替换 skillIds 就地变异（回读如实）、停用行照常随行返回）----
       const assignmentMatch = path.match(/^\/aiplatform\/skills\/assignments\/([^/]+)$/);

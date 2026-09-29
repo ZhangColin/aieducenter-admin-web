@@ -51,7 +51,10 @@ e2e/
                            id opaque 串两形制（builtin: 前缀 / TSID 十进制串）、内置 3 + 安装三包
                            （可更新 true/false/null 包级统一）、frontmatter 四型值（string/number/
                            array/object）；安装/更新/启停/卸载变异由 harness 就地改；#68 指派态
-                           SKILL_ASSIGNMENTS 三槽初始指派——PUT 整包替换就地变异；#69 智能体配置
+                           SKILL_ASSIGNMENTS 三槽初始指派——PUT 整包替换就地变异；#72 预检态
+                           SKILL_PRECHECK（mode overlap/clean/notExecuted 三态切换＋delayMs 判定
+                           延迟；PRECHECK_HINTS 两样本＝四字段全＋三 null「—」占位靶）只读不变异；
+                           #69 智能体配置
                            AGENT_CONFIGS 两座（main 双覆盖靶/executor 全默认靶）＋AGENT_TRACES
                            （变化项过滤＋「（默认）」靶）＋AGENT_TOOL_SLOTS 三槽——工具开关窄幅写口
                            挂 main 行开关列（provider toggleTool 镜像），main 槽增强件挂载态由
@@ -68,7 +71,11 @@ e2e/
                            （按来源包 query 时间线倒序 + 空态））
   skill-assignment.e2e.mjs 指派配置验收流（#68：三签 label 端侧映射＋切签/进入加载 GET 预填/
                            选项表不列 builtin＋停用行可勾与警示色实态/增减保存 PUT 整包＋toast 无
-                           确认＋回读刷新/空勾选＝清空/空→非空/失败注入 400 SKL_011 透传）
+                           确认＋回读刷新/空勾选＝清空/空→非空/失败注入 400 SKL_011 透传；
+                           #72 预检三态：手动钮空清单禁用＋loading＋POST body＝点击时快照/
+                           overlap 逐条四字段＋null「—」占位/非阻断（hints 非空保存照常 PUT＋
+                           预检失败不阻塞）/stale 保留＋标注＋复原消解/notExecuted 降级态不伪装
+                           成无重叠（cssVars 背景色三态互异）/clean/切签结果随面板丢弃）
   agent-config.e2e.mjs    智能体配置验收流（#69：两座编辑卡（覆盖标记＋默认预览＋生效值预填）/
                            保存 PUT 四字段全量回传（两 flag 以 GET 原值透传防静默误开）＋清空回落
                            ＋标记复位/留痕时间线（倒序＋只渲染变化项＋null 显「（默认）」）/回滚
@@ -78,7 +85,9 @@ e2e/
 ```
 
 技能域 fixtures 一并承载指派态（`SKILL_ASSIGNMENTS` 三槽初始指派——PUT 由 harness 就地整包替换，
-回读如实）；指派 mock 分支先于 `/skills/{id}` 匹配（`/skills/assignments/{slot}` 路径同前缀）。
+回读如实）；指派 mock 分支先于 `/skills/{id}` 匹配（`/skills/assignments/{slot}` 路径同前缀），
+precheck 分支再先于指派 GET/PUT 匹配（`/{slot}/precheck` 同前缀更长者，失败注入
+`failNextSkillPrecheck`＝400 SKL_011 与 PUT 指派同族）。
 
 账号档案嵌件（#56 收口，account:read 有码无页）无独立 e2e 文件——用例挂在订单/项目域尾部：
 externalId 筛选在 ⇒ 抽屉嵌件点亮（GET `/aiplatform/accounts/{externalId}`），筛选缺省 ⇒ 不出档案区。

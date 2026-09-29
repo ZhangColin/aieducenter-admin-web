@@ -1597,6 +1597,17 @@ declare namespace App {
             };
             save: string;
             saved: string;
+            precheck: string;
+            precheckResult: {
+              overlapFound: string;
+              noOverlap: string;
+              notExecuted: string;
+              stale: string;
+              skills: string;
+              counterpart: string;
+              overlap: string;
+              resolution: string;
+            };
           };
           /** 智能体配置页（#69——技能线 agent-configs 3 + agent-tools 2 端点；两座编辑卡＋留痕时间线＋工具面）。 */
           agentConfig: {

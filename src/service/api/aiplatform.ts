@@ -337,7 +337,7 @@ export function fetchRejectAiplatformSkillDraft(id: string, data: Api.Aiplatform
   return request<Api.Aiplatform.SkillDraftDetail>({ url: `/aiplatform/skills/drafts/${id}/reject`, method: 'post', data });
 }
 
-/* ---- 指派域（#68，技能线 assignments 2 端点；每槽位一个 GET/PUT、slot 路径段三值寻址）。 ---- */
+/* ---- 指派域（#68 指派配置＋#72 预检，技能线 assignments 2＋precheck 1 端点；slot 路径段三值寻址）。 ---- */
 
 /** GET /aiplatform/skills/assignments/{slot}——槽位指派读面（含停用行——「指派了但已停用」实态；未知槽位 404 SKL_010）。 */
 export function fetchGetAiplatformSkillAssignments(slot: Api.Aiplatform.SkillSlot) {
@@ -347,6 +347,21 @@ export function fetchGetAiplatformSkillAssignments(slot: Api.Aiplatform.SkillSlo
 /** PUT /aiplatform/skills/assignments/{slot}——槽位指派整包替换（清单即终态、空＝清空；builtin 柄 400 SKL_011）。回执＝替换后读面（前端 toast＋回读刷新，不消费此体）。 */
 export function fetchAssignAiplatformSkills(slot: Api.Aiplatform.SkillSlot, data: Api.Aiplatform.SkillAssignCommand) {
   return request<Api.Aiplatform.SlotAssignment>({ url: `/aiplatform/skills/assignments/${slot}`, method: 'put', data });
+}
+
+/**
+ * POST /aiplatform/skills/assignments/{slot}/precheck——指派双头预检（#72；body 与 PUT 指派
+ * 同形＝发起时勾选快照）。模型判定 15s 档、executed=false＝未执行降级态（不自动重试）——
+ * 客户端超时覆写 30s（默认 10s 会先于后端自身超时掐断，抢走降级态回执）；非阻断：结果不拦
+ * 指派提交，调用失败走 onError 信封透传。
+ */
+export function fetchPrecheckAiplatformSkillAssignment(slot: Api.Aiplatform.SkillSlot, data: Api.Aiplatform.SkillAssignCommand) {
+  return request<Api.Aiplatform.SkillAssignmentPrecheck>({
+    url: `/aiplatform/skills/assignments/${slot}/precheck`,
+    method: 'post',
+    data,
+    timeout: 30 * 1000
+  });
 }
 
 /* ---- 智能体配置域（#69，技能线 agent-configs 3 + agent-tools 2 端点；保存四字段全量回传——

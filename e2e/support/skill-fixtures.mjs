@@ -666,3 +666,30 @@ export const SKILL_DRAFT_DETAILS = {
     rejectReason: null
   }
 };
+
+/* ---- 指派预检（#72；`AiplatformSkillAssignPrecheckResponse`={executed, hints[]} /
+ * `PrecheckHint`={skills[], counterpart?, overlap?, resolution?}——三 String 可 null＝模型输出
+ * 解析态——api-docs 实读（admin #90）。契约要点：`skills` 是**技能名清单**（非柄）；
+ * executed=false 时 hints 恒空（未执行降级态——不得伪装成无重叠）。SKILL_PRECHECK 由 e2e
+ * 就地切态：mode 'overlap'（两 hints——第一条四字段全·counterpart＝「工作协议」形、第二条
+ * 三字段全 null＝「—」占位靶）/ 'clean'（executed=true hints 空）/ 'notExecuted'（降级态靶）；
+ * delayMs 模拟模型判定延迟（预检钮 loading 态靶）。 ---- */
+
+/** overlap 态 hints 样本（断言锚＝四字段标签 + 值原文直读）。 */
+export const PRECHECK_HINTS = [
+  {
+    skills: ['doc-writer', 'prd-writing'],
+    counterpart: '工作协议',
+    overlap: '都在 PRD 产出环节做结构化写作，方法论高度重叠',
+    resolution: '二选一或收窄 description'
+  },
+  {
+    skills: ['doc-writer'],
+    counterpart: null,
+    overlap: null,
+    resolution: null
+  }
+];
+
+/** 预检 mock 态（e2e 就地切：mode 三态 + delayMs 判定延迟 ms）。 */
+export const SKILL_PRECHECK = { mode: 'overlap', delayMs: 0 };

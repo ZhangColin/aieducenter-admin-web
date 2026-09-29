@@ -1377,7 +1377,18 @@ const local: App.I18n.Schema = {
           action: 'Go to Skill Management'
         },
         save: 'Save Assignments',
-        saved: 'Assignments saved for {slot}'
+        saved: 'Assignments saved for {slot}',
+        precheck: 'Precheck',
+        precheckResult: {
+          overlapFound: 'Found {count} methodology overlap(s)',
+          noOverlap: 'No methodology overlap found',
+          notExecuted: 'Precheck not executed — judgment failed or timed out, result unknown (not the same as no overlap)',
+          stale: 'Selection changed — the result below reflects the list at last precheck',
+          skills: 'Skills',
+          counterpart: 'Counterpart',
+          overlap: 'Overlap',
+          resolution: 'Resolution'
+        }
       },
       /** Agent config page (#69 — skill-line agent-configs 3 + agent-tools 2 endpoints; two agent edit cards + trace timeline + tool inventory). */
       agentConfig: {
