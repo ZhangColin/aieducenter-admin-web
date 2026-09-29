@@ -104,12 +104,18 @@ async function main() {
   h.check('modelId 预填＝生效值（deepseek-v4-max）', (await modelInput.inputValue()) === OVERRIDE_MODEL);
   const editCardText = await page.locator('.n-card').first().textContent();
   h.check(
-    '覆盖标记「已覆盖」×2（systemPrompt＋modelId）＋默认值灰字预览（默认 prompt＋默认档 flash）',
+    '覆盖标记「已覆盖」×2（systemPrompt＋modelId）＋默认回落提示（prompt「查看默认」入口＋默认档 flash 内联）',
     (editCardText.match(/已覆盖/g) ?? []).length === 2 &&
-      editCardText.includes(DEFAULT_PROMPT.slice(0, 18)) &&
+      editCardText.includes('查看默认') &&
       editCardText.includes('deepseek-v4-flash'),
     editCardText.slice(0, 120)
   );
+  // 默认 prompt 弹层（aa072c7 起不再内联灰字——「查看默认」NPopover 看全文）
+  await page.locator('.n-card').first().getByText('查看默认').click();
+  await page.locator('.n-popover').waitFor({ timeout: 5000 });
+  h.check('「查看默认」弹层见默认 prompt 全文', (await page.locator('.n-popover').textContent()).includes(DEFAULT_PROMPT.slice(0, 18)));
+  await page.keyboard.press('Escape');
+  await sleep(400);
   h.check('最近写者留痕行（operatorName 直读）', editCardText.includes('运营·技能管理员'));
   h.check('保存钮在（agent-config:update 权限码门控下渲染）', (await page.getByRole('button', { name: /保存配置/ }).count()) === 1);
 
