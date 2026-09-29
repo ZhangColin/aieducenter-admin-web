@@ -263,6 +263,14 @@ mock E2E（agent-config **42/42 两轮全绿** + skill 56/56 / skill-assignment 
 - **坑（踩出）**：① **块注释里 `old*/new*` 的 `*/` 提前闭合注释**——TS1127 Invalid character 连环炸（typecheck 首跑红），全仓 grep 清算改 `old/new`；② Naive tab pane 类名是 `.n-tab-pane`（非 `.n-tabs-tab-pane`）——e2e 取整 pane 文本改走外层 `.n-card` first（display-directive if 下外卡只含活动签内容）。
 - **code-review 修正（双轴 review，紧随本票；修后 42/42 + 全量回归绿）**：① 删 `formatDateTime(config.updatedAt ?? '')` 不可达兜底（外层 `v-if operatorName` 已门控、函数签名收 `string | null`——trust-ui-gating standing rule）；② fixtures main 槽 4/6 骨架工具补全 8 工具、序对齐 provider 枚举（呈现级简化→契约忠实）。判断项不修记录在案：`agentConfig.stateOn/Off`（开/关）与 `tool.stateOn/Off`（开启/关闭）两对近义键（措辞刻意区分时间线紧凑 vs toast 完整）；`togglingTool` 单串 ref 并发点击互清 loading（仅视觉、mock 快速返回）；工具面失败/空无专属空态（onError 通用兜底 standing rule）。spec 轴：8 条 AC 全过、契约与 api-docs/provider 源码逐字段一致；回滚钮 update 码同门控与 harness PRJ_033/035/037 防御分支均为良性超纲。
 
+### 2026-09-29 #70 收口：菜单种子 routePath 正典对齐（admin#94）——4 条多段名路由深链修复 ✅
+
+admin#94 落地：4 条种子 routePath 改正典（`aiplatform_agent_config`→`/aiplatform/agent/config`、`aiplatform_skill_assignment`→`/aiplatform/skill/assignment`、`aiplatform_price_entry`→`/aiplatform/price/entry`、`payment_channel_log`→`/payment/channel/log`）。实读 `/menus/my` 4/4 正典；Playwright 走查：正典深链 4/4 渲染（F5/直链/书签不再 403）、扁平 path 4/4 退役（渲染 not-found「返回首页」——Soybean 404 **原地内联渲染不跳 URL**，退役断言按内容不按 URL）。
+
+- **方案拍板（fail fast，用户定向）**：前端自愈方案（按 name 推导正典 path、不信后端 routePath）**否决**——后端准确则该逻辑多余；契约错误应尽早暴露而非静默自愈掩盖（trust-ui-gating standing rule 跨层同理）。走修源头＋防复发：种子 routePath 由 routeName 推导（admin#94），手写漂移两例前科（V18 icon、本次 path）收口。
+- **动态/静态双轨自此同 path**：T2/T3 交付时「动态=后端扁平 vs 静态=正典」分裂消除，深链一律正典。
+- **走查坑**：登录后立即 goto 会被守卫当未初始化踢回 `/login?redirect=…`——须等侧栏菜单渲染（会话稳定锚）再走查路径。
+
 ### 2026-09-24 T2 交付：指派配置页点亮 ✅（#68，#65 技能域之二——三职能槽位行勾选＋每槽 PUT 整包）
 
 mock E2E（skill-assignment **28/28 两轮全绿** + skill 56/56 / order 35/35 / project 87/87 / workspace 48/48 / cost 43/43 / price-entry 44/44 / material 46/46 全量回归绿）。验收七条全过：三签 label 端侧映射（主智能体/run 执行体/子智能体——响应无 slotName）＋切签/进入加载对应 GET 预填 / 选项表不列 builtin（5 安装行）＋行上下文列取自技能清单＋停用行可勾与警示色实态 / 增减保存直接 PUT `{skillIds[]}`＋toast 无确认弹窗、空勾选＝清空、成功后回读刷新 / assign 权限码门控保存钮 / 失败透传 message toast（400 SKL_011 注入代表样）。
