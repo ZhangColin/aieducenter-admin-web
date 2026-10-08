@@ -61,10 +61,14 @@
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
 | **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 20 端点已消费——技能/指派/配置 15＋草稿 4（#71）＋预检 1（#72）；swagger 共 54 全触达） |
 | **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
+| **交付物类型 (deliverable type)** | AI 订单下单时冻结的交付物分型（1=设计 2=系统 3=系统＋设计）；冻结自项目终点类型，此后不随项目变更。待报价单类型已定（区别于金额的待报价 NULL）。_Avoid_: 与项目当前类型混同——订单只看冻结值 |
+| **设计资产包 (design package)** | 设计／系统＋设计单的下单冻结交付件（tar.gz）：选定稿自包含形态＋DESIGN.md＋帧衍生资产，落选稿不入；系统＋设计单＝统一部件容器（含系统部件）。按单定格，此后改稿/再定稿不漂移。_Avoid_: 与「源码包」混称——源码包是项目工作区实时打包，冻结/实时两轴 |
 | **AI 项目 (Project)** | aiplatform 的交付单元；带订单引用（active/latestOrder）、成本指针（costSummary）、工作区引用（workspaceId）；归档项目照读 |
+| **会话来源 (session source)** | AI 项目对话条目的会话流归属：2=设计会话（每设计物一条独立会话流）、null=主会话缺省。降级口径：作用域改稿发言不标注——null 勿当未知值补归属（缺省≠未知） |
 | **沙箱 / 工作区 (Workspace)** | **菜单词用「沙箱」**（`沙箱管理`），**领域实体用「工作区」**（`workspaceId`/`Workspace`）；期望态 `desiredState` 与实态 `containerState` 可漂移（清单按两者过滤找 desired≠actual） |
 | **成本 (Cost)** | aiplatform 平台 token 成本观测（与订单报价脱钩、改价不溯及）；时间窗必填（`[from,to)` 半开）、五档用量（input/output/cacheRead/cacheWrite/reasoning）+ 按币种/按模型/按智能体分解 + unpriced 未配价警示 |
 | **单价表 / 价目行 (Unit price entry)** | **菜单词「单价表」**，**领域实体「价目行」**（`price-entry`）；成本换算用的单价数据，append-only（改价 = 关当前行 + 开新行，可预发布未来生效） |
+| **按张计价 (per-image tier)** | 价目行 tokenKind 第 6 档（张与 token 并列不混算）：成本桶按张×时点单价混算（响应无从区分按张分量）、五档分解不含按张、张数仅经 unpriced 档位（tokens=张数）与桶金额呈现；无生效单价进 unpriced 不伪装 0。UI 若需「图片生成」独立呈现 → UI→BFF→provider 单向提新 issue，前端不拆算按张分量 |
 | **知识素材 (Material)** | aiplatform 沉淀的知识资产；停用⇄启用可逆、删除为治理移除（不动来源项目） |
 | **账号档案 (Account profile)** | aiplatform 侧极简账号档案（`id/externalId/displayName/createdAt`），嵌订单/项目详情抽屉按 `externalId` 查。_Avoid_: identity 域的「Account（终端用户账号）」——不同域 |
 | **技能 (Skill)** | aiplatform 智能体可装配的能力单元，来源三分同权（内置 1 / 安装 2 / 自产 3——经草稿晋升入库，package/version 为虚拟值 self）；寻址柄为 opaque 双形制字符串（`builtin:技能名` 前缀 / TSID 十进制串）。停用⇄启用可逆；卸载为移除（内置不可卸、有指派在身先解绑） |
@@ -348,6 +352,14 @@ mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言
 - **真模型逐次输出变体（意外实证）**：同一候选集两判——curl 首判 skills＝双候选清单、UI 走查次判 skills＝单候选＋counterpart 承载对侧技能名。skills 列哪些候选由模型裁量，UI 对两种形都正确渲染（契约容差落地）；两判 null 三字段均未出现。
 - **UI 走查**（一次性脚本仓内跑用后即删，#65/#71 先例）：正典深链 `/aiplatform/skill/assignment` → subagent 双勾 → 预检（真 6s loading 在途可见）→ overlap 警示真模型内容直读 → 取消一勾 stale 标注 → 保存钮全程可点（非阻断）。7/8：FAIL 项断言「全文无—」撞真模型中文行文「——」散文破折号——null 占位计数断言只在 mock fixtures（刻意无散文破折号）下成立，产品行为无缺陷。
 - **环境数据留档（写面还原）**：探针技能 selftest-progress-report（本地仓 `/tmp/precheck-overlap-skill-72` 构造真重叠用——#65 冒烟仓先例保留可复装）已终卸还原，技能库复核 2 行原状（prd-writing＋selftest-live-check）；三槽指派全程空（本票只读走查不变异指派）；uninstall 留痕跨卸载存活（契约先例）。
+
+### 2026-10-08 #74 grilling：设计线四项增量（订单类型列＋设计资产包下载＋对话史来源标注＋按张计价呈现——消费 admin BFF 设计线 admin#96–98 已合 develop，BFF 55 端点、零新码零新菜单零新路由）
+
+- **订单页**：① 清单加「类型」列＋详情栅格类型项——NTag 三色 Record（1=设计 info／2=系统 success／3=系统＋设计 warning）＋`deliverableTypeName` 直读（ADR-0009），列位 status 后、amount 前；无类型筛选维度（已备案）。② 下载**单按钮自适应**（Q1）：详情抽屉操作行既有「下载源码包」按 `deliverableType` 切换文案＋端点（2=系统→源码包实时打包；1/3→设计资产包冻结件，3 型统一部件容器含系统部件即全覆盖）——3 型失去直达源码包入口系有意取舍（实时源码诉求走项目页文件包，不同件）；「互斥/不可达不出现」先例（错配 404 ORD_016 不上台面），错误态零专属处理（onError 透传 toast 兜底）。③ 写路径回执零增量——三写回执本就纯 toast（OrderWriteAck 不渲染先例），「回执同字段对」是契约事实非 UI 义务。
+- **项目页对话史**：**行内标注**（Q2）——平铺时间线保持，`sessionSource=2` 条目在 kindName 右侧加 NTag size=small type=default 灰阶 tag 显 `sessionSourceName` 直读（Q4），null 不渲染（缺省=主会话；降级口径下作用域改稿发言不标注——**勿当未知值补归属**，此为否决分组的决定性约束）；不加来源过滤器（零加戏）。报价素材承接面＝既有交付文件 tab＋设计资产包下载，落选稿不专门呈现。
+- **单价表**：增量收敛两处——`PriceTokenKind` 扩 1-6＋`priceTokenKindTagColor` 补 6=default 灰（五色已占满，按张「非 token 档」灰系自成一档）；tokenKind 无任何下拉/options（筛选仅 provider/model 两文本框），unitPrice string/number 不对称 T6 已消费（原串直灌＋提交转 number）零改。
+- **成本中心**：**零代码增量**——unpriced 表 tier 列 `tokenKindName` 直读、数量列 formatCount，按张行自动正确呈现；五档 tiles/双柱状按 `TOKEN_TIER_KEYS` 迭代天然不含按张（契约：分解不含按张）；cost 桶混算无从区分亦不需区分。tokens 列头「无价 tokens」保持不改（Q5——tier 名自释单位，零 i18n 改动）。
+- **横切**：`deliverableType`/`sessionSource` Integer code（JSON number）＋`*Name` 直读； typings 三处补对（OrderSummary/Detail/WriteAck、ConversationEntry、PriceTokenKind）；i18n 新键三处同步（类型列名/设计资产包按钮与成功文案）；E2E fixtures 补类型对/来源标注/六档行（house 范式）。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
