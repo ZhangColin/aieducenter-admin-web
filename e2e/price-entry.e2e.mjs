@@ -107,6 +107,35 @@ async function main() {
   h.check('微小价位原串渲染（0.000000014）', (await tinyRow.getByText('0.000000014', { exact: true }).count()) > 0);
   h.check('档位名直读（缓存读）', (await page.locator(ROW).getByText('缓存读', { exact: true }).count()) > 0);
 
+  // 2b. #77 按张第 6 档：tokenKindName 直读 + 灰阶 default tag + 单价原串 + 既有两操作复用
+  const perImageRow = page.locator(ROW).filter({ hasText: '357701020922000218' });
+  h.check(
+    '按张行：tokenKindName 直读（按张）+ 单价原串（0.0400）+ 币种',
+    (await perImageRow.getByText('按张', { exact: true }).count()) > 0 && (await perImageRow.getByText('0.0400', { exact: true }).count()) > 0 && (await perImageRow.getByText('USD', { exact: true }).count()) > 0
+  );
+  // Naive type 不落 DOM class、走 cssVars 着色（#72 先例）——以 computed 背景色断档色分化。
+  // 注：主题 isInfoFollowPrimary=true——输入(info)≡输出(primary) 同色系主题事实，勿断互异
+  const tagBg = loc => loc.evaluate(el => getComputedStyle(el).backgroundColor);
+  const rowBy = id => page.locator(ROW).filter({ hasText: id });
+  const perImageBg = await tagBg(perImageRow.locator('.n-tag', { hasText: '按张' }).first());
+  const inputBg = await tagBg(rowBy('357701022055576431').locator('.n-tag', { hasText: '输入' }).first());
+  const outputBg = await tagBg(rowBy('357701022659621666').locator('.n-tag', { hasText: '输出' }).first());
+  const cacheReadBg = await tagBg(rowBy('357701022362578014').locator('.n-tag', { hasText: '缓存读' }).first());
+  h.check(
+    '按张行：灰阶自成一档（bg ≠ token 档 primary/success）',
+    perImageBg !== outputBg && perImageBg !== cacheReadBg,
+    `${perImageBg} vs ${outputBg} / ${cacheReadBg}`
+  );
+  h.check(
+    '1–5 档色不回归（输入=输出（info 跟主色）≠ 缓存读——扩 6 不动既有映射）',
+    inputBg === outputBg && inputBg !== cacheReadBg,
+    `${inputBg} / ${outputBg} / ${cacheReadBg}`
+  );
+  h.check(
+    '按张行：改价/停用两操作复用（当前行，端点形状零改）',
+    (await perImageRow.getByRole('button', { name: /改\s*价/ }).count()) > 0 && (await perImageRow.getByRole('button', { name: /停\s*用/ }).count()) > 0
+  );
+
   /* ================= 3. provider/model 过滤（精确等值）+ 重置 ================= */
   await page.getByPlaceholder('精确匹配，如 deepseek', { exact: true }).fill('anthropic');
   await page.getByRole('button', { name: /搜\s*索/ }).click();
@@ -132,7 +161,7 @@ async function main() {
   await page.locator('.n-pagination .n-pagination-item', { hasText: /^2$/ }).click();
   await sleep(600);
   h.check('翻第 2 页请求 page=2（零 ±1）', lastListCall(calls)?.query.includes('page=2'), lastListCall(calls)?.query);
-  h.check('第 2 页渲染 2 行（共 12 条）', (await page.locator(ROW).count()) === 2);
+  h.check('第 2 页渲染 3 行（共 13 条，+按张行）', (await page.locator(ROW).count()) === 3, `实际 ${await page.locator(ROW).count()}`);
   const qwenRow = page.locator(ROW).filter({ hasText: DEACTIVATE_ID });
   h.check('CNY 行渲染（0.000012 + CNY，第 2 页）', (await qwenRow.getByText('0.000012', { exact: true }).count()) > 0 && (await qwenRow.getByText('CNY', { exact: true }).count()) > 0);
   await page.locator('.n-pagination .n-pagination-item', { hasText: /^1$/ }).click();

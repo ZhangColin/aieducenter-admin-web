@@ -7,13 +7,15 @@
  *
  * 契约要点（api-docs + :8081 实测，2026-09-17）：unitPrice 为 BigDecimal → JSON **string** 明文小数
  * （如 "0.000000014"，微小价位非科学计数法形）；tokenKind Integer code 1=输入 2=输出 3=缓存读
- * 4=缓存写 5=推理 + tokenKindName 随行；effectiveFrom/effectiveTo ISO-8601 Instant UTC 带 Z
+ * 4=缓存写 5=推理 6=按张（#77 消费 admin#98 图片生成按张计价——非 token 档自成一档）+
+ * tokenKindName 随行；effectiveFrom/effectiveTo ISO-8601 Instant UTC 带 Z
  * （e2e 机本地时区渲染由页侧 formatDateTime 折算，断言侧同法计算）；effectiveTo null 即当前行；
  * 清单含历史行全量、排序服务端定死生效起点倒序（fixtures 预排）；operator 两列 = 该行最近管理
  * 动作留痕（种子行 null）。无「开行」端点——种子脚本通道不暴露。
  *
  * 覆盖矩阵：deepseek（现 6 行 + 已关史行 1——陈运营改价痕）/ anthropic（现 3——provider 过滤靶）/
- * qwen（现 2，CNY——停用靶）。改价/停写变异由 harness 就地改行 + unshift 新行（刷新后清单如实呈现）。
+ * qwen（现 2，CNY——停用靶）/ openai（现 1——按张第 6 档呈现靶，#77）。改价/停写变异由 harness
+ * 就地改行 + unshift 新行（刷新后清单如实呈现）。
  */
 
 /** 改价回执新开行 id（harness applyReprice 固定产出；E2E 刷新断言锚点）。 */
@@ -22,7 +24,7 @@ export const OPENED_ROW_ID = '357701099900000099';
 /** 停用即时生效时刻（harness applyDeactivate 固定产出；本地时区折算后断言）。 */
 export const DEACTIVATED_AT = '2026-09-17T08:00:00Z';
 
-/** 列表行（12 条 = 两页 @size10；预排生效起点倒序——首行为已关史行（最新起点））。 */
+/** 列表行（13 条 = 两页 @size10；预排生效起点倒序——首行为已关史行（最新起点））。 */
 export const PRICE_ENTRY_ROWS = [
   {
     id: '357701031200000101',
@@ -109,6 +111,20 @@ export const PRICE_ENTRY_ROWS = [
     tokenKind: 1,
     tokenKindName: '输入',
     unitPrice: '0.0000011',
+    currency: 'USD',
+    effectiveFrom: '2026-01-01T16:00:00Z',
+    effectiveTo: null,
+    operatorId: null,
+    operatorName: null
+  },
+  // 按张第 6 档（#77）：图片生成模型按张计价——unitPrice 串/数不对称与改价/停用语义与 token 五档同一套
+  {
+    id: '357701020922000218',
+    provider: 'openai',
+    model: 'gpt-image-1',
+    tokenKind: 6,
+    tokenKindName: '按张',
+    unitPrice: '0.0400',
     currency: 'USD',
     effectiveFrom: '2026-01-01T16:00:00Z',
     effectiveTo: null,

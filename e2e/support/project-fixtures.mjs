@@ -5,6 +5,7 @@
  * - `AiplatformProjectDetailResponse`（详情：+ workspaceId/prdProducedAt/generatedAt/
  *   activeOrder·latestOrder 订单引用/costSummary 成本指针【cost 币种桶 + unpriced】）
  * - `AiplatformConversationEntryResponse`（对话史：text/kind·kindName/answered/at +
+ *   sessionSource·sessionSourceName（#77：2=设计会话 / null=主会话缺省在场）+
  *   四载荷 question/closing/attachments/quote——admin#75 @Schema 文档化结构，#64 前端渲染）
  * - `AiplatformPrdResponse`（PRD 全文：projectId/content/updatedAt）
  * - `AiplatformVersionResponse` / `AiplatformVersionDetailResponse`（版本列表新→旧 /
@@ -236,17 +237,25 @@ export const PROJECT_DETAILS = {
   }
 };
 
-/** 对话史（按项目 id；全量同序 id 升序 = 对话序；kind 1–7 全覆盖，载荷按 admin#75 文档化结构）。 */
+/**
+ * 对话史（按项目 id；全量同序 id 升序 = 对话序；kind 1–7 全覆盖，载荷按 admin#75 文档化结构）。
+ * #77 会话来源：每条目 sessionSource/sessionSourceName **在场**（null=主会话缺省，非字段缺省——
+ * 降级口径下作用域改稿发言不标注，勿当未知值补归属）；2=设计会话（每设计物独立会话流）。
+ */
 export const CONVERSATIONS = {
   /**
    * 教研备课知识库：开场（随带双圈注附件）→ 问答（已答）→ 收尾卡（#88 全字段）→ 首次报价卡 →
    * 迭代意见 → 挂起问答卡（answered=false，可多选）→ 改价卡（repriced 运营提示）。
+   * 第二轮「协同批注」走设计会话流（批注面板设计物）：挂起问答卡与改价卡 =2 标注；
+   * 迭代意见/平台引导为主会话 null（混排靶——同一条时间线上两态并存）。
    */
   '7392120209100200009': [
     {
       id: '1',
       kind: 1,
       kindName: '用户',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: null,
       text: '我们想做一个教研备课知识库，先把组内教案沉淀下来。',
       question: null,
@@ -270,6 +279,8 @@ export const CONVERSATIONS = {
       id: '2',
       kind: 2,
       kindName: '智能体',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: 'run-20260910-a1',
       text: '收到。我先梳理需求：按学科与年级组织教案，支持检索与协同批注，对吗？',
       question: null,
@@ -283,6 +294,8 @@ export const CONVERSATIONS = {
       id: '3',
       kind: 3,
       kindName: '问答',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: 'run-20260910-a1',
       text: null,
       // question-raised payload 原样（admin#75 example 同构）：呈现投影 = data.questions
@@ -315,6 +328,8 @@ export const CONVERSATIONS = {
       id: '4',
       kind: 4,
       kindName: '作答',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: 'run-20260910-a1',
       text: '检索优先，批注可以放到下一轮。',
       question: null,
@@ -328,6 +343,8 @@ export const CONVERSATIONS = {
       id: '5',
       kind: 5,
       kindName: '收尾卡',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: 'run-20260910-a1',
       text: null,
       question: null,
@@ -352,6 +369,8 @@ export const CONVERSATIONS = {
       id: '6',
       kind: 7,
       kindName: '报价卡',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: null,
       text: null,
       question: null,
@@ -366,6 +385,9 @@ export const CONVERSATIONS = {
       id: '7',
       kind: 1,
       kindName: '用户',
+      // 作用域改稿发言＝主会话缺省 null（降级口径：判据=收尾卡携稿，改稿发言不标注）
+      sessionSource: null,
+      sessionSourceName: null,
       runId: null,
       text: '第二版把协同批注加上。',
       question: null,
@@ -379,6 +401,8 @@ export const CONVERSATIONS = {
       id: '8',
       kind: 6,
       kindName: '平台引导',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: null,
       text: '已收到你的迭代意见，构建完成后会在这里同步结果。',
       question: null,
@@ -392,6 +416,9 @@ export const CONVERSATIONS = {
       id: '9',
       kind: 3,
       kindName: '问答',
+      // #77 设计会话（sessionSource=2）：第二轮协同批注走批注面板设计物的独立会话流
+      sessionSource: 2,
+      sessionSourceName: '设计会话',
       runId: 'run-20260912-b2',
       text: null,
       question: {
@@ -423,6 +450,9 @@ export const CONVERSATIONS = {
       id: '10',
       kind: 7,
       kindName: '报价卡',
+      // #77 设计会话（sessionSource=2）：设计物交付触发改价、事件落该会话流
+      sessionSource: 2,
+      sessionSourceName: '设计会话',
       runId: null,
       text: null,
       question: null,
@@ -434,12 +464,14 @@ export const CONVERSATIONS = {
       at: '2026-09-12T11:35:00'
     }
   ],
-  /** 口算天天练（归档照读）：短对话 + 收尾卡（可缺省键子集——该轮无 files/selfTest/version 事实）。 */
+  /** 口算天天练（归档照读）：短对话 + 收尾卡（可缺省键子集——该轮无 files/selfTest/version 事实）；无设计物全主会话 null。 */
   '7392120209092500007': [
     {
       id: '21',
       kind: 1,
       kindName: '用户',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: null,
       text: '口算练习要能按年级出题，自动判分。',
       question: null,
@@ -453,6 +485,8 @@ export const CONVERSATIONS = {
       id: '22',
       kind: 5,
       kindName: '收尾卡',
+      sessionSource: null,
+      sessionSourceName: null,
       runId: 'run-20260909-c3',
       text: null,
       question: null,

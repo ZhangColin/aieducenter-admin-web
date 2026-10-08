@@ -189,6 +189,32 @@ async function main() {
   h.check('对话史：text=null 载荷条目无「-」占位', (await drawer.locator('.conversation-entry pre', { hasText: /^-$/ }).count()) === 0);
   h.check('对话史：全量 10 条同序', (await drawer.locator('.conversation-entry').count()) === 10);
 
+  // 6f. #77 会话来源标注：=2 条目灰阶 tag 直读 kindName 邻位；null=主会话缺省零标注（混排 2/8）
+  const designSessionTags = drawer.locator('.conversation-entry .n-tag', { hasText: '设计会话' });
+  h.check('会话来源：设计会话 tag 直读（=2 条目恰 2 枚）', (await designSessionTags.count()) === 2, `实际 ${await designSessionTags.count()}`);
+  // Naive type 不落 DOM class、走 cssVars 着色（#72 先例）——以 computed 背景色断灰阶：与平台引导
+  // kind=6（default）同灰、≠ 用户 kind=1（primary）
+  const tagBg = loc => loc.evaluate(el => getComputedStyle(el).backgroundColor);
+  const designTagBg = await tagBg(designSessionTags.first());
+  const guideTagBg = await tagBg(drawer.locator('.conversation-entry .n-tag', { hasText: '平台引导' }).first());
+  const userTagBg = await tagBg(drawer.locator('.conversation-entry .n-tag', { hasText: '用户' }).first());
+  h.check('会话来源：灰阶 default tag（=平台引导同灰 ≠ 用户主色）', designTagBg === guideTagBg && designTagBg !== userTagBg, `${designTagBg} vs ${guideTagBg} / ${userTagBg}`);
+  // 邻位钉死：标注紧跟 kindName（条目内 tag 序 [kindName, 设计会话, …]——头行先于正文选项 chip）
+  const taggedEntry = drawer.locator('.conversation-entry').filter({ hasText: '设计会话' }).first();
+  const taggedEntryTags = taggedEntry.locator('.n-tag');
+  h.check(
+    '会话来源：标注在 kindName 右邻（头行 tag 序 [kind, 来源]）',
+    (await taggedEntryTags.nth(0).innerText()).includes('问答') && (await taggedEntryTags.nth(1).innerText()).includes('设计会话'),
+    `${await taggedEntryTags.nth(0).innerText()} / ${await taggedEntryTags.nth(1).innerText()}`
+  );
+  // null 零断言：主会话缺省条目仅 kind tag、无任何来源标注（勿当未知值补归属）
+  const mainSessionEntry = drawer.locator('.conversation-entry').filter({ hasText: '第二版把协同批注加上。' });
+  h.check('会话来源：null 条目零标注（仅 kind tag）', (await mainSessionEntry.locator('.n-tag').count()) === 1, `实际 ${await mainSessionEntry.locator('.n-tag').count()}`);
+  // 平铺钉死：全量条目同容器直子（不分组）+ 无来源过滤器（抽屉零 select/radio）
+  const flatTimeline = await drawer.locator('.conversation-entry').evaluateAll(els => new Set(els.map(el => el.parentElement)).size === 1);
+  h.check('会话来源：时间线平铺不分组（同容器直子）', flatTimeline);
+  h.check('会话来源：无来源过滤器（抽屉零 select/radio）', (await drawer.locator('.n-select, .n-radio-group').count()) === 0);
+
   /* ================= 7. PRD tab：全文 + updatedAt ================= */
   await drawer.locator('.n-tabs-tab', { hasText: 'PRD' }).click();
   await drawer.getByText('组内教案分散在个人网盘，检索困难。').waitFor({ timeout: 10000 });
@@ -232,6 +258,7 @@ async function main() {
   await archivedDrawer.locator('.n-tabs-tab', { hasText: '对话史' }).click();
   await archivedDrawer.getByText('口算练习要能按年级出题').waitFor({ timeout: 10000 });
   h.check('归档项目：对话史照读', (await archivedDrawer.getByText('口算练习要能按年级出题').count()) > 0);
+  h.check('归档项目：无设计物全主会话（零来源标注，#77）', (await archivedDrawer.locator('.n-tag', { hasText: '设计会话' }).count()) === 0);
   await archivedDrawer.locator('.n-tabs-tab', { hasText: 'PRD' }).click();
   await archivedDrawer.getByText('按年级出题、自动判分、错题回顾。').waitFor({ timeout: 10000 });
   h.check('归档项目：PRD 照读', (await archivedDrawer.getByText('按年级出题、自动判分、错题回顾。').count()) > 0);

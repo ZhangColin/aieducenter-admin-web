@@ -346,6 +346,13 @@ declare namespace Api {
       id: string;
       kind: ConversationEntryKind;
       kindName: string;
+      /**
+       * 会话来源（#77，admin#98）：2=设计会话——每设计物独立会话流；null=主会话**缺省**
+       * （JSON 在场为 null、非字段缺省——降级口径下作用域改稿发言不标注，勿当未知值补归属）。
+       */
+      sessionSource: number | null;
+      /** 中文名随行直读（仅 sessionSource=2 条目渲染标注时消费） */
+      sessionSourceName: string | null;
       /** 锚定构建 run（用户发言/平台引导为 null） */
       runId: string | null;
       /** 话语正文——question/closing/quote 条目为 null（载荷入正文区渲染） */
@@ -549,7 +556,11 @@ declare namespace Api {
       byAgentKind: AgentKindUsage[];
     }
 
-    /** 全局 unpriced 档位项（tokenKind 1=输入…5=推理 + tokenKindName 随行；tokens 只计无价分量）。 */
+    /**
+     * 全局 unpriced 档位项（tokenKind 1=输入…5=推理 6=按张 + tokenKindName 随行；tokens 只计无价
+     * 分量——按张行 tokens=张数，#77）。tokenKind 故意宽 number：档位枚举语义归单价表域
+     * PriceTokenKind 钉、本域只直读档位名。
+     */
     interface UnpricedTierUsage {
       provider: string;
       model: string;
@@ -616,8 +627,8 @@ declare namespace Api {
 
     /* ---- 单价表域（#62）---- */
 
-    /** token 档位（单价表）：1=输入 2=输出 3=缓存读 4=缓存写 5=推理（tokenKindName 中文名随行直读）。 */
-    type PriceTokenKind = 1 | 2 | 3 | 4 | 5;
+    /** token 档位（单价表）：1=输入 2=输出 3=缓存读 4=缓存写 5=推理 6=按张（tokenKindName 中文名随行直读）。 */
+    type PriceTokenKind = 1 | 2 | 3 | 4 | 5 | 6;
 
     /**
      * 单价行（清单行 = 改价回执 closed/opened 行 = 停用回执，同 schema `AiplatformUnitPriceEntryResponse`）。

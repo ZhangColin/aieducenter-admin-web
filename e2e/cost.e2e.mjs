@@ -102,6 +102,8 @@ async function main() {
   h.check('五档 tile 数值（输入 1,234,567 / 输出 987,654）', (await overviewCard.getByText('1,234,567').count()) > 0 && (await overviewCard.getByText('987,654').count()) > 0);
   h.check('五档 tile 数值（缓存读 456,789 / 缓存写 123,456 / 推理 234,567）', (await overviewCard.getByText('456,789').count()) > 0 && (await overviewCard.getByText('123,456').count()) > 0 && (await overviewCard.getByText('234,567').count()) > 0);
   h.check('五档档位名渲染（缓存读/缓存写/推理）', (await overviewCard.getByText('缓存读', { exact: true }).count()) > 0 && (await overviewCard.getByText('推理', { exact: true }).count()) > 0);
+  // #77 分解契约钉子：五档分解不含按张（张与 token 并列不混算——tiles 无第 6 档）
+  h.check('五档 tiles 不含按张（分解不含按张事件）', (await overviewCard.getByText('按张').count()) === 0);
   // #64 币种桶（总览承载面①）：双币种 chips 直读不折算（CNY 89.5 / USD 12.34——金额降序 CNY 在前）
   h.check('总览按币种成本 chips（CNY 89.5 / USD 12.34 直读不折算）', (await overviewCard.getByText('按币种成本').count()) > 0 && (await overviewCard.getByText('CNY 89.5').count()) > 0 && (await overviewCard.getByText('USD 12.34').count()) > 0);
 
@@ -124,6 +126,8 @@ async function main() {
   await alertBox.getByText('未配价用量警示').waitFor({ timeout: 10000 });
   h.check('unpriced 卡高亮渲染（warning）', (await alertBox.count()) > 0);
   h.check('unpriced 行（provider/model/档位名/无价 tokens）', (await alertBox.getByText('claude-opus-5').count()) > 0 && (await alertBox.getByText('输出', { exact: true }).count()) > 0 && (await alertBox.getByText('88,000').count()) > 0 && (await alertBox.getByText('推理', { exact: true }).count()) > 0);
+  // #77 零代码增量契约钉子：unpriced 按张行（tokenKind=6）——tier 名直读 + 张数千分位 formatCount 自动正确
+  h.check('unpriced 按张行（gpt-image-1 + 按张直读 + 张数 2,600）', (await alertBox.getByText('gpt-image-1').count()) > 0 && (await alertBox.getByText('按张', { exact: true }).count()) > 0 && (await alertBox.getByText('2,600').count()) > 0);
 
   /* ================= 6. 项目成本表：行序（成本降序 fixtures 序）+ 五档列 + 全未配价标注 ================= */
   await page.locator(ROW).first().waitFor({ timeout: 10000 });
@@ -163,6 +167,7 @@ async function main() {
   await drawer.locator('canvas').nth(1).waitFor({ timeout: 10000 });
   h.check('抽屉双柱状渲染（两 canvas）', (await drawer.locator('canvas').count()) === 2);
   h.check('抽屉未配价档位 tag（anthropic/claude-opus-5 + 档位名；无 tokens 列）', (await drawer.getByText('anthropic/claude-opus-5').count()) > 0 && (await drawer.locator('.n-tag', { hasText: '推理' }).count()) > 0);
+  h.check('抽屉未配价按张档位 tag（#77：openai/gpt-image-1 + 按张直读）', (await drawer.getByText('openai/gpt-image-1').count()) > 0 && (await drawer.locator('.n-tag', { hasText: '按张' }).count()) > 0);
   // #64 币种桶（下钻承载面③）：与总览同款 chips（教研 USD 12.34——与清单行同值锚定）
   h.check('抽屉按币种成本 chips（USD 12.34）', (await drawer.getByText('按币种成本').count()) > 0 && (await drawer.getByText('USD 12.34').count()) > 0);
 

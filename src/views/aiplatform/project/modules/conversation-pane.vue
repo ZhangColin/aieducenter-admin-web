@@ -4,6 +4,9 @@
  *
  * 头部四字段 text/kind/answered/at：kind 用响应 kindName 直读（ADR-0009）+ 语义色 tag；
  * answered 仅问答卡（kind=3）有语义——true=已答 / false=待答（挂起）双态 tag，其余 kind 恒 false 不渲染。
+ * 会话来源标注（#77，admin#98）：sessionSource=2（设计会话）条目在 kindName 右邻加灰阶小 tag
+ * 显 sessionSourceName 直读；null=主会话**缺省**不渲染任何标注（勿当未知值补归属）——时间线保持
+ * 平铺不分组、无来源过滤器（作用域改稿发言 null 与主会话无法区分，分组即误归属）。
  * 四载荷按 admin#75 文档化结构渲染（question/closing/attachments/quote——载荷缺失/形状不符走空态不报错）：
  * - kind=3 问答卡：summary + data.questions 投影（header/question/options/可多选）——toolCalls 为
  *   服务侧续跑重建最小面，不呈现；
@@ -122,6 +125,8 @@ async function copyOrderId(orderId: string) {
     <div v-for="entry in entries" :key="entry.id" class="conversation-entry rounded-8px border border-#e5e5e5 p-12px dark:border-#2a2a2a">
       <div class="mb-6px flex flex-wrap items-center gap-8px">
         <NTag :type="conversationKindTagColor[entry.kind]" size="small">{{ entry.kindName }}</NTag>
+        <!-- #77 会话来源：设计会话（sessionSource=2）灰阶小 tag 直读 sessionSourceName；null=主会话缺省不渲染 -->
+        <NTag v-if="entry.sessionSource === 2" type="default" size="small">{{ entry.sessionSourceName }}</NTag>
         <!-- 问答卡作答双态：已答 / 待答（挂起）——仅 kind=3 渲染 -->
         <NTag v-if="entry.kind === 3" :type="entry.answered ? 'success' : 'warning'" size="small" :bordered="false">
           {{ entry.answered ? $t('page.aiplatform.project.drawer.answered') : $t('page.aiplatform.project.drawer.pendingAnswer') }}

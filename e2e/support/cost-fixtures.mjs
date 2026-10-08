@@ -53,10 +53,14 @@ export const OVERVIEW = {
 /** 未配价事件时点（窗口含该时点才出警示——用量驱动，窄窗避开即收起）。 */
 export const UNPRICED_EVENT_AT = '2026-09-10T00:00:00Z';
 
-/** 全局 unpriced 档位清单（tokens 只计无价分量；tokenKind 1=输入 2=输出 3=缓存读 4=缓存写 5=推理）。 */
+/**
+ * 全局 unpriced 档位清单（tokens 只计无价分量；tokenKind 1=输入 2=输出 3=缓存读 4=缓存写 5=推理
+ * 6=按张——#77 契约钉子：按张行 tokens=张数，端侧 tokenKindName 直读 + formatCount 千分位零改自动正确）。
+ */
 export const UNPRICED_ROWS = [
   { provider: 'anthropic', model: 'claude-opus-5', tokenKind: 2, tokenKindName: '输出', tokens: 88000 },
-  { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理', tokens: 12000 }
+  { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理', tokens: 12000 },
+  { provider: 'openai', model: 'gpt-image-1', tokenKind: 6, tokenKindName: '按张', tokens: 2600 }
 ];
 
 /**
@@ -126,7 +130,8 @@ export const PROJECT_COST_DETAILS = {
     cost: { USD: 12.34 },
     unpriced: [
       { provider: 'anthropic', model: 'claude-opus-5', tokenKind: 2, tokenKindName: '输出' },
-      { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理' }
+      { provider: 'deepseek', model: 'deepseek-v4', tokenKind: 5, tokenKindName: '推理' },
+      { provider: 'openai', model: 'gpt-image-1', tokenKind: 6, tokenKindName: '按张' }
     ],
     byModel: [
       { provider: 'anthropic', model: 'claude-sonnet-5', tokens: { input: 400000, output: 350000, cacheRead: 180000, cacheWrite: 50000, reasoning: 110000 } },

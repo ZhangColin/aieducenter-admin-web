@@ -161,13 +161,17 @@ export const tokenTierLabel: Record<TokenTierKey, App.I18n.I18nKey> = {
 
 /* ---- 单价表域（#62）---- */
 
-/** token 档位标签色（语义：输入 info / 输出主色 / 缓存读成功 / 缓存写 warning / 推理红）。 */
+/**
+ * token 档位标签色（语义：输入 info / 输出主色 / 缓存读成功 / 缓存写 warning / 推理红 /
+ * 按张灰——#77 第 6 档：图片生成按张计价，1–5 五色已占满、「非 token 档」灰系自成一档）。
+ */
 export const priceTokenKindTagColor: Record<Api.Aiplatform.PriceTokenKind, NaiveUI.ThemeColor> = {
   1: 'info',
   2: 'primary',
   3: 'success',
   4: 'warning',
-  5: 'error'
+  5: 'error',
+  6: 'default'
 };
 
 /** 单价表两写动作（改价/停用；权限码 Record 的键约束）。 */
