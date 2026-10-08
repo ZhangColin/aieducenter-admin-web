@@ -876,6 +876,7 @@ const local: App.I18n.Schema = {
         projectName: 'Project',
         owner: 'Owner',
         status: 'Status',
+        deliverableType: 'Type',
         amount: 'Amount',
         createdAt: 'Created At',
         quotedAt: 'Quoted At',
@@ -907,7 +908,8 @@ const local: App.I18n.Schema = {
           cancelledAt: 'Cancelled At',
           cancelReason: 'Cancel Reason',
           cancelOperator: 'Cancel Operator',
-          downloadPackage: 'Download Source Package'
+          downloadPackage: 'Download Source Package',
+          downloadDesignPackage: 'Download Design Asset Package'
         },
         action: {
           quote: 'Quote',
@@ -938,7 +940,8 @@ const local: App.I18n.Schema = {
           quoted: 'Quote submitted',
           cancelled: 'Order cancelled',
           retried: 'Archive retry triggered',
-          downloaded: 'Source package downloaded'
+          downloaded: 'Source package downloaded',
+          downloadedDesign: 'Design asset package downloaded'
         }
       },
       project: {

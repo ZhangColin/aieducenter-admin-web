@@ -1096,6 +1096,7 @@ declare namespace App {
             projectName: string;
             owner: string;
             status: string;
+            deliverableType: string;
             amount: string;
             createdAt: string;
             quotedAt: string;
@@ -1128,6 +1129,7 @@ declare namespace App {
               cancelReason: string;
               cancelOperator: string;
               downloadPackage: string;
+              downloadDesignPackage: string;
             };
             action: {
               quote: string;
@@ -1159,6 +1161,7 @@ declare namespace App {
               cancelled: string;
               retried: string;
               downloaded: string;
+              downloadedDesign: string;
             };
           };
           project: {

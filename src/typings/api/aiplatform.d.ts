@@ -70,6 +70,9 @@ declare namespace Api {
     /** 订单状态（五态）：1=待报价 2=已报价 3=已支付 4=已归档 5=已取消。 */
     type OrderStatus = 1 | 2 | 3 | 4 | 5;
 
+    /** 交付物类型（#96 三值，下单冻结自项目终点类型）：1=设计 2=系统 3=系统＋设计。 */
+    type OrderDeliverableType = 1 | 2 | 3;
+
     /** 价目史行（append-only；detail 响应带操作者两列）。 */
     interface OrderPriceEntry {
       id: string;
@@ -94,6 +97,9 @@ declare namespace Api {
       ownerDisplayName: string | null;
       status: OrderStatus;
       statusName: string;
+      /** 交付物类型（#96：下单冻结自项目终点类型）——取件端点按型自适应。 */
+      deliverableType: OrderDeliverableType;
+      deliverableTypeName: string;
       /** Long（分）→ JSON string；待报价 null */
       amount: string | null;
       currency: string;
@@ -109,6 +115,8 @@ declare namespace Api {
       ownerDisplayName: string | null;
       status: OrderStatus;
       statusName: string;
+      deliverableType: OrderDeliverableType;
+      deliverableTypeName: string;
       amount: string | null;
       currency: string;
       /** 最新报价备注 */
@@ -134,6 +142,8 @@ declare namespace Api {
       projectId: string;
       status: OrderStatus;
       statusName: string;
+      deliverableType: OrderDeliverableType;
+      deliverableTypeName: string;
       amount: string | null;
       currency: string;
       note: string | null;

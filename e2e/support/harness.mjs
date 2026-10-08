@@ -757,7 +757,9 @@ export async function installAiplatformMocks(page, fixtures) {
       return json(route, 200, orderListResponse(url.searchParams));
     }
     if (fixtures.order) {
-      const orderMatch = path.match(/^\/aiplatform\/orders\/([^/]+)(\/(quote|cancel|retry-archive|source-package))?$/);
+      const orderMatch = path.match(
+        /^\/aiplatform\/orders\/([^/]+)(\/(quote|cancel|retry-archive|source-package|design-package))?$/
+      );
       if (orderMatch) {
         const [, id, , action] = orderMatch;
 
@@ -787,6 +789,18 @@ export async function installAiplatformMocks(page, fixtures) {
             headers: {
               'content-type': 'application/gzip',
               'content-disposition': `attachment; filename="${id}-source.tar.gz"`
+            },
+            body: gzip
+          });
+        }
+        // 设计资产包（#96 对偶源码包端点）：tar.gz 二进制流 + Content-Disposition 文件名透传
+        if (action === 'design-package' && method === 'GET') {
+          const gzip = zlib.gzipSync(`e2e-mock-design-package-for-${id}`);
+          return route.fulfill({
+            status: 200,
+            headers: {
+              'content-type': 'application/gzip',
+              'content-disposition': `attachment; filename="${id}-design.tar.gz"`
             },
             body: gzip
           });

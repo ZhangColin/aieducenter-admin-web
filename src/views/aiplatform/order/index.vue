@@ -9,7 +9,7 @@
 import { ref } from 'vue';
 import { NButton, NDropdown, NTag } from 'naive-ui';
 import type { DropdownOption } from 'naive-ui';
-import { orderStatusTagColor } from '@/constants/aiplatform';
+import { orderDeliverableTypeTagColor, orderStatusTagColor } from '@/constants/aiplatform';
 import { fetchGetAiplatformOrderList, fetchRetryArchiveAiplatformOrder } from '@/service/api';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
@@ -77,6 +77,18 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         render: row => (
           <NTag type={orderStatusTagColor[row.status]} size="small">
             {row.statusName}
+          </NTag>
+        )
+      },
+      {
+        // 交付物类型（#76）：deliverableTypeName 直读（ADR-0009）＋三色 tag；无类型筛选维度（spec 已备案）
+        key: 'deliverableType',
+        title: $t('page.aiplatform.order.deliverableType'),
+        align: 'center',
+        width: 110,
+        render: row => (
+          <NTag type={orderDeliverableTypeTagColor[row.deliverableType]} size="small">
+            {row.deliverableTypeName}
           </NTag>
         )
       },

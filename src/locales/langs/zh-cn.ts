@@ -872,6 +872,7 @@ const local: App.I18n.Schema = {
         projectName: '项目',
         owner: '下单账号',
         status: '状态',
+        deliverableType: '类型',
         amount: '金额',
         createdAt: '创建时间',
         quotedAt: '报价时间',
@@ -903,7 +904,8 @@ const local: App.I18n.Schema = {
           cancelledAt: '取消时间',
           cancelReason: '取消原因',
           cancelOperator: '取消操作者',
-          downloadPackage: '下载源码包'
+          downloadPackage: '下载源码包',
+          downloadDesignPackage: '下载设计资产包'
         },
         action: {
           quote: '报价',
@@ -934,7 +936,8 @@ const local: App.I18n.Schema = {
           quoted: '报价成功',
           cancelled: '订单已取消',
           retried: '已触发归档重试',
-          downloaded: '源码包下载成功'
+          downloaded: '源码包下载成功',
+          downloadedDesign: '设计资产包下载成功'
         }
       },
       project: {

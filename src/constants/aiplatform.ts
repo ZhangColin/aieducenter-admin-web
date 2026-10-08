@@ -17,6 +17,17 @@ export const orderStatusTagColor: Record<Api.Aiplatform.OrderStatus, NaiveUI.The
   5: 'error'
 };
 
+/**
+ * 交付物类型标签色（#76：1=设计 info／2=系统 success／3=系统＋设计 warning）。
+ * 文案走响应 deliverableTypeName 直读（ADR-0009，无端侧映射）——本 Record 只配色；
+ * 取件端点亦按此 code 自适应（2=源码包实时打包；1/3=设计资产包下单冻结件，3 型统一部件容器）。
+ */
+export const orderDeliverableTypeTagColor: Record<Api.Aiplatform.OrderDeliverableType, NaiveUI.ThemeColor> = {
+  1: 'info',
+  2: 'success',
+  3: 'warning'
+};
+
 /** 状态筛选下拉（多选；手写 number options，组件内渲染时翻译）。 */
 export const orderStatusOptions: CommonType.Option<Api.Aiplatform.OrderStatus, App.I18n.I18nKey>[] = [
   { value: 1, label: 'page.aiplatform.order.statusEnum.pendingQuote' },

@@ -96,6 +96,11 @@ export function fetchDownloadOrderSourcePackage(id: string) {
   return request<Blob, 'blob'>({ url: `/aiplatform/orders/${id}/source-package`, method: 'get', responseType: 'blob' });
 }
 
+/** GET /aiplatform/orders/{id}/design-package——设计资产包 tar.gz 二进制流（无信封；下单冻结件，1/3 型单取此包）。 */
+export function fetchDownloadOrderDesignPackage(id: string) {
+  return request<Blob, 'blob'>({ url: `/aiplatform/orders/${id}/design-package`, method: 'get', responseType: 'blob' });
+}
+
 /** GET /aiplatform/projects——项目清单（四维检索：status 三档单选/创建时间区间/externalId/projectId 精确）。 */
 export function fetchGetAiplatformProjectList(params: Api.Aiplatform.ProjectSearchParams) {
   return request<Api.Common.PageResponse<Api.Aiplatform.ProjectSummary>>({

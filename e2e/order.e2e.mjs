@@ -4,6 +4,8 @@
  *
  * 覆盖验收六条：列表渲染契约字段 / 四维筛选绑定查询参数（1-based 分页）/ 抽屉价目史 /
  * 三写（报价·改价 / 取消 reason 必填 / 重试归档）成功后回读+刷新 / 源码包二进制流 / 写失败透传 toast。
+ * #76 增量：类型列/栅格三色 tag 直读（含待报价行）+ 下载按钮按交付物类型自适应
+ * （2=系统→源码包；1=设计/3=系统＋设计→设计资产包）——两下载路由计数分立断言。
  *
  * 前置：dev server 跑在 :3001（`pnpm dev`）。运行：`node e2e/order.e2e.mjs`。
  */
@@ -63,6 +65,22 @@ async function main() {
   h.check('statusName 直读渲染（已取消）', await firstRow.getByText('已取消').isVisible());
   h.check('ownerDisplayName 渲染（王十二）', await firstRow.getByText('王十二').isVisible());
   h.check('待报价行金额占位（-）', await page.locator(ORDER_ROW).filter({ hasText: '家校沟通助手' }).getByText('待报价').isVisible());
+
+  /* ================= 2b. 交付物类型列（#76：三型 tag 直读 deliverableTypeName） ================= */
+  // exact 钉住全等——「设计」是「系统＋设计」的子串，默认子串匹配会串行
+  h.check('类型列 tag（设计——首行智能排课助手）', await firstRow.getByText('设计', { exact: true }).isVisible());
+  h.check(
+    '类型列 tag（系统——校园社团招新小程序）',
+    await page.locator(ORDER_ROW).filter({ hasText: '校园社团招新小程序' }).getByText('系统', { exact: true }).isVisible()
+  );
+  h.check(
+    '类型列 tag（系统＋设计——教研备课知识库）',
+    await page.locator(ORDER_ROW).filter({ hasText: '教研备课知识库' }).getByText('系统＋设计', { exact: true }).isVisible()
+  );
+  h.check(
+    '待报价行类型照常呈现（设计——区别于金额 NULL）',
+    await page.locator(ORDER_ROW).filter({ hasText: '家校沟通助手' }).getByText('设计', { exact: true }).isVisible()
+  );
 
   /* ================= 3. 四维筛选绑定查询参数 ================= */
   // 3a. 状态多选：待报价 + 已取消（逗号单值 status=1,5）
@@ -139,6 +157,8 @@ async function main() {
   h.check('存量行操作者占位（-）', (await priceRows.filter({ hasText: '初拟（存量迁移行）' }).getByText('-').count()) > 0);
   h.check('PRD 快照渲染', await drawer.getByText('PRD 快照').isVisible());
   h.check('抽屉回显金额 ¥499.00', (await drawer.getByText('¥499.00').count()) >= 2);
+  // #76 详情栅格类型项：status 后同款 tag（此单=系统＋设计）
+  h.check('详情栅格类型项 tag（系统＋设计）', await drawer.getByText('系统＋设计', { exact: true }).isVisible());
 
   /* ================= 7. 三写之一：改价（已报价=改价，amount 元→分 + note） ================= */
   const detailCallsBefore = calls.filter(c => c.method === 'GET' && c.path.includes('/aiplatform/orders/7393120209100200009')).length;
@@ -181,7 +201,7 @@ async function main() {
   const retryToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('已触发归档重试')));
   h.check('重试归档成功 toast', Boolean(retryToast), JSON.stringify(retryToast));
 
-  /* ================= 10. 源码包下载（tar.gz 二进制流，无信封） ================= */
+  /* ================= 10. 源码包下载（tar.gz 二进制流，无信封；deliverableType=2 系统单） ================= */
   await paidRow.getByRole('button', { name: /详\s*情/ }).click();
   const paidDrawer = page.locator('.n-drawer');
   await paidDrawer.getByRole('button', { name: '下载源码包' }).waitFor({ timeout: 10000 });
@@ -194,8 +214,31 @@ async function main() {
   const downloadToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('源码包下载成功')));
   h.check('下载成功 toast', Boolean(downloadToast), JSON.stringify(downloadToast));
 
+  /* ================= 10b. 设计资产包下载（#76 按钮/端点按型自适应：deliverableType=3 单） ================= */
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  const designRow = page.locator(ORDER_ROW).filter({ hasText: '教研备课知识库' });
+  await designRow.getByRole('button', { name: /详\s*情/ }).click();
+  const designDrawer = page.locator('.n-drawer');
+  // 按钮＝系统单的「下载源码包」不在场（互斥不出现），文案切换为设计资产包
+  await designDrawer.getByRole('button', { name: '下载设计资产包' }).waitFor({ timeout: 10000 });
+  h.check('系统＋设计单不出现「下载源码包」入口（有意取舍）', (await designDrawer.getByRole('button', { name: '下载源码包' }).count()) === 0);
+  await designDrawer.getByRole('button', { name: '下载设计资产包' }).click();
+  await sleep(800);
+  h.check(
+    '两下载路由计数分立（source×1 vs design×1 各自命中）',
+    calls.filter(c => c.path.endsWith('/source-package') && c.method === 'GET').length === 1 &&
+      calls.filter(c => c.path.endsWith('/design-package') && c.method === 'GET').length === 1
+  );
+  const designToast = await waitForMessage(page, msgs => msgs.some(m => m.includes('设计资产包下载成功')));
+  h.check('设计资产包下载成功 toast（tar.gz 落盘流）', Boolean(designToast), JSON.stringify(designToast));
+  await page.keyboard.press('Escape');
+  await sleep(400);
+
   /* ================= 11. 账号档案嵌件（#56 account:read 有码无页；externalId 筛选驱动） ================= */
-  // 11a. 无 externalId 筛选：同一抽屉（paidDrawer 仍开、当前无筛选）不出账号档案区
+  // 11a. 无 externalId 筛选：重开 paid 单抽屉（10b 已关旧实例）——开着但无筛选 → 不出账号档案区
+  await paidRow.getByRole('button', { name: /详\s*情/ }).click();
+  await paidDrawer.getByRole('button', { name: '下载源码包' }).waitFor({ timeout: 10000 });
   h.check('无 externalId 筛选：抽屉不出账号档案区', (await paidDrawer.getByText('账号档案').count()) === 0);
   await page.keyboard.press('Escape');
   await sleep(600);

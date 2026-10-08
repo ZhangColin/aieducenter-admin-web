@@ -2,17 +2,18 @@
 /**
  * 订单详情抽屉（#57）——报价依据全量：状态时点组 + 价目史（append-only 新→旧，带操作者）+ PRD 快照。
  *
- * 写按钮按态门控（未支付=报价/改价+取消；已支付=重试归档）+ hasAuth 逐写码；下载源码包=读码。
+ * 写按钮按态门控（未支付=报价/改价+取消；已支付=重试归档）+ hasAuth 逐写码；
+ * 下载按钮按交付物类型自适应（#76：2=系统→源码包；1/3→设计资产包）＝读码、不按支付态门控。
  * 报价/取消弹窗在父页统一挂载（抽屉发事件）；重试归档 $dialog 二次确认内联；
  * 写成功回读详情 + emit('updated') 通知列表刷新。
  */
 import { computed, ref, watch } from 'vue';
 import { NButton, NDataTable, NDrawer, NDrawerContent, NTag } from 'naive-ui';
 import type { TableColumns } from 'naive-ui/es/data-table/src/interface';
-import { fetchDownloadOrderSourcePackage, fetchGetAiplatformOrder } from '@/service/api';
+import { fetchDownloadOrderDesignPackage, fetchDownloadOrderSourcePackage, fetchGetAiplatformOrder } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 import { $t } from '@/locales';
-import { orderStatusTagColor } from '@/constants/aiplatform';
+import { orderDeliverableTypeTagColor, orderStatusTagColor } from '@/constants/aiplatform';
 import { formatDateTime, formatMoney, saveBlobFile } from '@/utils/common';
 import AccountProfile from '../../modules/account-profile.vue';
 
@@ -75,18 +76,30 @@ function handleQuote() {
   emit('quote', d.id, d.status === 2 ? 'requote' : 'quote', d.amount, d.note);
 }
 
-/** 源码包：tar.gz 无信封 blob；文件名以服务端 Content-Disposition 为准（provider 约定 `{id}-source.tar.gz`），缺失时端侧兜底。 */
+/**
+ * 取件按交付物类型自适应（#76）：2=系统→源码包（工作区实时打包）；1/3→设计资产包（下单冻结件，
+ * 3 型统一部件容器含系统部件即全覆盖）。3 型无源码包入口＝有意取舍（实时源码诉求走项目页文件包，
+ * 不同件）——错配不可达，错误态零专属处理（onError 透传 toast 兜底）。
+ */
+const isSourcePackage = computed(() => detail.value?.deliverableType === 2);
+
+/** 两包同族：tar.gz 无信封 blob；文件名以服务端 Content-Disposition 为准（provider 约定 `{id}-source|design.tar.gz`），缺失时端侧兜底。 */
 async function handleDownload() {
   const d = detail.value;
   if (!d) return;
+  const isSource = isSourcePackage.value;
   downloading.value = true;
-  const { data, error, response } = await fetchDownloadOrderSourcePackage(d.id);
+  const { data, error, response } = isSource
+    ? await fetchDownloadOrderSourcePackage(d.id)
+    : await fetchDownloadOrderDesignPackage(d.id);
   downloading.value = false;
   if (error || !data) return;
   const disposition = String(response?.headers?.['content-disposition'] ?? '');
-  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${d.id}-source.tar.gz`;
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${d.id}-${isSource ? 'source' : 'design'}.tar.gz`;
   saveBlobFile(data, filename);
-  window.$message?.success($t('page.aiplatform.order.success.downloaded'));
+  window.$message?.success(
+    $t(isSource ? 'page.aiplatform.order.success.downloaded' : 'page.aiplatform.order.success.downloadedDesign')
+  );
 }
 
 const priceColumns: TableColumns<Api.Aiplatform.OrderPriceEntry> = [
@@ -138,7 +151,11 @@ defineExpose({ reload: loadDetail });
             {{ $t('page.aiplatform.order.action.retryArchive') }}
           </NButton>
           <NButton v-if="canDownload" size="small" :loading="downloading" @click="handleDownload">
-            {{ $t('page.aiplatform.order.drawer.downloadPackage') }}
+            {{
+              isSourcePackage
+                ? $t('page.aiplatform.order.drawer.downloadPackage')
+                : $t('page.aiplatform.order.drawer.downloadDesignPackage')
+            }}
           </NButton>
         </div>
 
@@ -151,6 +168,12 @@ defineExpose({ reload: loadDetail });
           <span class="text-right text-#999">{{ $t('page.aiplatform.order.status') }}</span>
           <span>
             <NTag :type="orderStatusTagColor[detail.status]" size="small">{{ detail.statusName }}</NTag>
+          </span>
+          <span class="text-right text-#999">{{ $t('page.aiplatform.order.deliverableType') }}</span>
+          <span>
+            <NTag :type="orderDeliverableTypeTagColor[detail.deliverableType]" size="small">
+              {{ detail.deliverableTypeName }}
+            </NTag>
           </span>
           <span class="text-right text-#999">{{ $t('page.aiplatform.order.amount') }}</span><span>{{ formatMoney(detail.amount) }}</span>
           <span class="text-right text-#999">{{ $t('page.aiplatform.order.createdAt') }}</span><span>{{ formatDateTime(detail.createdAt) }}</span>
