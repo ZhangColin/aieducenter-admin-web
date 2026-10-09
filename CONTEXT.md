@@ -59,7 +59,7 @@
 | **封号 / 解封 (disable / activate)** | 管理员对 Account 的手动停用与恢复（status: ACTIVE↔DISABLED），带 reason（封号必填 ≤500）。封号时 identity 自动踢全部会话；解封**不**恢复会话（用户须重新登录） |
 | **系统锁定 (locked)** | 登录失败累计等触发的**自动**锁，布尔字段、独立于封号轴（临时锁 vs 永久停用语义不同）。解除走 unlock：只把 locked 置 false，不改 status、不动会话 |
 | **强制下线 (revoke sessions)** | 一键撤销某 Account 全部会话——只踢人，不改状态、不动锁。无会话列表视图，仅此一个按钮 |
-| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 20 端点已消费——技能/指派/配置 15＋草稿 4（#71）＋预检 1（#72）；swagger 共 54 全触达） |
+| **AI 平台（aiplatform）** | 平台自带的应用域；运营在统一后台监管其交易与交付。admin 作 BFF **忠实透传** provider `/api/backoffice/**` 契约（零加戏），前端只调 admin `/api/admin/aiplatform/**`（六域页面 + 账号档案嵌件 34 端点 + 技能线 20 端点 + 设计线 1 端点（design-package，#74）已消费——技能/指派/配置 15＋草稿 4（#71）＋预检 1（#72）；swagger 共 55 全触达） |
 | **AI 订单 (Order)** | aiplatform 的一笔交易，以 `id` 标识；含 append-only 报价史 `priceEntries` 与生命周期（quote→pay→archive / cancel）。_Avoid_: 支付管理域的「支付订单 PaymentOrder」——不同域、不同单号体系 |
 | **交付物类型 (deliverable type)** | AI 订单下单时冻结的交付物分型（1=设计 2=系统 3=系统＋设计）；冻结自项目终点类型，此后不随项目变更。待报价单类型已定（区别于金额的待报价 NULL）。_Avoid_: 与项目当前类型混同——订单只看冻结值 |
 | **设计资产包 (design package)** | 设计／系统＋设计单的下单冻结交付件（tar.gz）：选定稿自包含形态＋DESIGN.md＋帧衍生资产，落选稿不入；系统＋设计单＝统一部件容器（含系统部件）。按单定格，此后改稿/再定稿不漂移。_Avoid_: 与「源码包」混称——源码包是项目工作区实时打包，冻结/实时两轴 |
@@ -360,6 +360,23 @@ mock E2E（skill-draft **47/47 两轮全绿** + skill 68/68（观测扩展断言
 - **单价表**：增量收敛两处——`PriceTokenKind` 扩 1-6＋`priceTokenKindTagColor` 补 6=default 灰（五色已占满，按张「非 token 档」灰系自成一档）；tokenKind 无任何下拉/options（筛选仅 provider/model 两文本框），unitPrice string/number 不对称 T6 已消费（原串直灌＋提交转 number）零改。
 - **成本中心**：**零代码增量**——unpriced 表 tier 列 `tokenKindName` 直读、数量列 formatCount，按张行自动正确呈现；五档 tiles/双柱状按 `TOKEN_TIER_KEYS` 迭代天然不含按张（契约：分解不含按张）；cost 桶混算无从区分亦不需区分。tokens 列头「无价 tokens」保持不改（Q5——tier 名自释单位，零 i18n 改动）。
 - **横切**：`deliverableType`/`sessionSource` Integer code（JSON number）＋`*Name` 直读； typings 三处补对（OrderSummary/Detail/WriteAck、ConversationEntry、PriceTokenKind）；i18n 新键三处同步（类型列名/设计资产包按钮与成功文案）；E2E fixtures 补类型对/来源标注/六档行（house 范式）。
+
+### 2026-10-08 #74 交付：设计线四项增量点亮 ✅（#76 订单类型＋下载自适应 / #77 对话史标注＋单价表六档＋成本钉子——spec #75 两轮 grill Q1–Q5 全按推荐）
+
+- **#76 订单域**（commit `384e348`）：清单「类型」列＋详情栅格类型项（status 后同位，NTag 三色 Record 1=设计 info／2=系统 success／3=系统＋设计 warning＋`deliverableTypeName` 直读，ADR-0009 零端侧映射）；下载按钮按 `deliverableType` 自适应（2=系统→既有 source-package；1/3→新 `design-package` 端点 tar.gz 冻结件 blob——3 型无源码包入口系有意取舍），复用 `saveBlobFile`（Content-Disposition 文件名优先＋端侧兜底）＋分型成功 toast；错误零专属分支（onError 透传——按型门控使错配 404 ORD_016 不可达）。typings 三 DTO（Summary/Detail/WriteAck）补类型对＋i18n 三处；order mock E2E **43/43 两轮绿**＋十域全量回归绿（三型样本＋两下载路由计数分立断言）。
+- **#77 三域小增量**（commit `96d72f9`）：对话史 `sessionSource=2`（设计会话）条目 kindName 右邻灰阶小 tag 直读 `sessionSourceName`；**null=主会话缺省不渲染任何标注**（勿当未知值补归属），时间线平铺不分组、零来源过滤器；typings 补 `sessionSource: number | null`＋`sessionSourceName: string | null`（JSON 在场为 null 非字段缺省）。单价表 `PriceTokenKind` 扩 1-6＋标签色 Record 补 6=default 灰（1-5 五色已占满、「非 token 档」自成一档），按张行呈现/改价/停用全复用既有链路零视图改动、unitPrice 串/数不对称既有消费零改。**成本中心 src 零增量**——unpriced 按张行（tokens=张数）经 `tokenKindName` 直读＋formatCount 自动正确，以 e2e 契约钉子防未来端侧键控标签化时炸（五档 tiles 不含按张同步钉死）。project **94/94 两轮**＋全量十域 **535 断言**回归绿。
+
+### 2026-10-09 #78 联调收口：设计线真实链全量走查通过 ✅（admin-web :3001 → admin :8081 → aiplatform :8888——BFF 55 端点全触达，母票 #74 收口）
+
+**API 层全实证＋UI 真链走查 27/27**（唯一补跑一轮系走查脚本 CJK `\b` 断言自身缺陷，产品行为零问题）。收域标准对照（#56 四项同构）：① 新端点 happy path ✅（design-package 三态真下载：1 型冻结包／3 型统一部件容器／取消残留照取）；② 留痕不适用（纯读端点，类型对字段经订单三出口实读）；③ 负例三发全中 ✅（404 ORD_016＝5016 系统单取设计包／404 ORD_001＝5001 不存在单／404 PRJ_051＝4051 冻结件缺失——docker 移走冻结件构造后还原复跑 200）；④ 签名负例属机机面——全链成功即正向证据（#65 口径）。
+
+- **三型真单经真实用户流造数**（非 DB 注入）：登录 OIDC → `endpointType=1` 一句话建项目（山雾咖啡双设计物）→ 访谈 12 问自动作答收敛 → PRD 产出 → 设计轨真模型产出（主徽标位图三稿＋首页位图三稿，出图走 volcano 按张计量）→ 两件各定稿稿1（稿2/稿3＝落选）→ **下单 1 型单**（366790499140375855）→ 取消 → 切终点 3 → **再下 3 型单**（366790818035764758，赶在重产轮收口前落冻结）——订单清单三型齐（3/1/2/2），待报价行类型对有值（amount NULL 行类型照显）。
+- **设计资产包 tar.gz 解开验证**：1 型包＝`DESIGN.md`（品牌色板 7 token＋风格＋遵守条目——出图 palette/style 参数转正物化）＋选定稿×2；**落选稿（稿2/稿3×2）不入** ✓；3 型统一部件容器＝工作区树剪枝（src/、docs/PRD.md 等 14 文件，AGENTS.md/规范侧车结构性不入）＋设计部件显式追加 ✓。Content-Disposition `{orderId}-design.tar.gz`、application/gzip。**帧衍生未 live 覆盖**——两件均平面类位图稿（media=image），界面类 HTML 稿 live 路径有 provider 缺陷（见 aiplatform#303 发现一），帧衍生渲染归 provider 侧 docker LiveTest 证据（chromium PNG 魔数已钉）。
+- **系统单源码包回归**：休眠沙箱唤醒（355998826453863864 封存深度唤醒→运行中，WSP_002 1002 数据态先证后愈）→ 200/136KB/tar 52 件/CD `356710602611360985-source.tar.gz`。
+- **对话史混排**：41 条＝37 null（主会话）＋4×`sessionSource=2`「设计会话」（首产收尾×2＋定稿收尾×2）；UI 恰 4 枚灰阶 tag、null 零标注。
+- **按张两处真数据**：单价表 2 行（zhipu/glm-image 0.1 CNY＋dashscope/qwen-image-3.0 0.18 CNY，经 provider 官方开行通道种入、操作者落空＝种子口径、2026-01-01 敞口）——**volcano（当前出图供数方）刻意不配价**，出图 7 张进成本中心 unpriced 按张行（`tokens="7"`＝张数）——「漏配价」正是 unpriced 警示卡的设计场景，AC4b 由真用量点亮而非记录数据态；五档 tiles/双柱状不含按张（契约钉死）。
+- **provider 活体走查两发现 → [aiplatform#303](https://github.com/ZhangColin/aiplatform/issues/303)**（跨仓提 issue 不改码）：① 界面类 HTML 稿收口判据 live 必不过——harness write_file 落稿变更路径无前导斜杠 vs `designAnchored` 要 `/design/`（GenerateImageTool #292 显式补斜杠故图片路通；seam 测试 stub 锚定形路径盲区），三尝试全败重试超限、10 份 HTML 在盘不被识别；② PRD 清单章形态偏离（章序号前缀＋验收要点编号混入）——首轮「形态偏离设计不派」、修正后验收要点被解析成 12 件设计物，二次精确意见后才收敛 2 件。本仓消费面零影响（订单/包/对话/按张全通）。
+- **环境数据留档**：设计项目 366576215829955473（未命名项目——LLM 取名未落、占位保留）留档不删（订单/对话/冻结件的活体样本）；1 型单留已取消态（取消残留＋不按支付态门控的实证锚）；3 型单待报价态；轻简待办沙箱唤醒后留运行态（自动休眠策略自收）；单价表 volcano 行持续未配价（unpriced 警示长明＝漏配价可观测的正例，后续如需消除经 provider 种子脚本补种即可）；走查脚本 /tmp 用后即删未入仓。
 
 ### 2026-09-17 T7 交付：素材域点亮 ✅（#63，六域之七——清单 + 详情抽屉（PRD 全文）+ 停用⇄启用 + 删除）
 
