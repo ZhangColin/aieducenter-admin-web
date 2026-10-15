@@ -121,7 +121,11 @@ async function main() {
   await page.mouse.move(10, 10);
   await sleep(300);
 
-  /* ================= 5. unpriced 警示卡：默认窗（覆盖 2026-09-10）高亮 ================= */
+  /* ================= 5. unpriced 警示卡：宽窗（显式覆盖 2026-09-10）高亮 ================= */
+  // 默认窗＝最近 30 自然日（相对「现在」）——事件日期钉死 2026-09-10，落地 5 天后默认窗滑出事件、
+  // 警示卡不渲染（时间漂移炸点）。此处显式填宽窗，断言不再依赖「现在」。
+  await fillRange(page, '2026-09-01 00:00:00', '2026-09-16 00:00:00');
+  await sleep(1000);
   const alertBox = page.locator('.n-alert');
   await alertBox.getByText('未配价用量警示').waitFor({ timeout: 10000 });
   h.check('unpriced 卡高亮渲染（warning）', (await alertBox.count()) > 0);
